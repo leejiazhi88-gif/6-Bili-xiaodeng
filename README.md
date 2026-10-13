@@ -5,9 +5,9 @@
 - 创业板指：`399006.SZ`
 - 科创综指：`000680.SH`
 
-GitHub 仓库：https://github.com/leejiazhi88-gif/Bili-xiaodeng
+GitHub 仓库：https://github.com/leejiazhi88-gif/6-Bili-xiaodeng
 
-线上页面：https://leejiazhi88-gif.github.io/Bili-xiaodeng/
+线上页面：https://leejiazhi88-gif.github.io/6-Bili-xiaodeng/
 
 目前包含：
 
