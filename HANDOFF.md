@@ -88,7 +88,8 @@ git pull --rebase
 node ./work/build_market_dashboard.js
 git add .
 git commit -m "描述这次修改"
-git push
+git push origin main
+git push origin main:gh-pages
 ```
 
-GitHub Pages 使用 `main` 分支根目录发布，推送后线上页面会自动更新。Pages/CDN 可能有几分钟缓存。
+GitHub Pages 使用 `gh-pages` 分支根目录发布；`main` 保存源码与数据，两条分支都要同步。Pages/CDN 可能有几分钟缓存。
