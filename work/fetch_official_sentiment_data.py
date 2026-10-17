@@ -13,7 +13,7 @@ CONFIG = Path.home() / ".codex" / "config.toml"
 OUTPUT = ROOT / "work" / "official_sentiment_data.json"
 START_YEAR = 2010
 END_YEAR = 2026
-END_DATE = "20261013"
+END_DATE = "20261016"
 
 STAMP_DUTY_EVENTS = [
     ("20080501", 0.3),

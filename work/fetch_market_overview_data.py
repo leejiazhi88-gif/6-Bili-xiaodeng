@@ -9,7 +9,7 @@ ROOT = Path(__file__).resolve().parents[1]
 CONFIG = Path.home() / ".codex" / "config.toml"
 OUTPUT = ROOT / "work" / "market_overview_data.json"
 START_YEAR = 2006
-END_DATE = "20261013"
+END_DATE = "20261016"
 
 
 def get_token():

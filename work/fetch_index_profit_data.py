@@ -12,7 +12,7 @@ CONFIG = Path.home() / ".codex" / "config.toml"
 OUTPUT = ROOT / "work" / "index_profit_data.json"
 CACHE = ROOT / "work" / "income_cache.json"
 START_YEAR = 2010
-END_DATE = "20261013"
+END_DATE = "20261016"
 INDICES = {
     "sh": {"code": "399006.SZ", "name": "创业板指"},
     "sz": {"code": "000680.SH", "name": "科创综指"},
