@@ -20,10 +20,24 @@ GitHub 仓库：https://github.com/leejiazhi88-gif/6-Bili-xiaodeng
 
 ## 运行
 
-生成页面：
+刷新数据并生成页面（使用本机已配置的 Tushare 凭据）：
 
 ```bash
-node ./work/build_market_dashboard.js
+python3 ./work/fetch_market_overview_data.py
+python3 ./work/fetch_valuation_data.py
+python3 ./work/fetch_retail_sentiment_data.py
+python3 ./work/fetch_large_money_sentiment_data.py
+python3 ./work/fetch_official_sentiment_data.py
+python3 ./work/fetch_index_profit_data.py
+node ./work/build_market_dashboard.js --cached
+```
+
+各脚本自动使用运行当天作为查询截止日；实际数据日期以接口最新披露为准。财报缓存跨日运行时重新获取，避免漏掉新披露财报。手工事件库不随数据接口自动更新。
+
+仅使用缓存重新生成页面：
+
+```bash
+node ./work/build_market_dashboard.js --cached
 ```
 
 本地预览：

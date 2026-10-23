@@ -4,7 +4,7 @@ import re
 import ssl
 import urllib.request
 from collections import defaultdict
-from datetime import datetime
+from datetime import datetime, timedelta
 from pathlib import Path
 
 
@@ -12,8 +12,8 @@ ROOT = Path(__file__).resolve().parents[1]
 CONFIG = Path.home() / ".codex" / "config.toml"
 OUTPUT = ROOT / "work" / "large_money_sentiment_data.json"
 START_YEAR = 2018
-END_YEAR = 2026
-END_DATE = "20261016"
+END_YEAR = datetime.now().year
+END_DATE = datetime.now().strftime("%Y%m%d")
 
 
 def get_token():
@@ -162,6 +162,15 @@ def main():
                 "holderNetShares": round(holder.get("netShares", 0), 4),
             }
         )
+
+    # Preserve published history; refresh the previous latest week and newer weeks.
+    # Historical API windows can return fewer records on subsequent requests.
+    if OUTPUT.exists():
+        previous = json.loads(OUTPUT.read_text(encoding="utf-8"))
+        last = datetime.strptime(previous["meta"]["end"], "%Y-%m-%d")
+        refresh_start = (last - timedelta(days=last.weekday())).strftime("%Y-%m-%d")
+        series = ([row for row in previous["series"] if row["date"] < refresh_start]
+                  + [row for row in series if row["date"] >= refresh_start])
 
     result = {
         "meta": {

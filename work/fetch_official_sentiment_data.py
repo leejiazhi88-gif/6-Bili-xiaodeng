@@ -12,8 +12,8 @@ ROOT = Path(__file__).resolve().parents[1]
 CONFIG = Path.home() / ".codex" / "config.toml"
 OUTPUT = ROOT / "work" / "official_sentiment_data.json"
 START_YEAR = 2010
-END_YEAR = 2026
-END_DATE = "20261016"
+END_YEAR = datetime.now().year
+END_DATE = datetime.now().strftime("%Y%m%d")
 
 STAMP_DUTY_EVENTS = [
     ("20080501", 0.3),
@@ -90,9 +90,11 @@ def active_stamp_rate(month):
 
 def main():
     token = get_token()
+    previous = json.loads(OUTPUT.read_text(encoding="utf-8")) if OUTPUT.exists() else None
+    refresh_year = int(previous["meta"]["end"][:4]) if previous else START_YEAR
     ipos = []
     holder_trades = []
-    for start, end in year_ranges():
+    for start, end in year_ranges(refresh_year):
         ipos.extend(
             call_api(
                 token,
@@ -101,7 +103,7 @@ def main():
                 "ts_code,ipo_date,issue_date,amount,price,funds",
             )
         )
-    for start, end in month_ranges(2018):
+    for start, end in month_ranges(max(2018, refresh_year)):
         holder_trades.extend(
             call_api(
                 token,
@@ -213,6 +215,11 @@ def main():
                 "nationalTeamHolding": None,
             }
         )
+
+    if previous:
+        cutoff = f"{refresh_year}-01-01"
+        series = ([row for row in previous["series"] if row["date"] < cutoff]
+                  + [row for row in series if row["date"] >= cutoff])
 
     result = {
         "meta": {

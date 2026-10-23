@@ -191,7 +191,7 @@ function htmlTemplate(data, echartsSource) {
     </div>
   </section>
   <section class="notes">
-    <div class="note"><strong>利润口径：</strong>真实利润为指数成分股归母净利润 TTM 汇总，单位为亿元；按 Tushare 指数权重表识别当期成分，再汇总这些成分股最近四个季度的归母净利润。</div>
+    <div class="note"><strong>利润口径：</strong>真实利润为指数成分股归母净利润 TTM 汇总，单位为亿元；按 Tushare 指数权重表识别当期成分，再汇总这些成分股最近四个季度的归母净利润。最新报告期可能尚未披露完整：创业板覆盖率 ${data.stats.sh.profitCoverage ?? "—"}%，科创综指覆盖率 ${data.stats.sz.profitCoverage ?? "—"}%；未完整披露的汇总不可直接与完整报告期比较。</div>
     <div class="note"><strong>阅读方法：</strong>价格上涨若主要由真实利润上升推动，质量更扎实；若价格快速上涨、利润横盘而PE显著抬升，则主要是估值扩张。虚线标记历史典型顶部窗口，仅用于辅助复盘。</div>
   </section>
 </main>
@@ -351,6 +351,7 @@ window.addEventListener("resize", () => charts.forEach(chart => chart.resize()))
 }
 
 async function main() {
+  if (!process.argv.includes("--cached")) {
   const { execFileSync, spawnSync } = require("child_process");
   const candidates = [
     process.env.CODEX_PYTHON,
@@ -386,6 +387,7 @@ async function main() {
   } catch (error) {
     if (!fs.existsSync(path.join(ROOT, "work", "valuation_data.json"))) throw error;
     console.warn("Valuation refresh failed; using the existing valuation_data.json cache.");
+  }
   }
   const overview = readMarketOverview();
   END = overview.meta.end;

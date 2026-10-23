@@ -11,7 +11,8 @@ ROOT = Path(__file__).resolve().parents[1]
 CONFIG = Path.home() / ".codex" / "config.toml"
 OUTPUT = ROOT / "work" / "valuation_data.json"
 START_YEAR = 2006
-END_YEAR = 2026
+END_YEAR = datetime.now().year
+END_DATE = datetime.now().strftime("%Y%m%d")
 
 
 def get_token():
@@ -47,7 +48,7 @@ def fetch_by_year(token, api_name, base_params, fields):
         params = {
             **base_params,
             "start_date": f"{year}0101",
-            "end_date": f"{year}1231",
+            "end_date": min(f"{year}1231", END_DATE),
         }
         rows.extend(call_api(token, api_name, params, fields))
     unique = {row["trade_date"]: row for row in rows}
@@ -126,7 +127,7 @@ def main():
     result = {
         "meta": {
             "start": f"{START_YEAR}-01-01",
-            "end": f"{END_YEAR}-12-31",
+            "end": datetime.strptime(END_DATE, "%Y%m%d").strftime("%Y-%m-%d"),
             "bond": "中债国债收益率曲线 10年期到期收益率",
             "spread": "100 / PE(TTM) - 10年期国债收益率",
             "indices": "创业板指(399006.SZ) / 科创综指(000680.SH)",

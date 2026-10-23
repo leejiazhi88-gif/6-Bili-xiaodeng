@@ -1,3 +1,5 @@
+from concurrent.futures import ThreadPoolExecutor
+from datetime import datetime
 import bisect
 import json
 import re
@@ -12,7 +14,7 @@ CONFIG = Path.home() / ".codex" / "config.toml"
 OUTPUT = ROOT / "work" / "index_profit_data.json"
 CACHE = ROOT / "work" / "income_cache.json"
 START_YEAR = 2010
-END_DATE = "20261016"
+END_DATE = datetime.now().strftime("%Y%m%d")
 INDICES = {
     "sh": {"code": "399006.SZ", "name": "创业板指"},
     "sz": {"code": "000680.SH", "name": "科创综指"},
@@ -96,32 +98,33 @@ def fetch_income_rows(token, ts_code):
 def ensure_income_cache(token, codes):
     cache = load_cache()
     income = cache.setdefault("income", {})
-    missing = [code for code in sorted(codes) if code not in income]
-    for index, code in enumerate(missing, 1):
-        try:
-            rows = fetch_income_rows(token, code)
-        except Exception as error:
-            print(f"income fetch failed for {code}: {error}")
-            rows = []
-        cleaned = []
-        for row in rows:
-            if row.get("report_type") != "1":
-                continue
-            value = row.get("n_income_attr_p")
-            if value is None:
-                continue
-            cleaned.append(
-                {
-                    "ann_date": row.get("ann_date"),
-                    "end_date": row["end_date"],
-                    "n_income_attr_p": float(value),
-                }
-            )
-        income[code] = cleaned
-        if index % 25 == 0:
-            save_cache(cache)
-            print(f"income cache progress: {index}/{len(missing)} new codes")
+    missing = [code for code in sorted(codes)
+               if not income.get(code) or cache.get("meta", {}).get("end_date") != END_DATE]
+    def fetch_one(code):
+        rows = fetch_income_rows(token, code)
         time.sleep(0.08)
+        return code, rows
+
+    # Bound concurrency; only publish the cache after every request succeeds.
+    with ThreadPoolExecutor(max_workers=4) as executor:
+        for index, (code, rows) in enumerate(executor.map(fetch_one, missing), 1):
+            cleaned = []
+            for row in rows:
+                if row.get("report_type") != "1":
+                    continue
+                value = row.get("n_income_attr_p")
+                if value is None:
+                    continue
+                cleaned.append(
+                    {
+                        "ann_date": row.get("ann_date"),
+                        "end_date": row["end_date"],
+                        "n_income_attr_p": float(value),
+                    }
+                )
+            income[code] = cleaned
+            if index % 25 == 0:
+                print(f"income cache progress: {index}/{len(missing)} refreshed codes")
     save_cache(cache)
     return cache
 
