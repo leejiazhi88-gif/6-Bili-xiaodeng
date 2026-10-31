@@ -81,6 +81,7 @@ http://127.0.0.1:9876
 - 科创50价格、PE(TTM)、PB：来自 Tushare `index_daily` / `index_dailybasic`
 - 科创综指价格：来自 Tushare `index_daily`
 - 科创综指 PE(TTM)、PB：来自[中证指数官方单张](https://oss-ch.csindex.com.cn/static/html/csindex/public/uploads/indices/detail/files/zh_CN/000680factsheet.pdf)，仅按单张实际报告日展示月末快照，不作为每日估值，不插值；抓取副本保存在 `work/sources/`
+- 时间轴默认展示全部可用历史，并标出板块开市日。创业板 2009-10-30 开市，但创业板指以 2010-05-31 为基日；科创板 2019-07-22 开市，但科创50和科创综指均以 2019-12-31 为基日。板块开市和指数起点不是同一天，开市至基日之间不填造指数价格。
 - 真实利润：指数成分股归母净利润 TTM 汇总，单位亿元
 - PB：来自 Tushare 指数每日指标
 - 股债收益差：`100 / PE(TTM) - 10年期国债收益率`

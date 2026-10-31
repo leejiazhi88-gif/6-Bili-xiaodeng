@@ -4,7 +4,7 @@ const path = require("path");
 const ROOT = path.resolve(__dirname, "..");
 const OUTPUT = path.join(ROOT, "outputs", "growth_indices_dashboard.html");
 const ROOT_INDEX = path.join(ROOT, "index.html");
-const START = "2010-06-01";
+const BOARD_START = { sh: "2009-10-30", k50: "2019-07-22", sz: "2019-07-22" };
 let END;
 
 function readMarketOverview() {
@@ -30,6 +30,7 @@ function lastByWeek(rows) {
       result[result.length - 1] = row;
     }
   }
+  if (rows.length && result[0].date !== rows[0].date) result.unshift(rows[0]);
   return result;
 }
 
@@ -121,6 +122,9 @@ function htmlTemplate(data, echartsSource) {
     .sh { color: var(--sh); } .sz { color: var(--sz); }
     .k50 { color: var(--k50); }
     .source-summary { color: var(--muted); font-size: 12px; line-height: 1.8; margin: 0 0 16px; overflow-wrap: anywhere; }
+    .timeline-summary { color: var(--muted); font-size: 12px; line-height: 1.8; margin: 0 0 12px; }
+    .timeline-summary strong { color: var(--text); }
+    .timeline-summary a { color: var(--sz); }
     .source-summary a { color: var(--sz); }
     .toolbar {
       display: flex; align-items: center; justify-content: space-between; gap: 16px;
@@ -173,12 +177,17 @@ function htmlTemplate(data, echartsSource) {
       <h1>成长指数：创业板指、科创50、科创综指</h1>
       <div class="subtitle">创业板指 × 科创50 × 科创综指</div>
     </div>
-    <div class="asof">数据区间：${START} 至 ${END}<br>周频展示，底层数据为交易日数据</div>
+    <div class="asof">截至 ${END}<br>周频展示，底层数据为交易日数据</div>
   </header>
   <section class="cards" id="cards"></section>
   <div class="source-summary">
     科创50估值：<a href="https://tushare.pro/document/2?doc_id=128" target="_blank" rel="noopener">Tushare</a> · ${data.stats.k50.date}。
     科创综指估值：<a href="${data.official.meta.sourceUrl}" target="_blank" rel="noopener">中证指数官方单张</a> · ${data.official.snapshots.at(-1).date} 月末快照；采用计算用股本口径，非当日估值，图中仅标记实际披露日期，不插值。
+  </div>
+  <div class="timeline-summary">
+    <strong>板块起点与指数起点：</strong>
+    <a href="https://www.szse.cn/aboutus/trends/news/t20091102_517893.html" target="_blank" rel="noopener">创业板开市</a> ${BOARD_START.sh}，创业板指行情始于 ${data.sh[0].date}；
+    <a href="https://www.sse.com.cn/aboutus/mediacenter/hotandd/c/c_20190705_4858654.shtml" target="_blank" rel="noopener">科创板开市</a> ${BOARD_START.k50}，科创50、科创综指行情始于 ${data.k50[0].date}。开市日至指数基日期间没有这三个指数的价格数据。
   </div>
   <section>
     <div class="toolbar">
@@ -187,7 +196,7 @@ function htmlTemplate(data, echartsSource) {
         <button data-years="3">3年</button>
         <button data-years="5">5年</button>
         <button data-years="10">10年</button>
-        <button class="active" data-years="20">20年</button>
+        <button class="active" data-years="0">全部</button>
       </div>
       <div class="legend">
         <span><i class="dot" style="background:var(--sh)"></i>创业板指</span>
@@ -266,6 +275,7 @@ const commonAxis = {
 function chartOption(title, rows, color) {
   const isStar50 = title === "科创50";
   const isComposite = title === "科创综指";
+  const boardStart = title === "创业板指" ? "${BOARD_START.sh}" : "${BOARD_START.k50}";
   return {
     animation: false,
     backgroundColor: "transparent",
@@ -298,10 +308,10 @@ function chartOption(title, rows, color) {
     },
     axisPointer: { link: [{ xAxisIndex: "all" }], label: { backgroundColor: "#263b58" } },
     xAxis: [
-      { ...commonAxis, gridIndex: 0, axisLabel: { show: false } },
-      { ...commonAxis, gridIndex: 1, axisLabel: { show: false } },
-      { ...commonAxis, gridIndex: 2, axisLabel: { show: false } },
-      { ...commonAxis, gridIndex: 3 }
+      { ...commonAxis, gridIndex: 0, min: boardStart, axisLabel: { show: false } },
+      { ...commonAxis, gridIndex: 1, min: boardStart, axisLabel: { show: false } },
+      { ...commonAxis, gridIndex: 2, min: boardStart, axisLabel: { show: false } },
+      { ...commonAxis, gridIndex: 3, min: boardStart }
     ],
     yAxis: [
       { type: "value", gridIndex: 0, scale: true, axisLabel: { color: "#7890aa" }, splitLine: { lineStyle: { color: "#17283d" } } },
@@ -340,8 +350,8 @@ charts[2].setOption(chartOption("科创50", DATA.k50, COLORS.k50));
 function applySharedRange(years) {
   const end = new Date("${END}T00:00:00Z");
   const start = new Date(end);
-  start.setUTCFullYear(start.getUTCFullYear() - years);
-  const startValue = start.toISOString().slice(0, 10);
+  if (years) start.setUTCFullYear(start.getUTCFullYear() - years);
+  const startValue = years ? start.toISOString().slice(0, 10) : "${BOARD_START.sh}";
   const endValue = "${END}";
   charts.forEach(chart => {
     chart.dispatchAction({
@@ -363,7 +373,7 @@ document.querySelectorAll(".ranges [data-years]").forEach(btn => btn.addEventLis
   document.querySelectorAll(".ranges [data-years]").forEach(b => b.classList.toggle("active", b === btn));
   applySharedRange(Number(btn.dataset.years));
 }));
-applySharedRange(20);
+applySharedRange(0);
 window.addEventListener("resize", () => charts.forEach(chart => chart.resize()));
 </script>
 </body>
