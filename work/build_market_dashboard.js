@@ -182,7 +182,7 @@ function htmlTemplate(data, echartsSource) {
   <section class="cards" id="cards"></section>
   <div class="source-summary">
     科创50估值：<a href="https://tushare.pro/document/2?doc_id=128" target="_blank" rel="noopener">Tushare</a> · ${data.stats.k50.date}。
-    科创综指估值：<a href="${data.official.meta.sourceUrl}" target="_blank" rel="noopener">中证指数官方单张</a> · ${data.official.snapshots.at(-1).date} 月末快照；采用计算用股本口径，非当日估值，图中仅标记实际披露日期，不插值。
+    科创综指估值：<a href="${data.officialHistory.meta.sourceUrl}" target="_blank" rel="noopener">中证指数官方历史行情</a> · ${data.officialHistory.rows[0].date} 起有 PE(TTM)，最新 ${data.officialHistory.rows.at(-1).date}；与 Tushare 估值口径不同，不直接横向比较。<a href="${data.official.meta.sourceUrl}" target="_blank" rel="noopener">官方单张</a>用于交叉核对。
   </div>
   <div class="timeline-summary">
     <strong>板块起点与指数起点：</strong>
@@ -229,7 +229,7 @@ const cards = [
   ["科创50 PE(TTM)", fmt(DATA.stats.k50.pe), "Tushare · " + DATA.stats.k50.date, "k50"],
   ["科创50 PB", fmt(DATA.stats.k50.pb), "Tushare · " + DATA.stats.k50.date, "k50"],
   ["科创综指", fmt(DATA.stats.sz.close), "近1年 " + signed(DATA.stats.sz.yearChange), "sz"],
-  ["科创综指PE(TTM)", fmt(DATA.official.snapshots.at(-1).pe), "中证指数 · " + DATA.official.snapshots.at(-1).date + " 月末快照", "sz"],
+  ["科创综指PE(TTM)", fmt(DATA.officialHistory.rows.at(-1).pe), "中证指数 · " + DATA.officialHistory.rows.at(-1).date, "sz"],
   ["科创综指真实利润", fmt(DATA.stats.sz.profitYi), "归母净利润TTM，亿元", "sz"],
 ];
 document.getElementById("cards").innerHTML = cards.map(([label, value, meta, cls]) =>
@@ -289,7 +289,7 @@ function chartOption(title, rows, color) {
       { text: title, left: 20, top: 12, textStyle: { color, fontSize: 16, fontWeight: 750 } },
       { text: "指数价格", left: 20, top: 36, textStyle: { color: "#edf4ff", fontSize: 12 } },
       { text: "交易规模", left: 20, top: "30%", textStyle: { color: "#edf4ff", fontSize: 12 } },
-      { text: isComposite ? "PE(TTM) · 官方月末快照" : "市盈率 PE(TTM)", left: 20, top: "54%", textStyle: { color: "#edf4ff", fontSize: 12 } },
+      { text: isComposite ? "PE(TTM) · 中证指数" : "市盈率 PE(TTM)", left: 20, top: "54%", textStyle: { color: "#edf4ff", fontSize: 12 } },
       { text: isStar50 ? "市净率 PB" : "归母净利润TTM（亿元）", left: 20, top: "77%", textStyle: { color: "#edf4ff", fontSize: 12 } }
     ],
     tooltip: {
@@ -330,8 +330,7 @@ function chartOption(title, rows, color) {
       series(title + "价格", rows, "close", 0, 0, color, true),
       scaleSeries("交易量（亿手）", rows, "volumeYiShou", 1, 1, COLORS.volume),
       scaleSeries("交易额（亿元）", rows, "amountYi", 1, 2, COLORS.amount),
-      isComposite ? { name: "科创综指PE(TTM) · 中证指数", type: "scatter", xAxisIndex: 2, yAxisIndex: 3,
-        data: points(DATA.official.snapshots, "pe"), symbolSize: 11, itemStyle: { color } }
+      isComposite ? series("科创综指PE(TTM) · 中证指数", DATA.officialHistory.rows, "pe", 2, 3, color)
         : series(title + "PE(TTM)", rows, "pe", 2, 3, color),
       series(title + (isStar50 ? "PB" : "真实利润"), rows, isStar50 ? "pb" : "profitYi", 3, 4, color)
     ]
@@ -402,6 +401,9 @@ async function main() {
     execFileSync(python, [path.join(ROOT, "work", "fetch_star_official_valuation.py")], {
       stdio: "inherit",
     });
+    execFileSync(python, [path.join(ROOT, "work", "fetch_star_official_history.py")], {
+      stdio: "inherit",
+    });
     execFileSync(python, [path.join(ROOT, "work", "fetch_index_profit_data.py")], {
       stdio: "inherit",
     });
@@ -428,8 +430,9 @@ async function main() {
   const sz = lastByWeek(attachProfit(overview.sz, profit.sz));
   const k50 = lastByWeek(overview.k50);
   const official = JSON.parse(fs.readFileSync(path.join(ROOT, "work", "star_official_valuation.json"), "utf8"));
+  const officialHistory = JSON.parse(fs.readFileSync(path.join(ROOT, "work", "star_official_history.json"), "utf8"));
   const echartsSource = fs.readFileSync(path.join(ROOT, "work", "echarts.min.js"), "utf8");
-  const data = { sh, sz, k50, official, stats: { sh: stats(sh), sz: stats(sz), k50: stats(k50) } };
+  const data = { sh, sz, k50, official, officialHistory, stats: { sh: stats(sh), sz: stats(sz), k50: stats(k50) } };
   fs.mkdirSync(path.dirname(OUTPUT), { recursive: true });
   fs.writeFileSync(OUTPUT, htmlTemplate(data, echartsSource), "utf8");
   require("./add_valuation_module");

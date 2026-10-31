@@ -225,7 +225,7 @@ const js = `
       "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"
     })[char]);
 
-    const valuationData = { sh: DATA.sh, sz: DATA.official.snapshots, k50: DATA.k50 };
+    const valuationData = { sh: DATA.sh, sz: DATA.officialHistory.rows, k50: DATA.k50 };
     valuationExtra.k50 = DATA.k50;
     valuationExtra.sz = DATA.official.snapshots;
     const curatedEvents = {
@@ -353,8 +353,8 @@ const js = `
 
     const metricConfig = {
       pe: {
-        title: "PE(TTM)", unit: "倍", subtitle: "创业板、科创50：Tushare周频；科创综指：中证指数月末快照",
-        note: "科创综指为官方计算用股本口径，只绘制披露日散点；日期与Tushare序列不同。"
+        title: "PE(TTM)", unit: "倍", subtitle: "创业板、科创50：Tushare周频；科创综指：中证指数日频",
+        note: "科创综指官方PE从2024-10-23开始；与Tushare估值口径不同，不直接比较绝对倍数。"
       },
       pePercentile: {
         title: "PE历史分位", unit: "%", subtitle: "各时点相对当前所选时间跨度的位置",
@@ -449,7 +449,7 @@ const js = `
       document.getElementById("valuationMetricNote").textContent = cfg.note;
       document.getElementById("valuationLatestReading").textContent =
         "最新：创业板 " + fmt(shLatest, 2) + cfg.unit + " / 科创50 " + fmt(k50Latest, 2) + cfg.unit +
-        " / 科创综指 " + (activeMetric === "pe" ? fmt(szLatest, 2) + cfg.unit + "（" + DATA.official.snapshots.at(-1).date + "）" : "暂无连续序列");
+        " / 科创综指 " + (activeMetric === "pe" ? fmt(szLatest, 2) + cfg.unit + "（" + DATA.officialHistory.rows.at(-1).date + "）" : "暂无连续序列");
 
       const riskArea = cfg.fixedRange ? {
         silent: true,
@@ -498,7 +498,7 @@ const js = `
             itemStyle: { color: COLORS.sh }, emphasis: { focus: "series" }, markArea: riskArea
           },
           {
-            name: "科创综指官方快照" + cfg.title, type: "scatter", data: szPoints, symbolSize: 10,
+            name: "科创综指官方" + cfg.title, type: "line", data: szPoints, showSymbol: false,
             sampling: "lttb", lineStyle: { width: 2, color: COLORS.sz },
             itemStyle: { color: COLORS.sz }, emphasis: { focus: "series" }
           },
@@ -553,9 +553,9 @@ const js = `
       document.getElementById("eventCount").textContent = events.length + " 条事件";
       document.getElementById("quarterDashboard").innerHTML = [
         ["创业板PE", valueWithUnit(sh?.pe, "倍", 2)],
-        ["科创综指PE · " + (sz?.date || "无快照"), valueWithUnit(sz?.pe, "倍", 2)],
+        ["科创综指PE · " + (sz?.date || "无数据"), valueWithUnit(sz?.pe, "倍", 2)],
         ["创业板PB分位", valueWithUnit(shExtra?.pbPercentile, "%")],
-        ["科创综指PB分位", valueWithUnit(szExtra?.pbPercentile, "%")]
+        ["科创综指PB · " + (szExtra?.date || "无月末快照"), valueWithUnit(szExtra?.pb, "倍", 2)]
       ].map(item => '<div class="quarter-stat"><span>' + item[0] + '</span><strong>' + item[1] + '</strong></div>').join("");
       document.getElementById("valuationEventList").innerHTML = events.length ? events.map(event =>
         '<li class="event-item' + (event.auto ? ' auto' : '') + '">' +
