@@ -1,4 +1,5 @@
 from concurrent.futures import ThreadPoolExecutor
+from threading import Lock
 from datetime import datetime
 import bisect
 import json
@@ -100,9 +101,15 @@ def ensure_income_cache(token, codes):
     income = cache.setdefault("income", {})
     missing = [code for code in sorted(codes)
                if not income.get(code) or cache.get("meta", {}).get("end_date") != END_DATE]
+    request_lock = Lock()
+    next_request = 0.0
     def fetch_one(code):
+        nonlocal next_request
+        # Space request starts across all workers below the API's minute limit.
+        with request_lock:
+            time.sleep(max(0, next_request - time.monotonic()))
+            next_request = time.monotonic() + 0.2
         rows = fetch_income_rows(token, code)
-        time.sleep(0.08)
         return code, rows
 
     # Bound concurrency; only publish the cache after every request succeeds.

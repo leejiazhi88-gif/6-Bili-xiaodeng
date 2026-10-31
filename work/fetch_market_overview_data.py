@@ -99,6 +99,7 @@ def main():
         "sh": build_market(token, "399006.SZ"),
         "sz": build_market(token, "000680.SH"),
     }
+    result["meta"]["end"] = max(result["sh"][-1]["date"], result["sz"][-1]["date"])
     OUTPUT.write_text(
         json.dumps(result, ensure_ascii=False, separators=(",", ":")),
         encoding="utf-8",

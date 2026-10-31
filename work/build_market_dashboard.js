@@ -385,8 +385,7 @@ async function main() {
       stdio: "inherit",
     });
   } catch (error) {
-    if (!fs.existsSync(path.join(ROOT, "work", "valuation_data.json"))) throw error;
-    console.warn("Valuation refresh failed; using the existing valuation_data.json cache.");
+    throw new Error("Data refresh failed; page generation stopped. Use --cached explicitly to rebuild cached data.", { cause: error });
   }
   }
   const overview = readMarketOverview();
