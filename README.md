@@ -3,6 +3,7 @@
 这个工程模仿 `Bili Atotal / BigA-total` 的结构与视觉风格，但总览指数改为：
 
 - 创业板指：`399006.SZ`
+- 科创50：`000688.SH`
 - 科创综指：`000680.SH`
 
 GitHub 仓库：https://github.com/leejiazhi88-gif/6-Bili-xiaodeng
@@ -11,7 +12,7 @@ GitHub 仓库：https://github.com/leejiazhi88-gif/6-Bili-xiaodeng
 
 目前包含：
 
-- 总览：创业板指、科创综指的价格走势
+- 总览：创业板指、科创50、科创综指的价格和估值走势
 - 创业板估值：PE(TTM)、真实利润、PB 历史分位
 - 估值事件 List：按年份和季度切换查看典型估值事件
 - 情绪-散户模块：两市成交额、换手率、融资余额、融资余额/流通市值、涨停数量
@@ -22,8 +23,11 @@ GitHub 仓库：https://github.com/leejiazhi88-gif/6-Bili-xiaodeng
 
 刷新数据并生成页面（使用本机已配置的 Tushare 凭据）：
 
+首次运行先安装依赖：`python -m pip install -r requirements.txt`。Windows PowerShell 中按本机 Python 安装情况使用 `python` 或 `python3`；当前电脑由 Codex 自带 Python 环境运行。
+
 ```bash
 python3 ./work/fetch_market_overview_data.py
+python3 ./work/fetch_star_official_valuation.py
 python3 ./work/fetch_valuation_data.py
 python3 ./work/fetch_retail_sentiment_data.py
 python3 ./work/fetch_large_money_sentiment_data.py
@@ -58,6 +62,8 @@ http://127.0.0.1:9876
 - `index.html`：和输出页同步的根页面
 - `work/build_market_dashboard.js`：总览生成入口
 - `work/fetch_market_overview_data.py`：总览价格、PE(TTM)数据更新脚本
+- `work/fetch_star_official_valuation.py`：中证指数官方科创综指估值单张抓取脚本
+- `work/star_official_valuation.json`：官方估值快照及来源记录
 - `work/fetch_index_profit_data.py`：指数成分股归母净利润 TTM 汇总脚本
 - `work/index_profit_data.json`：真实利润数据缓存
 - `work/market_overview_data.json`：总览数据缓存
@@ -72,7 +78,9 @@ http://127.0.0.1:9876
 ## 数据口径
 
 - 创业板指价格与 PE(TTM)：来自 Tushare `index_daily` / `index_dailybasic`
+- 科创50价格、PE(TTM)、PB：来自 Tushare `index_daily` / `index_dailybasic`
 - 科创综指价格：来自 Tushare `index_daily`
+- 科创综指 PE(TTM)、PB：来自[中证指数官方单张](https://oss-ch.csindex.com.cn/static/html/csindex/public/uploads/indices/detail/files/zh_CN/000680factsheet.pdf)，仅按单张实际报告日展示月末快照，不作为每日估值，不插值；抓取副本保存在 `work/sources/`
 - 真实利润：指数成分股归母净利润 TTM 汇总，单位亿元
 - PB：来自 Tushare 指数每日指标
 - 股债收益差：`100 / PE(TTM) - 10年期国债收益率`
@@ -82,6 +90,6 @@ http://127.0.0.1:9876
 - 社融 / M2：来自 Tushare `sf_month` / `cn_m`
 - 印花税率：手工维护的政策表，当前覆盖 2008 年下调、2008 年单边征收、2023 年减半征收等关键节点
 
-注意：截至当前接口返回，Tushare 暂未提供 `000680.SH` 科创综指的 `index_dailybasic` PE/PB 序列，所以页面中科创综指 PE/PB 显示为暂无数据；真实利润使用成分股利润表汇总，仍可展示。
+注意：截至当前接口返回，Tushare 暂未提供 `000680.SH` 科创综指的 `index_dailybasic` PE/PB 序列。官方单张的估值比交易日数据更新慢，页面必须以披露日期识别其时效；真实利润仍使用成分股利润表汇总。
 
 再融资额与国家队持仓规模暂未接入连续走势图：前者缺少当前工程可稳定自动更新的全市场再融资金额接口，后者没有统一官方连续披露口径。页面保留指标入口，并通过官方事件库记录 IPO 节奏、减持监管、印花税调整、汇金增持、窗口指导等政策窗口。

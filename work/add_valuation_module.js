@@ -158,7 +158,7 @@ const moduleHtml = `
         <div class="panel-head">
           <div>
             <div class="panel-title">连续走势图</div>
-            <div class="panel-subtitle" id="valuationMetricSubtitle">创业板与科创综指 PE(TTM)，周频展示</div>
+            <div class="panel-subtitle" id="valuationMetricSubtitle">创业板、科创50与科创综指 PE(TTM)</div>
           </div>
           <div class="range-tabs" id="valuationRangeTabs">
             <button class="range-tab" data-years="3">3年</button>
@@ -225,7 +225,9 @@ const js = `
       "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"
     })[char]);
 
-    const valuationData = { sh: DATA.sh, sz: DATA.sz };
+    const valuationData = { sh: DATA.sh, sz: DATA.official.snapshots, k50: DATA.k50 };
+    valuationExtra.k50 = DATA.k50;
+    valuationExtra.sz = DATA.official.snapshots;
     const curatedEvents = {
       "2007-Q3": [
         { type: "估值升温", title: "指数估值进入历史极高区间", desc: "股价上涨明显快于真实利润增长，估值扩张成为行情主要推动力。", meta: "观察项：PE分位、IPO热度" }
@@ -351,8 +353,8 @@ const js = `
 
     const metricConfig = {
       pe: {
-        title: "PE(TTM)", unit: "倍", subtitle: "创业板与科创综指 PE(TTM)，周频展示",
-        note: "PE越高，市场对未来盈利增长的要求越高。"
+        title: "PE(TTM)", unit: "倍", subtitle: "创业板、科创50：Tushare周频；科创综指：中证指数月末快照",
+        note: "科创综指为官方计算用股本口径，只绘制披露日散点；日期与Tushare序列不同。"
       },
       pePercentile: {
         title: "PE历史分位", unit: "%", subtitle: "各时点相对当前所选时间跨度的位置",
@@ -423,6 +425,7 @@ const js = `
     }
 
     function valuationPoints(market, field) {
+      if (market === "sz" && field !== "pe") return [];
       const rows = rowsForActiveRange(market, field);
       if (field === "pePercentile" || field === "pbPercentile") {
         const sourceField = field === "pePercentile" ? "pe" : "pb";
@@ -436,14 +439,17 @@ const js = `
       const cfg = metricConfig[activeMetric];
       const shPoints = valuationPoints("sh", activeMetric);
       const szPoints = valuationPoints("sz", activeMetric);
+      const k50Points = valuationPoints("k50", activeMetric);
       const shLatest = shPoints[shPoints.length - 1]?.[1];
       const szLatest = szPoints[szPoints.length - 1]?.[1];
+      const k50Latest = k50Points[k50Points.length - 1]?.[1];
       const rangeLabel = activeYears ? activeYears + "年" : "全部可用";
       document.getElementById("valuationMetricSubtitle").textContent =
         cfg.fixedRange ? cfg.subtitle + "（" + rangeLabel + "样本动态计算）" : cfg.subtitle;
       document.getElementById("valuationMetricNote").textContent = cfg.note;
       document.getElementById("valuationLatestReading").textContent =
-        "最新：创业板 " + fmt(shLatest, 2) + cfg.unit + " / 科创综指 " + fmt(szLatest, 2) + cfg.unit;
+        "最新：创业板 " + fmt(shLatest, 2) + cfg.unit + " / 科创50 " + fmt(k50Latest, 2) + cfg.unit +
+        " / 科创综指 " + (activeMetric === "pe" ? fmt(szLatest, 2) + cfg.unit + "（" + DATA.official.snapshots.at(-1).date + "）" : "暂无连续序列");
 
       const riskArea = cfg.fixedRange ? {
         silent: true,
@@ -492,9 +498,13 @@ const js = `
             itemStyle: { color: COLORS.sh }, emphasis: { focus: "series" }, markArea: riskArea
           },
           {
-            name: "科创综指" + cfg.title, type: "line", data: szPoints, showSymbol: false,
+            name: "科创综指官方快照" + cfg.title, type: "scatter", data: szPoints, symbolSize: 10,
             sampling: "lttb", lineStyle: { width: 2, color: COLORS.sz },
             itemStyle: { color: COLORS.sz }, emphasis: { focus: "series" }
+          },
+          {
+            name: "科创50" + cfg.title, type: "line", data: k50Points, showSymbol: false,
+            lineStyle: { width: 2, color: COLORS.k50 }, itemStyle: { color: COLORS.k50 }
           }
         ]
       }, true);
@@ -543,7 +553,7 @@ const js = `
       document.getElementById("eventCount").textContent = events.length + " 条事件";
       document.getElementById("quarterDashboard").innerHTML = [
         ["创业板PE", valueWithUnit(sh?.pe, "倍", 2)],
-        ["科创综指PE", valueWithUnit(sz?.pe, "倍", 2)],
+        ["科创综指PE · " + (sz?.date || "无快照"), valueWithUnit(sz?.pe, "倍", 2)],
         ["创业板PB分位", valueWithUnit(shExtra?.pbPercentile, "%")],
         ["科创综指PB分位", valueWithUnit(szExtra?.pbPercentile, "%")]
       ].map(item => '<div class="quarter-stat"><span>' + item[0] + '</span><strong>' + item[1] + '</strong></div>').join("");

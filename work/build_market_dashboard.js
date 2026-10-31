@@ -77,7 +77,7 @@ function htmlTemplate(data, echartsSource) {
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>成长指数：创业板指、科创综指与估值</title>
+  <title>成长指数：创业板指、科创50、科创综指与估值</title>
   <style>
     :root {
       --bg: #07111f;
@@ -88,6 +88,7 @@ function htmlTemplate(data, echartsSource) {
       --muted: #8fa5bf;
       --sh: #ff5d73;
       --sz: #36c2ff;
+      --k50: #7ddc82;
       --accent: #f6c85f;
     }
     * { box-sizing: border-box; }
@@ -103,10 +104,10 @@ function htmlTemplate(data, echartsSource) {
     .wrap { max-width: 1540px; margin: 0 auto; padding: 28px 30px 34px; }
     header { display: flex; justify-content: space-between; gap: 24px; align-items: flex-end; }
     .eyebrow { color: var(--accent); font-size: 12px; letter-spacing: .18em; font-weight: 700; }
-    h1 { margin: 7px 0 6px; font-size: clamp(25px, 3vw, 42px); line-height: 1.1; }
+    h1 { margin: 7px 0 6px; font-size: 30px; line-height: 1.3; }
     .subtitle { color: var(--muted); font-size: 14px; }
     .asof { color: var(--muted); text-align: right; font-size: 13px; line-height: 1.7; }
-    .cards { display: grid; grid-template-columns: repeat(6, 1fr); gap: 12px; margin: 24px 0 16px; }
+    .cards { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin: 24px 0 16px; }
     .card {
       background: linear-gradient(145deg, rgba(16,31,50,.98), rgba(10,22,37,.98));
       border: 1px solid var(--line);
@@ -115,9 +116,12 @@ function htmlTemplate(data, echartsSource) {
       min-height: 92px;
     }
     .card .label { color: var(--muted); font-size: 12px; margin-bottom: 9px; }
-    .card .value { font-size: 24px; font-weight: 750; letter-spacing: -.02em; }
+    .card .value { font-size: 24px; font-weight: 750; letter-spacing: 0; }
     .card .meta { color: var(--muted); font-size: 11px; margin-top: 5px; }
     .sh { color: var(--sh); } .sz { color: var(--sz); }
+    .k50 { color: var(--k50); }
+    .source-summary { color: var(--muted); font-size: 12px; line-height: 1.8; margin: 0 0 16px; overflow-wrap: anywhere; }
+    .source-summary a { color: var(--sz); }
     .toolbar {
       display: flex; align-items: center; justify-content: space-between; gap: 16px;
       background: rgba(13,25,41,.86); border: 1px solid var(--line);
@@ -129,7 +133,7 @@ function htmlTemplate(data, echartsSource) {
       border-radius: 8px; padding: 7px 12px; cursor: pointer; font-weight: 650;
     }
     button:hover, button.active { color: #07111f; background: var(--accent); border-color: var(--accent); }
-    .legend { display: flex; gap: 17px; color: var(--muted); font-size: 12px; }
+    .legend { display: flex; flex-wrap: wrap; gap: 17px; color: var(--muted); font-size: 12px; }
     .dot { display: inline-block; width: 9px; height: 9px; border-radius: 50%; margin-right: 6px; }
     .index-charts {
       background: rgba(9,20,34,.94);
@@ -157,6 +161,7 @@ function htmlTemplate(data, echartsSource) {
       .cards { grid-template-columns: repeat(2, 1fr); }
       .toolbar { align-items: flex-start; flex-direction: column; }
       .notes { grid-template-columns: 1fr; }
+      h1 { font-size: 25px; }
     }
   </style>
 </head>
@@ -165,15 +170,19 @@ function htmlTemplate(data, echartsSource) {
   <header>
     <div>
       <div class="eyebrow">GROWTH INDICES DASHBOARD</div>
-      <h1>成长指数：创业板指、科创综指与估值</h1>
-      <div class="subtitle">创业板指 × 科创综指，共享同一时间横轴</div>
+      <h1>成长指数：创业板指、科创50、科创综指</h1>
+      <div class="subtitle">创业板指 × 科创50 × 科创综指</div>
     </div>
     <div class="asof">数据区间：${START} 至 ${END}<br>周频展示，底层数据为交易日数据</div>
   </header>
   <section class="cards" id="cards"></section>
+  <div class="source-summary">
+    科创50估值：<a href="https://tushare.pro/document/2?doc_id=128" target="_blank" rel="noopener">Tushare</a> · ${data.stats.k50.date}。
+    科创综指估值：<a href="${data.official.meta.sourceUrl}" target="_blank" rel="noopener">中证指数官方单张</a> · ${data.official.snapshots.at(-1).date} 月末快照；采用计算用股本口径，非当日估值，图中仅标记实际披露日期，不插值。
+  </div>
   <section>
     <div class="toolbar">
-      <div class="ranges" aria-label="创业板指与科创综指共同时间范围">
+      <div class="ranges" aria-label="三个指数共同时间范围">
         <button data-years="1">1年</button>
         <button data-years="3">3年</button>
         <button data-years="5">5年</button>
@@ -182,11 +191,13 @@ function htmlTemplate(data, echartsSource) {
       </div>
       <div class="legend">
         <span><i class="dot" style="background:var(--sh)"></i>创业板指</span>
+        <span><i class="dot" style="background:var(--k50)"></i>科创50</span>
         <span><i class="dot" style="background:var(--sz)"></i>科创综指</span>
       </div>
     </div>
     <div class="index-charts">
       <div id="chart-sh" class="index-chart"></div>
+      <div id="chart-k50" class="index-chart"></div>
       <div id="chart-sz" class="index-chart"></div>
     </div>
   </section>
@@ -198,15 +209,18 @@ function htmlTemplate(data, echartsSource) {
 <script>${echartsSource}</script>
 <script>
 const DATA = ${dataJson};
-const COLORS = { sh: "#ff5d73", sz: "#36c2ff", volume: "#f6c85f", amount: "#7ddc82" };
-const fmt = (n, digits = 2) => Number.isFinite(Number(n)) ? Number(n).toLocaleString("zh-CN", { minimumFractionDigits: digits, maximumFractionDigits: digits }) : "--";
+const COLORS = { sh: "#ff5d73", sz: "#36c2ff", k50: "#7ddc82", volume: "#f6c85f", amount: "#7ddc82" };
+const fmt = (n, digits = 2) => n != null && Number.isFinite(Number(n)) ? Number(n).toLocaleString("zh-CN", { minimumFractionDigits: digits, maximumFractionDigits: digits }) : "--";
 const signed = (n) => Number.isFinite(Number(n)) ? (n >= 0 ? "+" : "") + fmt(n, 1) + "%" : "--";
 const cards = [
   ["创业板指", fmt(DATA.stats.sh.close), "近1年 " + signed(DATA.stats.sh.yearChange), "sh"],
   ["创业板PE(TTM)", fmt(DATA.stats.sh.pe), "样本分位 " + fmt(DATA.stats.sh.pePercentile, 0) + "%", "sh"],
   ["创业板真实利润", fmt(DATA.stats.sh.profitYi), "归母净利润TTM，亿元", "sh"],
+  ["科创50", fmt(DATA.stats.k50.close), "Tushare · " + DATA.stats.k50.date, "k50"],
+  ["科创50 PE(TTM)", fmt(DATA.stats.k50.pe), "Tushare · " + DATA.stats.k50.date, "k50"],
+  ["科创50 PB", fmt(DATA.stats.k50.pb), "Tushare · " + DATA.stats.k50.date, "k50"],
   ["科创综指", fmt(DATA.stats.sz.close), "近1年 " + signed(DATA.stats.sz.yearChange), "sz"],
-  ["科创综指PE(TTM)", fmt(DATA.stats.sz.pe), "Tushare暂无序列", "sz"],
+  ["科创综指PE(TTM)", fmt(DATA.official.snapshots.at(-1).pe), "中证指数 · " + DATA.official.snapshots.at(-1).date + " 月末快照", "sz"],
   ["科创综指真实利润", fmt(DATA.stats.sz.profitYi), "归母净利润TTM，亿元", "sz"],
 ];
 document.getElementById("cards").innerHTML = cards.map(([label, value, meta, cls]) =>
@@ -221,7 +235,7 @@ const topDates = [
   { xAxis: "2018-01-29", name: "2018顶" },
   { xAxis: "2021-02-18", name: "2021顶" },
 ];
-function points(rows, field) { return rows.map(r => [r.date, Number.isFinite(Number(r[field])) ? r[field] : null]); }
+function points(rows, field) { return rows.map(r => [r.date, r[field] != null && Number.isFinite(Number(r[field])) ? r[field] : null]); }
 function series(name, rows, field, xAxisIndex, yAxisIndex, color, withMarks = false) {
   return {
     name, type: "line", xAxisIndex, yAxisIndex, data: points(rows, field),
@@ -250,6 +264,8 @@ const commonAxis = {
   splitLine: { show: false }, axisPointer: { show: true }
 };
 function chartOption(title, rows, color) {
+  const isStar50 = title === "科创50";
+  const isComposite = title === "科创综指";
   return {
     animation: false,
     backgroundColor: "transparent",
@@ -263,8 +279,8 @@ function chartOption(title, rows, color) {
       { text: title, left: 20, top: 12, textStyle: { color, fontSize: 16, fontWeight: 750 } },
       { text: "指数价格", left: 20, top: 36, textStyle: { color: "#edf4ff", fontSize: 12 } },
       { text: "交易规模", left: 20, top: "30%", textStyle: { color: "#edf4ff", fontSize: 12 } },
-      { text: "市盈率 PE(TTM)", left: 20, top: "54%", textStyle: { color: "#edf4ff", fontSize: 12 } },
-      { text: "归母净利润TTM（亿元）", left: 20, top: "77%", textStyle: { color: "#edf4ff", fontSize: 12 } }
+      { text: isComposite ? "PE(TTM) · 官方月末快照" : "市盈率 PE(TTM)", left: 20, top: "54%", textStyle: { color: "#edf4ff", fontSize: 12 } },
+      { text: isStar50 ? "市净率 PB" : "归母净利润TTM（亿元）", left: 20, top: "77%", textStyle: { color: "#edf4ff", fontSize: 12 } }
     ],
     tooltip: {
       trigger: "axis", axisPointer: { type: "cross", link: [{ xAxisIndex: "all" }] },
@@ -304,8 +320,10 @@ function chartOption(title, rows, color) {
       series(title + "价格", rows, "close", 0, 0, color, true),
       scaleSeries("交易量（亿手）", rows, "volumeYiShou", 1, 1, COLORS.volume),
       scaleSeries("交易额（亿元）", rows, "amountYi", 1, 2, COLORS.amount),
-      series(title + "PE(TTM)", rows, "pe", 2, 3, color),
-      series(title + "真实利润", rows, "profitYi", 3, 4, color)
+      isComposite ? { name: "科创综指PE(TTM) · 中证指数", type: "scatter", xAxisIndex: 2, yAxisIndex: 3,
+        data: points(DATA.official.snapshots, "pe"), symbolSize: 11, itemStyle: { color } }
+        : series(title + "PE(TTM)", rows, "pe", 2, 3, color),
+      series(title + (isStar50 ? "PB" : "真实利润"), rows, isStar50 ? "pb" : "profitYi", 3, 4, color)
     ]
   };
 }
@@ -316,6 +334,8 @@ const charts = [
 ];
 charts[0].setOption(chartOption("创业板指", DATA.sh, COLORS.sh));
 charts[1].setOption(chartOption("科创综指", DATA.sz, COLORS.sz));
+charts.push(echarts.init(document.getElementById("chart-k50"), null, { renderer: "canvas" }));
+charts[2].setOption(chartOption("科创50", DATA.k50, COLORS.k50));
 
 function applySharedRange(years) {
   const end = new Date("${END}T00:00:00Z");
@@ -369,6 +389,9 @@ async function main() {
     execFileSync(python, [path.join(ROOT, "work", "fetch_market_overview_data.py")], {
       stdio: "inherit",
     });
+    execFileSync(python, [path.join(ROOT, "work", "fetch_star_official_valuation.py")], {
+      stdio: "inherit",
+    });
     execFileSync(python, [path.join(ROOT, "work", "fetch_index_profit_data.py")], {
       stdio: "inherit",
     });
@@ -393,8 +416,10 @@ async function main() {
   const profit = readIndexProfit();
   const sh = lastByWeek(attachProfit(overview.sh, profit.sh));
   const sz = lastByWeek(attachProfit(overview.sz, profit.sz));
+  const k50 = lastByWeek(overview.k50);
+  const official = JSON.parse(fs.readFileSync(path.join(ROOT, "work", "star_official_valuation.json"), "utf8"));
   const echartsSource = fs.readFileSync(path.join(ROOT, "work", "echarts.min.js"), "utf8");
-  const data = { sh, sz, stats: { sh: stats(sh), sz: stats(sz) } };
+  const data = { sh, sz, k50, official, stats: { sh: stats(sh), sz: stats(sz), k50: stats(k50) } };
   fs.mkdirSync(path.dirname(OUTPUT), { recursive: true });
   fs.writeFileSync(OUTPUT, htmlTemplate(data, echartsSource), "utf8");
   require("./add_valuation_module");

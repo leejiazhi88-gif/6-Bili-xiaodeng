@@ -63,19 +63,17 @@ def fetch_by_year(token, api_name, ts_code, fields):
 
 def build_market(token, ts_code):
     prices = fetch_by_year(token, "index_daily", ts_code, "trade_date,close,vol,amount")
-    basics = fetch_by_year(token, "index_dailybasic", ts_code, "trade_date,pe_ttm")
+    basics = fetch_by_year(token, "index_dailybasic", ts_code, "trade_date,pe_ttm,pb")
+    pb_by_date = {row["trade_date"]: row.get("pb") for row in basics}
     pe_by_date = {
         row["trade_date"]: float(row["pe_ttm"])
         for row in basics
         if row.get("pe_ttm") and float(row["pe_ttm"]) > 0
     }
     series = []
-    last_pe = None
     for row in prices:
         date = row["trade_date"]
-        pe = pe_by_date.get(date) or last_pe
-        if pe:
-            last_pe = pe
+        pe = pe_by_date.get(date)
         close = float(row["close"])
         volume = float(row.get("vol") or 0)
         amount = float(row.get("amount") or 0)
@@ -84,6 +82,7 @@ def build_market(token, ts_code):
                 "date": f"{date[:4]}-{date[4:6]}-{date[6:]}",
                 "close": close,
                 "pe": pe,
+                "pb": pb_by_date.get(date),
                 "earnings": close / pe if pe else None,
                 "volumeYiShou": round(volume / 100000000, 4),
                 "amountYi": round(amount / 100000, 4),
@@ -98,6 +97,7 @@ def main():
         "meta": {"end": f"{END_DATE[:4]}-{END_DATE[4:6]}-{END_DATE[6:]}"},
         "sh": build_market(token, "399006.SZ"),
         "sz": build_market(token, "000680.SH"),
+        "k50": build_market(token, "000688.SH"),
     }
     result["meta"]["end"] = max(result["sh"][-1]["date"], result["sz"][-1]["date"])
     OUTPUT.write_text(
