@@ -48,7 +48,7 @@ const css = `
     }
     .valuation-grid {
       display: grid; grid-template-columns: minmax(0, 1.68fr) minmax(360px, .82fr);
-      gap: 15px; align-items: stretch;
+      gap: 15px; align-items: start;
     }
     .valuation-panel {
       min-width: 0; overflow: hidden; border: 1px solid var(--line);
@@ -74,13 +74,18 @@ const css = `
       color: var(--muted); font-size: 11px; padding: 9px 16px 0;
     }
     .metric-reading { color: var(--text); font-weight: 700; white-space: nowrap; }
-    #valuationChart { height: 500px; width: 100%; }
+    .board-chart-block { border-top: 1px solid var(--line); margin-top: 12px; }
+    .board-chart-head { display: flex; justify-content: space-between; gap: 12px; align-items: baseline; padding: 14px 16px 0; }
+    .board-chart-head strong { font-size: 14px; }
+    .board-chart-head span { color: var(--muted); font-size: 11px; text-align: right; }
+    #valuationChartChinext, #valuationChartStar { height: 310px; width: 100%; }
+    .board-empty { display: none; color: var(--muted); padding: 28px 16px 40px; font-size: 12px; }
     .event-controls { display: flex; gap: 8px; }
     .event-select {
       color: var(--text); background: #132239; border: 1px solid #2b4261;
       border-radius: 8px; padding: 7px 9px; outline: none;
     }
-    .event-body { height: 560px; overflow: auto; padding: 16px; }
+    .event-body { max-height: 560px; overflow: auto; padding: 16px; }
     .quarter-summary {
       display: flex; justify-content: space-between; gap: 12px; align-items: center;
       margin-bottom: 12px; padding-bottom: 12px; border-bottom: 1px solid var(--line);
@@ -124,12 +129,14 @@ const css = `
     }
     @media (max-width: 1050px) {
       .valuation-grid { grid-template-columns: 1fr; }
-      .event-body { height: auto; min-height: 420px; }
     }
     @media (max-width: 620px) {
+      .page-nav { position: static; width: 100%; justify-content: space-between; gap: 0; }
+      .page-nav a { padding: 7px 8px; font-size: 11px; text-align: center; }
       .module-head, .panel-head, .metric-note { align-items: flex-start; flex-direction: column; }
       .valuation-foot { grid-template-columns: 1fr; }
-      #valuationChart { height: 450px; }
+      .board-chart-head { align-items: flex-start; flex-direction: column; gap: 5px; }
+      #valuationChartChinext, #valuationChartStar { height: 280px; }
     }
   </style>
 `;
@@ -157,8 +164,8 @@ const moduleHtml = `
       <article class="valuation-panel">
         <div class="panel-head">
           <div>
-            <div class="panel-title">连续走势图</div>
-            <div class="panel-subtitle" id="valuationMetricSubtitle">创业板、科创50与科创综指 PE(TTM)</div>
+            <div class="panel-title">创业板与科创板估值</div>
+            <div class="panel-subtitle" id="valuationMetricSubtitle">PE(TTM)</div>
           </div>
           <div class="range-tabs" id="valuationRangeTabs">
             <button class="range-tab" data-years="3">3年</button>
@@ -176,9 +183,16 @@ const moduleHtml = `
         </div>
         <div class="metric-note">
           <span id="valuationMetricNote">PE越高，市场对未来盈利增长的要求越高。</span>
-          <span class="metric-reading" id="valuationLatestReading"></span>
         </div>
-        <div id="valuationChart"></div>
+        <div class="board-chart-block">
+          <div class="board-chart-head"><strong class="sh">创业板指</strong><span id="valuationLatestChinext"></span></div>
+          <div id="valuationChartChinext"></div>
+        </div>
+        <div class="board-chart-block">
+          <div class="board-chart-head"><strong class="sz">科创板</strong><span id="valuationLatestStar"></span></div>
+          <div id="valuationChartStar"></div>
+          <div class="board-empty" id="valuationStarEmpty">暂无同口径连续数据</div>
+        </div>
       </article>
 
       <aside class="valuation-panel">
@@ -400,7 +414,8 @@ const js = `
       return Number.isFinite(value) ? fmt(value, digits) + unit : "暂无数据";
     }
 
-    const valuationChart = echarts.init(document.getElementById("valuationChart"), null, { renderer: "canvas" });
+    const chinextChart = echarts.init(document.getElementById("valuationChartChinext"), null, { renderer: "canvas" });
+    const starChart = echarts.init(document.getElementById("valuationChartStar"), null, { renderer: "canvas" });
     let activeMetric = "pe";
     let activeYears = 0;
 
@@ -447,9 +462,11 @@ const js = `
       document.getElementById("valuationMetricSubtitle").textContent =
         cfg.fixedRange ? cfg.subtitle + "（" + rangeLabel + "样本动态计算）" : cfg.subtitle;
       document.getElementById("valuationMetricNote").textContent = cfg.note;
-      document.getElementById("valuationLatestReading").textContent =
-        "最新：创业板 " + fmt(shLatest, 2) + cfg.unit + " / 科创50 " + fmt(k50Latest, 2) + cfg.unit +
-        " / 科创综指 " + (activeMetric === "pe" ? fmt(szLatest, 2) + cfg.unit + "（" + DATA.officialHistory.rows.at(-1).date + "）" : "暂无连续序列");
+      document.getElementById("valuationLatestChinext").textContent =
+        "最新 " + fmt(shLatest, 2) + cfg.unit;
+      document.getElementById("valuationLatestStar").textContent =
+        "科创50 " + (Number.isFinite(k50Latest) ? fmt(k50Latest, 2) + cfg.unit : "暂无数据") +
+        " · 科创综指 " + (Number.isFinite(szLatest) ? fmt(szLatest, 2) + cfg.unit : "暂无数据");
 
       const riskArea = cfg.fixedRange ? {
         silent: true,
@@ -459,7 +476,7 @@ const js = `
         ]
       } : undefined;
 
-      valuationChart.setOption({
+      const chartOption = {
         animation: false,
         backgroundColor: "transparent",
         grid: { left: 66, right: 28, top: 42, bottom: 64 },
@@ -491,23 +508,26 @@ const js = `
             backgroundColor: "#0d1929", fillerColor: "rgba(246,200,95,.18)",
             handleStyle: { color: "#f6c85f" }, textStyle: { color: "#8fa5bf" } }
         ],
-        series: [
-          {
-            name: "创业板" + cfg.title, type: "line", data: shPoints, showSymbol: false,
-            sampling: "lttb", lineStyle: { width: 2, color: COLORS.sh },
-            itemStyle: { color: COLORS.sh }, emphasis: { focus: "series" }, markArea: riskArea
-          },
-          {
-            name: "科创综指官方" + cfg.title, type: "line", data: szPoints, showSymbol: false,
-            sampling: "lttb", lineStyle: { width: 2, color: COLORS.sz },
-            itemStyle: { color: COLORS.sz }, emphasis: { focus: "series" }
-          },
-          {
-            name: "科创50" + cfg.title, type: "line", data: k50Points, showSymbol: false,
-            lineStyle: { width: 2, color: COLORS.k50 }, itemStyle: { color: COLORS.k50 }
-          }
-        ]
-      }, true);
+      };
+      const line = (name, data, color) => ({
+        name, type: "line", data, showSymbol: false, sampling: "lttb",
+        lineStyle: { width: 2, color }, itemStyle: { color }, emphasis: { focus: "series" }
+      });
+      chinextChart.setOption({ ...chartOption, series: [
+        { ...line("创业板指" + cfg.title, shPoints, COLORS.sh), markArea: riskArea }
+      ] }, true);
+      const starSeries = [
+        line("科创50" + cfg.title, k50Points, COLORS.k50),
+        line("科创综指官方" + cfg.title, szPoints, COLORS.sz)
+      ].filter(item => item.data.length);
+      const starVisible = starSeries.length > 0;
+      document.getElementById("valuationChartStar").style.display = starVisible ? "block" : "none";
+      document.getElementById("valuationStarEmpty").style.display = starVisible ? "none" : "block";
+      if (starVisible) {
+        starChart.resize();
+        starChart.setOption({ ...chartOption, legend: { show: starSeries.length > 1, top: 7,
+          textStyle: { color: "#8fa5bf", fontSize: 11 } }, series: starSeries }, true);
+      }
     }
 
     document.querySelectorAll("#valuationMetricTabs [data-metric]").forEach(button => {
@@ -577,7 +597,7 @@ const js = `
       navLinks.forEach(item => item.classList.remove("active"));
       link.classList.add("active");
     }));
-    window.addEventListener("resize", () => valuationChart.resize());
+    window.addEventListener("resize", () => { chinextChart.resize(); starChart.resize(); });
     renderValuationChart();
     renderEvents();
   })();

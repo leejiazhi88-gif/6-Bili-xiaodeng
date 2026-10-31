@@ -4,7 +4,6 @@ const path = require("path");
 const ROOT = path.resolve(__dirname, "..");
 const OUTPUT = path.join(ROOT, "outputs", "growth_indices_dashboard.html");
 const DATA_FILE = path.join(ROOT, "work", "official_sentiment_data.json");
-const EVENTS_FILE = path.join(ROOT, "work", "official_sentiment_events.json");
 
 function stripExisting(html) {
   return html
@@ -16,13 +15,9 @@ function stripExisting(html) {
 
 const css = `
   <style id="official-sentiment-style">
-    .official-grid {
-      display: grid; grid-template-columns: minmax(0, 1.68fr) minmax(360px, .82fr);
-      gap: 15px; align-items: stretch;
-    }
+    .official-grid { display: grid; grid-template-columns: minmax(0, 1fr); }
     #officialSentimentChart { height: 500px; width: 100%; }
     @media (max-width: 980px) {
-      .official-grid { grid-template-columns: 1fr; }
       #officialSentimentChart { height: 450px; }
     }
   </style>
@@ -36,7 +31,7 @@ const moduleHtml = `
         <h2>情绪-官方</h2>
         <p>观察政策层面的融资供给、交易成本、货币环境和监管信号，识别官方对市场温度的调节。</p>
       </div>
-      <div class="module-status">IPO 2010年至今 / 宏观与利率月频 / 政策事件库</div>
+      <div class="module-status">IPO 2010年至今 / 宏观与利率月频</div>
     </div>
 
     <div class="official-grid">
@@ -69,34 +64,11 @@ const moduleHtml = `
         <div id="officialSentimentChart"></div>
       </article>
 
-      <aside class="valuation-panel">
-        <div class="panel-head">
-          <div>
-            <div class="panel-title">官方情绪事件 List</div>
-            <div class="panel-subtitle">加息/降息、降准、IPO节奏、印花税、减持监管、汇金增持与窗口指导</div>
-          </div>
-          <div class="event-controls">
-            <select id="officialEventYear" class="event-select" aria-label="官方事件年份"></select>
-            <select id="officialEventQuarter" class="event-select" aria-label="官方事件季度">
-              <option value="Q1">Q1</option><option value="Q2">Q2</option>
-              <option value="Q3">Q3</option><option value="Q4">Q4</option>
-            </select>
-          </div>
-        </div>
-        <div class="event-body">
-          <div class="quarter-summary">
-            <div class="quarter-label" id="officialEventPeriod"></div>
-            <div class="event-count" id="officialEventCount"></div>
-          </div>
-          <div class="quarter-dashboard" id="officialQuarterDashboard"></div>
-          <ul class="event-list" id="officialEventList"></ul>
-        </div>
-      </aside>
     </div>
 
     <div class="valuation-foot">
       <div class="note"><strong>连续数据口径：</strong>IPO融资额来自新股上市募集资金；产业资本净减持额用重要股东增减持公告和均价估算，正值为净减持；LPR、社融、M2为月频宏观数据。</div>
-      <div class="note"><strong>缺口说明：</strong>再融资额与国家队持仓规模缺少稳定、统一、可自动更新的官方连续口径，当前先保留指标入口并在事件库中记录重要政策窗口。</div>
+      <div class="note"><strong>缺口说明：</strong>再融资额与国家队持仓规模缺少稳定、统一、可自动更新的官方连续口径，当前暂不绘制。</div>
     </div>
   </section>
 `;
@@ -105,13 +77,9 @@ const script = `
   <script id="official-sentiment-script">
   (() => {
     const officialData = __OFFICIAL_DATA__;
-    const officialEvents = __OFFICIAL_EVENTS__;
     const fmt = (value, digits = 1) => Number.isFinite(value)
       ? Number(value).toLocaleString("zh-CN", { minimumFractionDigits: digits, maximumFractionDigits: digits })
       : "--";
-    const escapeHtml = value => String(value).replace(/[&<>"']/g, char => ({
-      "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"
-    })[char]);
     const metrics = {
       ipoFund: {
         title: "IPO融资额", unit: "亿元", digits: 1,
@@ -218,63 +186,14 @@ const script = `
       });
     });
 
-    const yearSelect = document.getElementById("officialEventYear");
-    const quarterSelect = document.getElementById("officialEventQuarter");
-    const latestDate = officialData.series[officialData.series.length - 1].date;
-    const latestYear = Number(latestDate.slice(0, 4));
-    const latestQuarter = "Q" + Math.ceil(Number(latestDate.slice(5, 7)) / 3);
-    for (let year = latestYear; year >= 2006; year--) {
-      const option = document.createElement("option");
-      option.value = String(year); option.textContent = String(year);
-      yearSelect.appendChild(option);
-    }
-    yearSelect.value = String(latestYear);
-    quarterSelect.value = latestQuarter;
-    function quarterKey(date) {
-      return date.slice(0, 4) + "-Q" + Math.ceil(Number(date.slice(5, 7)) / 3);
-    }
-    function quarterRows(key) {
-      return officialData.series.filter(row => quarterKey(row.date) === key);
-    }
-    function quarterSum(rows, field) {
-      const values = rows.map(row => row[field]).filter(Number.isFinite);
-      return values.length ? values.reduce((sum, value) => sum + value, 0) : NaN;
-    }
-    function renderEvents() {
-      const key = yearSelect.value + "-" + quarterSelect.value;
-      const events = officialEvents[key] || [];
-      const rows = quarterRows(key);
-      const row = rows[rows.length - 1];
-      document.getElementById("officialEventPeriod").textContent =
-        yearSelect.value + " " + quarterSelect.value;
-      document.getElementById("officialEventCount").textContent = events.length + " 条事件";
-      document.getElementById("officialQuarterDashboard").innerHTML = [
-        ["IPO融资额", Number.isFinite(quarterSum(rows, "ipoFund")) ? fmt(quarterSum(rows, "ipoFund"), 1) + "亿元" : "暂无数据"],
-        ["产业资本净减持", Number.isFinite(quarterSum(rows, "holderNetReductionAmount")) ? fmt(quarterSum(rows, "holderNetReductionAmount"), 1) + "亿元" : "暂无数据"],
-        ["1年LPR", Number.isFinite(row?.lpr1y) ? fmt(row.lpr1y, 2) + "%" : "暂无数据"],
-        ["M2同比", Number.isFinite(row?.m2Yoy) ? fmt(row.m2Yoy, 1) + "%" : "暂无数据"]
-      ].map(item => '<div class="quarter-stat"><span>' + item[0] + '</span><strong>' + item[1] + '</strong></div>').join("");
-      document.getElementById("officialEventList").innerHTML = events.length ? events.map(event =>
-        '<li class="event-item">' +
-        '<div class="event-type">' + escapeHtml(event.type) + '</div>' +
-        '<div class="event-title">' + escapeHtml(event.title) + '</div>' +
-        '<div class="event-desc">' + escapeHtml(event.desc) + '</div>' +
-        '<div class="event-meta">' + escapeHtml(event.meta || "") + '</div></li>'
-      ).join("") : '<li class="event-empty">该季度暂无符合官方情绪事件口径的记录</li>';
-    }
-    yearSelect.addEventListener("change", renderEvents);
-    quarterSelect.addEventListener("change", renderEvents);
     window.addEventListener("resize", () => chart.resize());
     renderChart();
-    renderEvents();
   })();
   </script>
 `;
 
 if (!fs.existsSync(DATA_FILE)) throw new Error("Missing official_sentiment_data.json.");
-if (!fs.existsSync(EVENTS_FILE)) throw new Error("Missing official_sentiment_events.json.");
 const data = JSON.parse(fs.readFileSync(DATA_FILE, "utf8"));
-const events = JSON.parse(fs.readFileSync(EVENTS_FILE, "utf8"));
 let html = stripExisting(fs.readFileSync(OUTPUT, "utf8"));
 html = html.replace(
   '<a href="#large-money-sentiment">情绪-大资金</a>',
@@ -285,9 +204,7 @@ function insertBeforeLast(source, marker, content) {
   if (index === -1) throw new Error(`Marker not found: ${marker}`);
   return source.slice(0, index) + content + source.slice(index);
 }
-const officialScript = script
-  .replace("__OFFICIAL_DATA__", JSON.stringify(data))
-  .replace("__OFFICIAL_EVENTS__", JSON.stringify(events.quarters));
+const officialScript = script.replace("__OFFICIAL_DATA__", JSON.stringify(data));
 html = insertBeforeLast(html, "</head>", css + "\n");
 html = insertBeforeLast(html, "</main>", moduleHtml + "\n");
 html = insertBeforeLast(html, "</body>", officialScript + "\n");

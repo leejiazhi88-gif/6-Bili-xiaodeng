@@ -55,9 +55,10 @@ http://127.0.0.1:9876
 Tushare 当前可以返回：
 
 - 创业板指 `399006.SZ`：价格、PE(TTM)、PB
-- 科创综指 `000680.SH`：价格
+- 科创50 `000688.SH`：价格、Tushare PE(TTM)、PB
+- 科创综指 `000680.SH`：价格、官方历史 PE(TTM)
 
-Tushare 当前没有返回科创综指 `index_dailybasic` 的 PE/PB 序列，所以科创综指的 PE、PB、股债收益差在页面内显示为暂无数据。真实利润使用 `index_weight` 成分股与 `income` 归母净利润 TTM 汇总，可以正常展示。
+Tushare 当前没有返回科创综指 `index_dailybasic` 的 PE/PB 序列。科创综指 PE 改用中证指数官方历史行情（有效点始于 2024-10-23）；PB 仅有官方单张月末快照。真实利润使用 `index_weight` 成分股与 `income` 归母净利润 TTM 汇总。
 
 新增的 `情绪-官方` 模块包含：
 
@@ -66,7 +67,7 @@ Tushare 当前没有返回科创综指 `index_dailybasic` 的 PE/PB 序列，所
 - 印花税率：手工政策表
 - 政策利率：Tushare `shibor_lpr`，当前展示 1年期 LPR
 - 社融增量 / M2增速：Tushare `sf_month` / `cn_m`
-- 官方情绪事件 List：维护在 `work/official_sentiment_events.json`
+- 原官方情绪事件保留在 `work/official_sentiment_events.json`，当前页面不展示情绪事件 List
 
 再融资额与国家队持仓规模当前只保留指标入口：再融资额暂缺稳定可自动更新的全市场金额接口，国家队持仓规模没有统一官方连续披露口径。
 

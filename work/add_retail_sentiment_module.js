@@ -4,7 +4,6 @@ const path = require("path");
 const ROOT = path.resolve(__dirname, "..");
 const OUTPUT = path.join(ROOT, "outputs", "growth_indices_dashboard.html");
 const DATA_FILE = path.join(ROOT, "work", "retail_sentiment_data.json");
-const EVENTS_FILE = path.join(ROOT, "work", "retail_sentiment_events.json");
 
 function stripExisting(html) {
   return html
@@ -16,18 +15,10 @@ function stripExisting(html) {
 
 const css = `
   <style id="retail-sentiment-style">
-    .retail-grid {
-      display: grid; grid-template-columns: minmax(0, 1.68fr) minmax(360px, .82fr);
-      gap: 15px; align-items: stretch;
-    }
+    .retail-grid { display: grid; grid-template-columns: minmax(0, 1fr); }
+    .retail-grid + .valuation-foot { grid-template-columns: 1fr; }
     #retailSentimentChart { height: 500px; width: 100%; }
-    .retail-source {
-      display: inline-block; margin-top: 8px; color: #65c7ff;
-      font-size: 11px; font-weight: 700; text-decoration: none;
-    }
-    .retail-source:hover { text-decoration: underline; }
     @media (max-width: 980px) {
-      .retail-grid { grid-template-columns: 1fr; }
       #retailSentimentChart { height: 450px; }
     }
   </style>
@@ -39,7 +30,7 @@ const moduleHtml = `
       <div>
         <div class="module-kicker">Module 02 / Retail Sentiment</div>
         <h2>情绪-散户</h2>
-        <p>连续数据观察交易热度与杠杆扩张，季度事件复盘散户情绪如何形成和逆转。</p>
+        <p>连续数据观察交易热度与杠杆扩张。</p>
       </div>
       <div class="module-status">市场数据 2019年至今 / 涨停数据 2020年至今</div>
     </div>
@@ -75,34 +66,10 @@ const moduleHtml = `
         <div id="retailSentimentChart"></div>
       </article>
 
-      <aside class="valuation-panel">
-        <div class="panel-head">
-          <div>
-            <div class="panel-title">散户情绪事件 List</div>
-            <div class="panel-subtitle">按年份和季度切换；分类严格对应飞书“A股指数”表</div>
-          </div>
-          <div class="event-controls">
-            <select id="retailEventYear" class="event-select" aria-label="散户事件年份"></select>
-            <select id="retailEventQuarter" class="event-select" aria-label="散户事件季度">
-              <option value="Q1">Q1</option><option value="Q2">Q2</option>
-              <option value="Q3">Q3</option><option value="Q4">Q4</option>
-            </select>
-          </div>
-        </div>
-        <div class="event-body">
-          <div class="quarter-summary">
-            <div class="quarter-label" id="retailEventPeriod"></div>
-            <div class="event-count" id="retailEventCount"></div>
-          </div>
-          <div class="quarter-dashboard" id="retailQuarterDashboard"></div>
-          <ul class="event-list" id="retailEventList"></ul>
-        </div>
-      </aside>
     </div>
 
     <div class="valuation-foot">
       <div class="note"><strong>连续数据口径：</strong>成交额与换手率来自沪深交易统计；融资余额及其占流通市值比例来自两交易所融资汇总；涨停数量来自非ST股票涨停统计。所有图表按周频展示。</div>
-      <div class="note"><strong>事件库口径：</strong>仅收录新增开户创新高、爆款基金、融资监管、场外配资整顿、市场极端情绪事件、巨量滞涨六类。没有可靠来源的季度保持为空。</div>
     </div>
   </section>
 `;
@@ -111,13 +78,9 @@ const script = `
   <script id="retail-sentiment-script">
   (() => {
     const retailData = __RETAIL_DATA__;
-    const retailEvents = __RETAIL_EVENTS__;
     const fmt = (value, digits = 1) => Number.isFinite(value)
       ? Number(value).toLocaleString("zh-CN", { minimumFractionDigits: digits, maximumFractionDigits: digits })
       : "--";
-    const escapeHtml = value => String(value).replace(/[&<>"']/g, char => ({
-      "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"
-    })[char]);
 
     const metrics = {
       amount: {
@@ -225,101 +188,14 @@ const script = `
       });
     });
 
-    const yearSelect = document.getElementById("retailEventYear");
-    const quarterSelect = document.getElementById("retailEventQuarter");
-    const latestDate = retailData.series[retailData.series.length - 1].date;
-    const latestYear = Number(latestDate.slice(0, 4));
-    const latestQuarter = "Q" + Math.ceil(Number(latestDate.slice(5, 7)) / 3);
-    for (let year = latestYear; year >= 2006; year--) {
-      const option = document.createElement("option");
-      option.value = String(year);
-      option.textContent = String(year);
-      yearSelect.appendChild(option);
-    }
-    yearSelect.value = String(latestYear);
-    quarterSelect.value = latestQuarter;
-
-    function quarterKey(date) {
-      return date.slice(0, 4) + "-Q" + Math.ceil(Number(date.slice(5, 7)) / 3);
-    }
-    function latestQuarterRow(key) {
-      const rows = retailData.series.filter(row => quarterKey(row.date) === key);
-      return rows[rows.length - 1];
-    }
-    function percentile(values, value) {
-      const clean = values.filter(Number.isFinite);
-      return clean.length
-        ? clean.filter(item => item <= value).length / clean.length * 100
-        : NaN;
-    }
-    function automaticQuarterEvents(key, existing) {
-      if (existing.some(event => event.type === "市场极端情绪事件")) return [];
-      const rows = retailData.series.filter(row => quarterKey(row.date) === key);
-      if (!rows.length) return [];
-      const peak = field => rows.reduce(
-        (best, row) => Number.isFinite(row[field]) && (!best || row[field] > best[field]) ? row : best,
-        null
-      );
-      const amountPeak = peak("amount");
-      const turnoverPeak = peak("turnover");
-      const limitPeak = peak("limitUpCount");
-      const amountPct = amountPeak ? percentile(retailData.series.map(row => row.amount), amountPeak.amount) : NaN;
-      const turnoverPct = turnoverPeak ? percentile(retailData.series.map(row => row.turnover), turnoverPeak.turnover) : NaN;
-      const limitPct = limitPeak ? percentile(retailData.series.map(row => row.limitUpCount), limitPeak.limitUpCount) : NaN;
-      const maxPct = Math.max(amountPct || 0, turnoverPct || 0, limitPct || 0);
-      if (maxPct < 90) return [];
-      const details = [];
-      if (amountPct >= 90) details.push("成交额峰值" + fmt(amountPeak.amount, 0) + "亿元（历史" + fmt(amountPct, 0) + "%分位）");
-      if (turnoverPct >= 90) details.push("换手率峰值" + fmt(turnoverPeak.turnover, 2) + "%（历史" + fmt(turnoverPct, 0) + "%分位）");
-      if (limitPct >= 90) details.push("涨停峰值" + fmt(limitPeak.limitUpCount, 0) + "家（历史" + fmt(limitPct, 0) + "%分位）");
-      return [{
-        type: "市场极端情绪事件",
-        title: "交易热度进入历史高位区间",
-        desc: details.join("；") + "。",
-        meta: "数据规则：季度峰值进入2019年以来样本前10%；由连续数据自动识别",
-        auto: true
-      }];
-    }
-    function renderEvents() {
-      const key = yearSelect.value + "-" + quarterSelect.value;
-      const curated = retailEvents[key] || [];
-      const events = curated.concat(automaticQuarterEvents(key, curated));
-      const row = latestQuarterRow(key);
-      document.getElementById("retailEventPeriod").textContent =
-        yearSelect.value + " " + quarterSelect.value;
-      document.getElementById("retailEventCount").textContent = events.length + " 条事件";
-      document.getElementById("retailQuarterDashboard").innerHTML = [
-        ["两市成交额", Number.isFinite(row?.amount) ? fmt(row.amount, 0) + "亿元" : "暂无数据"],
-        ["换手率", Number.isFinite(row?.turnover) ? fmt(row.turnover, 2) + "%" : "暂无数据"],
-        ["融资余额", Number.isFinite(row?.marginBalance) ? fmt(row.marginBalance, 0) + "亿元" : "暂无数据"],
-        ["涨停数量", Number.isFinite(row?.limitUpCount) ? fmt(row.limitUpCount, 0) + "家" : "暂无数据"]
-      ].map(item => '<div class="quarter-stat"><span>' + item[0] + '</span><strong>' + item[1] + '</strong></div>').join("");
-      document.getElementById("retailEventList").innerHTML = events.length ? events.map(event =>
-        '<li class="event-item">' +
-        '<div class="event-type">' + escapeHtml(event.type) + '</div>' +
-        '<div class="event-title">' + escapeHtml(event.title) + '</div>' +
-        '<div class="event-desc">' + escapeHtml(event.desc) + '</div>' +
-        '<div class="event-meta">' + escapeHtml(event.meta || "") + '</div>' +
-        (event.sourceUrl
-          ? '<a class="retail-source" href="' + escapeHtml(event.sourceUrl) + '" target="_blank" rel="noopener noreferrer">查看' + escapeHtml(event.source || "来源") + '</a>'
-          : '') +
-        '</li>'
-      ).join("") : '<li class="event-empty">该季度暂无符合散户情绪事件口径的记录</li>';
-    }
-    yearSelect.addEventListener("change", renderEvents);
-    quarterSelect.addEventListener("change", renderEvents);
     window.addEventListener("resize", () => chart.resize());
     renderChart();
-    renderEvents();
   })();
   </script>
 `;
 
 if (!fs.existsSync(DATA_FILE)) throw new Error("Missing retail_sentiment_data.json.");
-if (!fs.existsSync(EVENTS_FILE)) throw new Error("Missing retail_sentiment_events.json.");
-
 const data = JSON.parse(fs.readFileSync(DATA_FILE, "utf8"));
-const events = JSON.parse(fs.readFileSync(EVENTS_FILE, "utf8"));
 let html = stripExisting(fs.readFileSync(OUTPUT, "utf8"));
 html = html.replace(
   '<a href="#valuation">估值</a>',
@@ -332,9 +208,7 @@ function insertBeforeLast(source, marker, content) {
   return source.slice(0, index) + content + source.slice(index);
 }
 
-const retailScript = script
-  .replace("__RETAIL_DATA__", JSON.stringify(data))
-  .replace("__RETAIL_EVENTS__", JSON.stringify(events.quarters));
+const retailScript = script.replace("__RETAIL_DATA__", JSON.stringify(data));
 html = insertBeforeLast(html, "</head>", css + "\n");
 html = insertBeforeLast(html, "</main>", moduleHtml + "\n");
 html = insertBeforeLast(html, "</body>", retailScript + "\n");
