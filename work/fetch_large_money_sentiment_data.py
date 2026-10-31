@@ -11,7 +11,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 CONFIG = Path.home() / ".codex" / "config.toml"
 OUTPUT = ROOT / "work" / "large_money_sentiment_data.json"
-START_YEAR = 2018
+START_YEAR = 2009
 END_YEAR = datetime.now().year
 END_DATE = datetime.now().strftime("%Y%m%d")
 
@@ -65,33 +65,39 @@ def week_end_date(dates):
     return max(dates)
 
 
+def complete_window(token, api_name, start, end, fields, limit):
+    rows = call_api(token, api_name, {"start_date": start, "end_date": end}, fields)
+    if len(rows) < limit or start == end:
+        return rows
+    midpoint = datetime.strptime(start, "%Y%m%d") + (datetime.strptime(end, "%Y%m%d") - datetime.strptime(start, "%Y%m%d")) / 2
+    left_end = midpoint.strftime("%Y%m%d")
+    right_start = (midpoint + timedelta(days=1)).strftime("%Y%m%d")
+    return (complete_window(token, api_name, start, left_end, fields, limit)
+            + complete_window(token, api_name, right_start, end, fields, limit))
+
+
 def main():
     token = get_token()
-    north = call_api(
-        token,
-        "moneyflow_hsgt",
-        {"start_date": f"{START_YEAR}0101", "end_date": "20240816"},
-        "trade_date,north_money",
-    )
+    previous = json.loads(OUTPUT.read_text(encoding="utf-8")) if OUTPUT.exists() else None
+    previous_start = previous["series"][0]["date"].replace("-", "") if previous else None
+    refresh_start = None
+    if previous:
+        last = datetime.strptime(previous["meta"]["end"], "%Y-%m-%d")
+        refresh_start = (last - timedelta(days=last.weekday())).strftime("%Y%m%d")
+    north = []
+    for year in range(2014, 2025):
+        north.extend(complete_window(token, "moneyflow_hsgt", f"{year}0101",
+                                     min(f"{year}1231", "20240816"),
+                                     "trade_date,north_money", 300))
     blocks = []
     holder_trades = []
     for start, end in month_ranges():
-        blocks.extend(
-            call_api(
-                token,
-                "block_trade",
-                {"start_date": start, "end_date": end},
-                "ts_code,trade_date,amount,buyer,seller",
-            )
-        )
-        holder_trades.extend(
-            call_api(
-                token,
-                "stk_holdertrade",
-                {"start_date": start, "end_date": end},
-                "ts_code,ann_date,holder_name,in_de,change_vol,change_ratio,avg_price",
-            )
-        )
+        if previous and start >= previous_start and end < refresh_start:
+            continue
+        blocks.extend(complete_window(token, "block_trade", start, end,
+                                      "ts_code,trade_date,amount,buyer,seller", 1000))
+        holder_trades.extend(complete_window(token, "stk_holdertrade", start, end,
+                                            "ts_code,ann_date,holder_name,in_de,change_vol,change_ratio,avg_price", 2000))
 
     block_weeks = defaultdict(lambda: {"dates": [], "amount": 0.0, "instNet": 0.0})
     for row in blocks:
@@ -157,20 +163,28 @@ def main():
                 "northMoney": round(north_row["northMoney"], 2)
                 if "northMoney" in north_row
                 else None,
-                "blockAmount": round(block.get("amount", 0), 2),
-                "institutionBlockNet": round(block.get("instNet", 0), 2),
-                "holderNetShares": round(holder.get("netShares", 0), 4),
+                "blockAmount": round(block["amount"], 2) if block else None,
+                "institutionBlockNet": round(block["instNet"], 2) if block else None,
+                "holderNetShares": round(holder["netShares"], 4) if holder else None,
             }
         )
 
     # Preserve published history; refresh the previous latest week and newer weeks.
     # Historical API windows can return fewer records on subsequent requests.
-    if OUTPUT.exists():
-        previous = json.loads(OUTPUT.read_text(encoding="utf-8"))
-        last = datetime.strptime(previous["meta"]["end"], "%Y-%m-%d")
-        refresh_start = (last - timedelta(days=last.weekday())).strftime("%Y-%m-%d")
-        series = ([row for row in previous["series"] if row["date"] < refresh_start]
-                  + [row for row in series if row["date"] >= refresh_start])
+    if previous:
+        refresh_start = f"{refresh_start[:4]}-{refresh_start[4:6]}-{refresh_start[6:]}"
+        first = previous["series"][0]["date"]
+        fresh_by_week = {week_key(row["date"].replace("-", "")): row for row in series}
+        preserved = []
+        for row in previous["series"]:
+            if not first <= row["date"] < refresh_start:
+                continue
+            fresh = fresh_by_week.get(week_key(row["date"].replace("-", "")))
+            if fresh and fresh["northMoney"] is not None:
+                row["northMoney"] = fresh["northMoney"]
+            preserved.append(row)
+        series = ([row for row in series if row["date"] < first]
+                  + preserved + [row for row in series if row["date"] >= refresh_start])
 
     result = {
         "meta": {

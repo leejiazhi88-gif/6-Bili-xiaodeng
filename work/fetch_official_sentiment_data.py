@@ -11,7 +11,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 CONFIG = Path.home() / ".codex" / "config.toml"
 OUTPUT = ROOT / "work" / "official_sentiment_data.json"
-START_YEAR = 2010
+START_YEAR = 2009
 END_YEAR = datetime.now().year
 END_DATE = datetime.now().strftime("%Y%m%d")
 
@@ -94,7 +94,10 @@ def main():
     refresh_year = int(previous["meta"]["end"][:4]) if previous else START_YEAR
     ipos = []
     holder_trades = []
-    for start, end in year_ranges(refresh_year):
+    ipo_years = [START_YEAR] if previous and int(previous["meta"]["start"][:4]) > START_YEAR else []
+    ipo_years.extend(range(refresh_year, END_YEAR + 1))
+    for year in ipo_years:
+        start, end = f"{year}0101", min(f"{year}1231", END_DATE)
         ipos.extend(
             call_api(
                 token,
@@ -218,8 +221,14 @@ def main():
 
     if previous:
         cutoff = f"{refresh_year}-01-01"
-        series = ([row for row in previous["series"] if row["date"] < cutoff]
+        first = previous["series"][0]["date"]
+        series = ([row for row in series if row["date"] < first]
+                  + [row for row in previous["series"] if first <= row["date"] < cutoff]
                   + [row for row in series if row["date"] >= cutoff])
+    for row in series:
+        if row["date"] < "2018-01-01":
+            row["holderReductionAmount"] = None
+            row["holderNetReductionAmount"] = None
 
     result = {
         "meta": {

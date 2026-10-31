@@ -72,7 +72,7 @@ const css = `
     .board-chart-head { display: flex; justify-content: space-between; gap: 12px; align-items: baseline; padding: 14px 16px 0; }
     .board-chart-head strong { font-size: 14px; }
     .board-chart-head span { color: var(--muted); font-size: 11px; text-align: right; }
-    #valuationChartChinext, #valuationChartStar { height: 310px; width: 100%; }
+    #valuationChartChinext, #valuationChartK50, #valuationChartStar { height: 310px; width: 100%; }
     .board-empty { display: none; color: var(--muted); padding: 28px 16px 40px; font-size: 12px; }
     .valuation-foot { margin-top: 15px; }
     @media (max-width: 620px) {
@@ -80,7 +80,7 @@ const css = `
       .page-nav a { padding: 7px 8px; font-size: 11px; text-align: center; }
       .module-head, .panel-head, .metric-note { align-items: flex-start; flex-direction: column; }
       .board-chart-head { align-items: flex-start; flex-direction: column; gap: 5px; }
-      #valuationChartChinext, #valuationChartStar { height: 280px; }
+      #valuationChartChinext, #valuationChartK50, #valuationChartStar { height: 280px; }
     }
   </style>
 `;
@@ -132,7 +132,12 @@ const moduleHtml = `
           <div id="valuationChartChinext"></div>
         </div>
         <div class="board-chart-block">
-          <div class="board-chart-head"><strong class="sz">科创板</strong><span id="valuationLatestStar"></span></div>
+          <div class="board-chart-head"><strong class="k50">科创50</strong><span id="valuationLatestK50"></span></div>
+          <div id="valuationChartK50"></div>
+          <div class="board-empty" id="valuationK50Empty">暂无同口径连续数据</div>
+        </div>
+        <div class="board-chart-block">
+          <div class="board-chart-head"><strong class="sz">科创综指</strong><span id="valuationLatestStar"></span></div>
           <div id="valuationChartStar"></div>
           <div class="board-empty" id="valuationStarEmpty">暂无同口径连续数据</div>
         </div>
@@ -181,6 +186,7 @@ const js = `
     }
 
     const chinextChart = echarts.init(document.getElementById("valuationChartChinext"), null, { renderer: "canvas" });
+    const k50Chart = echarts.init(document.getElementById("valuationChartK50"), null, { renderer: "canvas" });
     const starChart = echarts.init(document.getElementById("valuationChartStar"), null, { renderer: "canvas" });
     let activeMetric = "pe";
     let activeYears = 0;
@@ -229,10 +235,11 @@ const js = `
         cfg.fixedRange ? cfg.subtitle + "（" + rangeLabel + "样本动态计算）" : cfg.subtitle;
       document.getElementById("valuationMetricNote").textContent = cfg.note;
       document.getElementById("valuationLatestChinext").textContent =
-        "最新 " + fmt(shLatest, 2) + cfg.unit;
+        "最新 " + fmt(shLatest, 2) + cfg.unit + (shPoints.length ? " · 起于 " + shPoints[0][0] : "");
+      document.getElementById("valuationLatestK50").textContent =
+        (Number.isFinite(k50Latest) ? "最新 " + fmt(k50Latest, 2) + cfg.unit + " · 起于 " + k50Points[0][0] : "暂无数据");
       document.getElementById("valuationLatestStar").textContent =
-        "科创50 " + (Number.isFinite(k50Latest) ? fmt(k50Latest, 2) + cfg.unit : "暂无数据") +
-        " · 科创综指 " + (Number.isFinite(szLatest) ? fmt(szLatest, 2) + cfg.unit : "暂无数据");
+        (Number.isFinite(szLatest) ? "最新 " + fmt(szLatest, 2) + cfg.unit + " · 起于 " + szPoints[0][0] : "暂无数据");
 
       const riskArea = cfg.fixedRange ? {
         silent: true,
@@ -282,17 +289,19 @@ const js = `
       chinextChart.setOption({ ...chartOption, series: [
         { ...line("创业板指" + cfg.title, shPoints, COLORS.sh), markArea: riskArea }
       ] }, true);
-      const starSeries = [
-        line("科创50" + cfg.title, k50Points, COLORS.k50),
-        line("科创综指官方" + cfg.title, szPoints, COLORS.sz)
-      ].filter(item => item.data.length);
-      const starVisible = starSeries.length > 0;
+      const k50Visible = k50Points.length > 0;
+      document.getElementById("valuationChartK50").style.display = k50Visible ? "block" : "none";
+      document.getElementById("valuationK50Empty").style.display = k50Visible ? "none" : "block";
+      if (k50Visible) {
+        k50Chart.resize();
+        k50Chart.setOption({ ...chartOption, series: [line("科创50" + cfg.title, k50Points, COLORS.k50)] }, true);
+      }
+      const starVisible = szPoints.length > 0;
       document.getElementById("valuationChartStar").style.display = starVisible ? "block" : "none";
       document.getElementById("valuationStarEmpty").style.display = starVisible ? "none" : "block";
       if (starVisible) {
         starChart.resize();
-        starChart.setOption({ ...chartOption, legend: { show: starSeries.length > 1, top: 7,
-          textStyle: { color: "#8fa5bf", fontSize: 11 } }, series: starSeries }, true);
+        starChart.setOption({ ...chartOption, series: [line("科创综指官方" + cfg.title, szPoints, COLORS.sz)] }, true);
       }
     }
 
@@ -318,7 +327,7 @@ const js = `
       navLinks.forEach(item => item.classList.remove("active"));
       link.classList.add("active");
     }));
-    window.addEventListener("resize", () => { chinextChart.resize(); starChart.resize(); });
+    window.addEventListener("resize", () => { chinextChart.resize(); k50Chart.resize(); starChart.resize(); });
     renderValuationChart();
   })();
   </script>
