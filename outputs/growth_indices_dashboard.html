@@ -72,6 +72,10 @@
     .index-chart { height: 390px; }
     .index-chart.volume-chart { height: 290px; }
     .chart-heading { color: var(--text); font-size: 15px; font-weight: 700; margin: 22px 22px 0; }
+    .price-selectors { display: flex; flex-wrap: wrap; gap: 9px; margin: 12px 22px 0; }
+    .price-selectors label { display: inline-flex; align-items: center; gap: 7px; padding: 7px 10px; border: 1px solid #263b58; border-radius: 6px; color: var(--muted); font-size: 12px; cursor: pointer; }
+    .price-selectors label:has(input:checked) { color: var(--text); background: #132239; }
+    .price-selectors input { margin: 0; accent-color: var(--accent); }
     .volume-charts { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); }
     .notes {
       display: grid; grid-template-columns: 1.3fr 1fr; gap: 16px; margin-top: 15px;
@@ -221,7 +225,13 @@
       </div>
     </div>
     <div class="index-charts">
-      <h2 class="chart-heading">指数价格</h2><div id="chart-price" class="index-chart"></div>
+      <h2 class="chart-heading">指数价格</h2>
+      <div class="price-selectors" aria-label="选择价格曲线">
+        <label><input type="checkbox" data-price-series="创业板指" checked><i class="dot" style="background:var(--sh)"></i>创业板指</label>
+        <label><input type="checkbox" data-price-series="科创50" checked><i class="dot" style="background:var(--k50)"></i>科创50</label>
+        <label><input type="checkbox" data-price-series="科创综指" checked><i class="dot" style="background:var(--sz)"></i>科创综指</label>
+      </div>
+      <div id="chart-price" class="index-chart"></div>
       <h2 class="chart-heading">交易规模</h2>
       <div class="volume-charts">
         <div id="chart-volume-sh" class="index-chart volume-chart"></div>
@@ -530,7 +540,7 @@ const commonAxis = {
   axisLabel: { color: "#7890aa", hideOverlap: true },
   splitLine: { show: false }, axisPointer: { show: true }
 };
-function chartOption(lines, { volume = false, title = "", unit = "" } = {}) {
+function chartOption(lines, { volume = false, title = "", unit = "", price = false } = {}) {
   return {
     animation: false,
     backgroundColor: "transparent",
@@ -546,7 +556,7 @@ function chartOption(lines, { volume = false, title = "", unit = "" } = {}) {
       }
     },
     legend: volume ? { top: 13, right: 12, textStyle: { color: "#8fa5bf" }, data: lines.map(line => line.name) }
-      : { top: 12, left: 20, type: "scroll", textStyle: { color: "#8fa5bf" }, data: lines.map(line => line.name) },
+      : { top: 12, left: 20, type: "scroll", selectedMode: !price, textStyle: { color: "#8fa5bf" }, data: lines.map(line => line.name) },
     xAxis: { ...commonAxis, min: "2009-10-30" },
     yAxis: volume ? [
       { type: "value", scale: true, name: "亿手", axisLabel: { color: "#7890aa" }, splitLine: { lineStyle: { color: "#17283d" } } },
@@ -568,7 +578,7 @@ const chartConfigs = [
     { name: "创业板指", rows: DATA.sh, field: "close", color: COLORS.sh, marks: true },
     { name: "科创50", rows: DATA.k50, field: "close", color: COLORS.k50 },
     { name: "科创综指", rows: DATA.sz, field: "close", color: COLORS.sz }
-  ], { unit: "点" }],
+  ], { unit: "点", price: true }],
   ["chart-pe", [
     { name: "创业板指 PE", rows: DATA.sh, field: "pe", color: COLORS.sh },
     { name: "科创50 PE", rows: DATA.k50, field: "pe", color: COLORS.k50 },
@@ -592,6 +602,16 @@ const charts = chartConfigs.map(([id, lines, options]) => {
   chart.setOption(chartOption(lines, options));
   return chart;
 });
+const priceChart = echarts.getInstanceByDom(document.getElementById("chart-price"));
+document.querySelectorAll("[data-price-series]").forEach(input => input.addEventListener("change", () => {
+  const selected = Object.fromEntries([...document.querySelectorAll("[data-price-series]")]
+    .map(box => [box.dataset.priceSeries, box.checked]));
+  if (!Object.values(selected).some(Boolean)) {
+    input.checked = true;
+    return;
+  }
+  priceChart.setOption({ legend: { selected } });
+}));
 
 function applySharedRange(years) {
   const end = new Date("2026-10-30T00:00:00Z");
