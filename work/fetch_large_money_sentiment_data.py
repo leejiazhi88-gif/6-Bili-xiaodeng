@@ -2,7 +2,9 @@ import calendar
 import json
 import re
 import ssl
+import sys
 import urllib.request
+from concurrent.futures import ThreadPoolExecutor
 from collections import defaultdict
 from datetime import datetime, timedelta
 from pathlib import Path
@@ -14,6 +16,11 @@ OUTPUT = ROOT / "work" / "large_money_sentiment_data.json"
 START_YEAR = 2002
 END_YEAR = datetime.now().year
 END_DATE = datetime.now().strftime("%Y%m%d")
+STOCK_CODE = re.compile(
+    r"^(?:(?:600|601|603|605|688|689)\d{3}\.SH|"
+    r"(?:000|001|002|003|300|301)\d{3}\.SZ|"
+    r"(?:43|83|87|88|92)\d{4}\.BJ)$"
+)
 
 
 def get_token():
@@ -78,7 +85,8 @@ def complete_window(token, api_name, start, end, fields, limit):
 
 def main():
     token = get_token()
-    previous = json.loads(OUTPUT.read_text(encoding="utf-8")) if OUTPUT.exists() else None
+    previous = (json.loads(OUTPUT.read_text(encoding="utf-8"))
+                if OUTPUT.exists() and "--full" not in sys.argv else None)
     previous_start = previous["series"][0]["date"].replace("-", "") if previous else None
     refresh_start = None
     if previous:
@@ -91,13 +99,28 @@ def main():
                                      "trade_date,north_money", 300))
     blocks = []
     holder_trades = []
+    ranges = []
     for start, end in month_ranges():
         if previous and start >= previous_start and end < refresh_start:
             continue
-        blocks.extend(complete_window(token, "block_trade", start, end,
-                                      "ts_code,trade_date,amount,buyer,seller", 1000))
-        holder_trades.extend(complete_window(token, "stk_holdertrade", start, end,
-                                            "ts_code,ann_date,holder_name,in_de,change_vol,change_ratio,avg_price", 2000))
+        ranges.append((start, end))
+
+    def fetch_month(window):
+        start, end = window
+        block_rows = complete_window(token, "block_trade", start, end,
+                                     "ts_code,trade_date,amount,buyer,seller", 1000)
+        holder_rows = complete_window(token, "stk_holdertrade", start, end,
+                                      "ts_code,ann_date,holder_name,in_de,change_vol,change_ratio,avg_price", 2000)
+        return ([row for row in block_rows if STOCK_CODE.fullmatch(row.get("ts_code") or "")],
+                [row for row in holder_rows if STOCK_CODE.fullmatch(row.get("ts_code") or "")
+                 and row.get("avg_price") is not None and float(row["avg_price"]) > 0])
+
+    with ThreadPoolExecutor(max_workers=3) as executor:
+        for index, (month_blocks, month_holders) in enumerate(executor.map(fetch_month, ranges), 1):
+            blocks.extend(month_blocks)
+            holder_trades.extend(month_holders)
+            if index % 24 == 0:
+                print(f"large money refresh: {index}/{len(ranges)} months", flush=True)
 
     block_weeks = defaultdict(lambda: {"dates": [], "amount": 0.0, "instNet": 0.0})
     for row in blocks:
@@ -195,7 +218,7 @@ def main():
             "sources": {
                 "north": "Tushare moneyflow_hsgt",
                 "block": "Tushare block_trade",
-                "holder": "Tushare stk_holdertrade",
+                "holder": "Tushare stk_holdertrade (priced A-share trades only)",
             },
         },
         "series": series,
