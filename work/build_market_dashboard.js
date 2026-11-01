@@ -408,6 +408,9 @@ async function main() {
     execFileSync(python, [path.join(ROOT, "work", "fetch_retail_sentiment_data.py")], {
       stdio: "inherit",
     });
+    execFileSync(python, [path.join(ROOT, "work", "fetch_retail_index_metrics.py")], {
+      stdio: "inherit",
+    });
     execFileSync(python, [path.join(ROOT, "work", "fetch_large_money_sentiment_data.py")], {
       stdio: "inherit",
     });

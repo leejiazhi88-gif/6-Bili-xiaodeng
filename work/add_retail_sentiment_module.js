@@ -4,6 +4,7 @@ const path = require("path");
 const ROOT = path.resolve(__dirname, "..");
 const OUTPUT = path.join(ROOT, "outputs", "growth_indices_dashboard.html");
 const DATA_FILE = path.join(ROOT, "work", "retail_sentiment_data.json");
+const INDEX_DATA_FILE = path.join(ROOT, "work", "retail_index_metrics.json");
 
 function stripExisting(html) {
   return html
@@ -28,7 +29,7 @@ const moduleHtml = `
       <div>
         <div class="module-kicker">Module 02 / Retail Sentiment</div>
         <h2>情绪-散户</h2>
-        <p>沪深两市指标与三个指数的交易及相对走势。</p>
+        <p>沪深两市与三个指数的交易、换手和融资数据。</p>
       </div>
       <div class="module-status" id="retailDataStatus"></div>
     </div>
@@ -67,7 +68,7 @@ const moduleHtml = `
     </article>
 
     <div class="valuation-foot">
-      <div class="note"><strong>数据口径：</strong>成交额和成交量展示两市对照与三个指数的实际交易值，成交额使用从零开始的等距刻度；两市成交量使用上证综指、深证综指成交量之和作为宽基代理，并非交易所全市场总量。其余指标左轴是两市统计，右轴是三个指数价格相对走势（各自起点=100），不是指数自身的融资、涨停或换手率。时间轴从 2005 年开始，各线只在真实有数据的日期显示。</div>
+      <div class="note"><strong>数据口径：</strong>成交额和成交量展示两市对照与三个指数的实际交易值，成交额使用从零开始的等距刻度；两市成交量使用上证综指、深证综指成交量之和作为宽基代理。指数换手率按当期成分股流通市值加权；指数融资余额为当期成分股融资余额之和，融资占比再除以成分股流通市值；涨停家数按当期成分股匹配。指数成分指标为月频，市场指标为周频；时间轴从 2005 年开始，缺失数据不补造。</div>
     </div>
   </section>
 `;
@@ -76,11 +77,17 @@ const script = `
   <script id="retail-sentiment-script">
   (() => {
     const retailData = __RETAIL_DATA__;
+    const indexData = __INDEX_DATA__;
     const market = { name: "沪深两市", rows: retailData.series, color: "#f6c85f" };
     const indices = [
       { name: "创业板指", rows: DATA.sh, color: COLORS.sh },
       { name: "科创50", rows: DATA.k50, color: COLORS.k50 },
       { name: "科创综指", rows: DATA.sz, color: COLORS.sz }
+    ];
+    const indexMetrics = [
+      { name: "创业板指", rows: indexData.sh, color: COLORS.sh },
+      { name: "科创50", rows: indexData.k50, color: COLORS.k50 },
+      { name: "科创综指", rows: indexData.sz, color: COLORS.sz }
     ];
     const fmt = (value, digits = 1) => Number.isFinite(value)
       ? Number(value).toLocaleString("zh-CN", { minimumFractionDigits: digits, maximumFractionDigits: digits })
@@ -101,27 +108,27 @@ const script = `
       },
       turnover: {
         unit: "%", digits: 2,
-        subtitle: "按沪深流通市值加权的市场换手率",
-        note: "左轴为两市换手率；右轴为三个指数价格相对走势，不是指数换手率。",
-        sources: [{ ...market, field: "turnover" }], compare: true
+        subtitle: "沪深两市与三个指数的实际换手率",
+        note: "两市换手率为市场口径；三个指数为当期成分股按流通市值加权的换手率，指数线为月频。",
+        sources: [{ ...market, field: "turnover" }, ...indexMetrics.map(item => ({ ...item, field: "turnover" }))]
       },
       marginBalance: {
         unit: "亿元", digits: 0,
-        subtitle: "沪深交易所融资余额合计",
-        note: "左轴为两市融资余额；右轴为三个指数价格相对走势，不是指数融资余额。",
-        sources: [{ ...market, field: "marginBalance" }], compare: true
+        subtitle: "沪深两市与三个指数成分股融资余额",
+        note: "三个指数为当期成分股融资余额之和，未列入融资标的的成分股按零计；指数线为月频。",
+        sources: [{ ...market, field: "marginBalance" }, ...indexMetrics.map(item => ({ ...item, field: "marginBalance" }))]
       },
       marginFloatRatio: {
         unit: "%", digits: 2,
-        subtitle: "融资余额占沪深市场流通市值比例",
-        note: "左轴为两市融资余额占比；右轴为三个指数价格相对走势。",
-        sources: [{ ...market, field: "marginFloatRatio" }], compare: true
+        subtitle: "沪深两市与三个指数的融资余额/流通市值",
+        note: "三个指数的融资余额除以当期成分股流通市值合计；指数线为月频。",
+        sources: [{ ...market, field: "marginFloatRatio" }, ...indexMetrics.map(item => ({ ...item, field: "marginFloatRatio" }))]
       },
       limitUpCount: {
         unit: "家", digits: 0,
-        subtitle: "当日非ST股票涨停数量，数据自2020年起",
-        note: "左轴为两市涨停家数（2020 年起）；右轴为三个指数价格相对走势。",
-        sources: [{ ...market, field: "limitUpCount" }], compare: true
+        subtitle: "两市与三个指数成分股涨停数量，数据自2020年起",
+        note: "两市涨停家数与三个指数当期成分股涨停家数，数据从 2020 年起；指数线为月频。",
+        sources: [{ ...market, field: "limitUpCount" }, ...indexMetrics.map(item => ({ ...item, field: "limitUpCount" }))]
       }
     };
 
@@ -137,15 +144,11 @@ const script = `
       const cutoff = new Date(end);
       if (activeYears) cutoff.setUTCFullYear(cutoff.getUTCFullYear() - activeYears);
       const minDate = activeYears ? cutoff.toISOString().slice(0, 10) : "";
-      const sources = cfg.compare ? [...cfg.sources, ...indices.map(item => ({
-        ...item, name: item.name + "相对走势", field: "close", compare: true
-      }))] : cfg.sources;
-      const series = sources.map(source => ({
+      const series = cfg.sources.map(source => ({
         name: source.name,
         type: "line",
-        yAxisIndex: source.compare ? 1 : 0,
         data: source.rows.filter(row => row.date >= minDate && Number.isFinite(row[source.field]))
-          .map(row => [row.date, source.compare ? row.close / source.rows[0].close * 100 : row[source.field]]),
+          .map(row => [row.date, row[source.field]]),
         showSymbol: false,
         sampling: "lttb",
         lineStyle: { width: 2, color: source.color },
@@ -160,7 +163,7 @@ const script = `
       chart.setOption({
         animation: false,
         backgroundColor: "transparent",
-        grid: { left: 72, right: cfg.compare ? 60 : 28,
+        grid: { left: 72, right: 28,
           top: window.innerWidth <= 620 ? 88 : 65, bottom: 64 },
         legend: { show: true, type: "plain", top: 12, left: 12, right: 12,
           itemWidth: 16, itemGap: 10,
@@ -171,8 +174,7 @@ const script = `
           textStyle: { color: "#edf4ff" },
           formatter(params) {
             const lines = params.map(item => item.marker + item.seriesName + "：<b>" +
-              fmt(Number(item.value[1]), item.seriesIndex && cfg.compare ? 0 : cfg.digits) +
-              (item.seriesIndex && cfg.compare ? "（起点=100）" : cfg.unit) + "</b>");
+              fmt(Number(item.value[1]), cfg.digits) + cfg.unit + "</b>");
             return "<b>" + (params[0]?.axisValueLabel || "") + "</b><br>" + lines.join("<br>");
           }
         },
@@ -180,7 +182,7 @@ const script = `
           type: "time", min: "2005-01-01", axisLine: { lineStyle: { color: "#344760" } },
           axisLabel: { color: "#7890aa", hideOverlap: true }, splitLine: { show: false }
         },
-        yAxis: [{
+        yAxis: {
           type: "value", scale: activeMetric !== "amount", min: activeMetric === "amount" ? 0 : undefined,
           axisLabel: { color: "#7890aa", formatter(value) {
             return cfg.unit === "亿元" && value >= 10000
@@ -188,8 +190,7 @@ const script = `
               : fmt(value, cfg.digits) + cfg.unit;
           } },
           splitLine: { lineStyle: { color: "#17283d" } }
-        }, ...(cfg.compare ? [{ type: "value", scale: true, opposite: true,
-          axisLabel: { color: "#7890aa" }, splitLine: { show: false } }] : [])],
+        },
         dataZoom: [
           { type: "inside", filterMode: "none", start: 0, end: 100 },
           { type: "slider", bottom: 12, height: 22, start: 0, end: 100,
@@ -225,7 +226,9 @@ const script = `
 `;
 
 if (!fs.existsSync(DATA_FILE)) throw new Error("Missing retail_sentiment_data.json.");
+if (!fs.existsSync(INDEX_DATA_FILE)) throw new Error("Missing retail_index_metrics.json.");
 const data = JSON.parse(fs.readFileSync(DATA_FILE, "utf8"));
+const indexData = JSON.parse(fs.readFileSync(INDEX_DATA_FILE, "utf8"));
 let html = stripExisting(fs.readFileSync(OUTPUT, "utf8"));
 html = html.replace(
   '<a href="#valuation">估值</a>',
@@ -238,7 +241,8 @@ function insertBeforeLast(source, marker, content) {
   return source.slice(0, index) + content + source.slice(index);
 }
 
-const retailScript = script.replace("__RETAIL_DATA__", JSON.stringify(data));
+const retailScript = script.replace("__RETAIL_DATA__", JSON.stringify(data))
+  .replace("__INDEX_DATA__", JSON.stringify(indexData));
 html = insertBeforeLast(html, "</head>", css + "\n");
 html = insertBeforeLast(html, "</main>", moduleHtml + "\n");
 html = insertBeforeLast(html, "</body>", retailScript + "\n");

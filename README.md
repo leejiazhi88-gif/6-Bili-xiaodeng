@@ -16,7 +16,7 @@ GitHub 仓库：https://github.com/leejiazhi88-gif/6-Bili-xiaodeng
 
 - 总览：价格图可通过曲线图例选择展示三个指数，PE 合图对比；创业板指与科创综指的真实利润合图；交易规模按三个指数分别呈现
 - 单图叠加创业板指、科创50、科创综指的估值曲线：PE(TTM)、PE历史分位等；缺失的连续PB不补造
-- 情绪-散户模块：成交额与成交量同轴叠加沪深两市对照和三个指数；两市成交量采用上证综指与深证综指成交量之和作为宽基代理。换手率、融资余额、融资余额/流通市值、涨停数量左轴显示两市指标，右轴叠加三个指数价格相对走势（各自起点=100），不可视为指数自身指标；时间轴从 2005 年开始，缺失历史不补造
+- 情绪-散户模块：成交额与成交量同轴叠加沪深两市对照和三个指数；两市成交量采用上证综指与深证综指成交量之和作为宽基代理。换手率、融资余额、融资余额/流通市值和涨停家数均展示两市与三个指数的实际值：指数换手率按当期成分股流通市值加权，指数融资余额汇总当期成分股融资余额，融资占比用融资余额除以成分股流通市值，涨停家数按当期成分股匹配；指数成分指标为月频。时间轴从 2005 年开始，缺失历史不补造
 - 情绪-大资金模块：一张图中只绘一条所选全市场资金指标，并叠加创业板指、科创50、科创综指三条相对走势线；左轴为资金原值，右轴以 2020-01-07 为 100
 - 情绪-官方模块：一张图中只绘一条所选共同政策指标（IPO融资额、产业资本净减持额、印花税率、LPR、社融增量或M2增速），并叠加三个指数的相对走势；左轴为政策原值，右轴以 2020-01-07 为 100
 
@@ -32,6 +32,7 @@ python3 ./work/fetch_star_official_valuation.py
 python3 ./work/fetch_star_official_history.py
 python3 ./work/fetch_valuation_data.py
 python3 ./work/fetch_retail_sentiment_data.py
+python3 ./work/fetch_retail_index_metrics.py
 python3 ./work/fetch_large_money_sentiment_data.py
 python3 ./work/fetch_official_sentiment_data.py
 python3 ./work/fetch_index_profit_data.py
@@ -71,6 +72,8 @@ http://127.0.0.1:9876
 - `work/fetch_index_profit_data.py`：指数成分股归母净利润 TTM 汇总脚本
 - `work/index_profit_data.json`：真实利润数据缓存
 - `work/market_overview_data.json`：总览数据缓存
+- `work/fetch_retail_index_metrics.py`：按历史指数成分计算月频换手率、融资余额与融资占比
+- `work/retail_index_metrics.json`：上述指数指标缓存
 - `work/add_valuation_module.js`：估值模块注入脚本
 - `work/fetch_valuation_data.py`：PB、股债收益差数据更新脚本
 - `work/valuation_data.json`：估值扩展数据缓存
