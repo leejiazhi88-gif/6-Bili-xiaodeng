@@ -10,7 +10,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 CONFIG = Path.home() / ".codex" / "config.toml"
 OUTPUT = ROOT / "work" / "retail_sentiment_data.json"
-START_YEAR = 2009
+START_YEAR = 2008
 END_YEAR = datetime.now().year
 END_DATE = datetime.now().strftime("%Y%m%d")
 
@@ -99,17 +99,18 @@ def last_by_week(rows):
 def main():
     token = get_token()
     market_rows = []
-    for exchange, market_code in (("SH", "SH_A"), ("SZ", "SZ_A"),
-                                  ("SH", "SH_MARKET"), ("SZ", "SZ_MARKET")):
+    for exchange, market_code in (("SH", "SH_A"), ("SH", "SH_MARKET"),
+                                  ("SZ", "SZ_MARKET")):
         rows = yearly(
             token,
             "daily_info",
             {"exchange": exchange, "ts_code": market_code},
             "trade_date,ts_code,float_mv,amount,tr,exchange",
-            start_year=2019 if market_code.endswith("MARKET") else START_YEAR,
+            start_year=2019 if market_code == "SH_MARKET" else START_YEAR,
         )
         market_rows.extend(row for row in rows if
-                           (row["trade_date"] < "20190101") == market_code.endswith("_A"))
+                           market_code == "SZ_MARKET" or
+                           ((row["trade_date"] < "20190101") == (market_code == "SH_A")))
 
     margins = []
     for exchange in ("SSE", "SZSE"):
@@ -146,7 +147,7 @@ def main():
                 for row in markets
             )
             / float_mv
-            if float_mv
+            if float_mv and all(row.get("tr") is not None for row in markets)
             else None
         )
         margin_rows = [
