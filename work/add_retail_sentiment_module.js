@@ -17,6 +17,16 @@ function stripExisting(html) {
 const css = `
   <style id="retail-sentiment-style">
     #retailSentimentChart { height: 540px; width: 100%; }
+    #retailSeriesControls { display: flex; flex-wrap: wrap; gap: 8px 18px; padding: 10px 16px 0; }
+    #retailSeriesControls button { display: inline-flex; align-items: center; gap: 6px; padding: 4px 0;
+      border: 0; background: transparent; color: #8fa5bf; font-size: 12px; cursor: pointer; }
+    #retailSeriesControls button:hover { color: #edf4ff; background: transparent; }
+    #retailSeriesControls button[aria-pressed="false"] { opacity: .4; }
+    .retail-series-mark { position: relative; width: 22px; height: 12px; flex: none; }
+    .retail-series-mark::before { content: ""; position: absolute; left: 0; right: 0; top: 5px;
+      border-top: 2px solid var(--series-color); }
+    .retail-series-mark::after { content: ""; position: absolute; left: 8px; top: 1px;
+      width: 8px; height: 8px; border: 2px solid #edf4ff; border-radius: 50%; background: var(--series-color); }
     @media (max-width: 980px) {
       #retailSentimentChart { height: 470px; }
     }
@@ -47,6 +57,12 @@ const moduleHtml = `
           <button class="range-tab" data-years="20">20年</button>
           <button class="range-tab active" data-years="0">全部</button>
         </div>
+      </div>
+      <div id="retailSeriesControls" role="group" aria-label="选择对照曲线">
+        <button type="button" data-series="沪深两市" aria-pressed="true" style="--series-color:#f6c85f"><span class="retail-series-mark"></span>沪深两市</button>
+        <button type="button" data-series="创业板指" aria-pressed="true" style="--series-color:#ff5d73"><span class="retail-series-mark"></span>创业板指</button>
+        <button type="button" data-series="科创50" aria-pressed="true" style="--series-color:#7ddc82"><span class="retail-series-mark"></span>科创50</button>
+        <button type="button" data-series="科创综指" aria-pressed="true" style="--series-color:#36c2ff"><span class="retail-series-mark"></span>科创综指</button>
       </div>
       <div class="metric-tabs" id="retailMetricTabs">
         <button class="metric-tab active" data-metric="amount">成交额</button>
@@ -103,7 +119,7 @@ const script = `
         unit: "亿手", digits: 2,
         subtitle: "两市宽基代理与三个指数成交量，周频展示",
         note: "两市成交量为上证综指与深证综指之和，属于宽基代理。",
-        sources: [{ ...market, name: "沪深两市·宽基代理", field: "volumeProxy" },
+        sources: [{ ...market, field: "volumeProxy" },
           ...indices.map(item => ({ ...item, field: "volumeYiShou" }))]
       },
       turnover: {
@@ -134,6 +150,7 @@ const script = `
 
     let activeMetric = "amount";
     let activeYears = 0;
+    const selectedSeries = new Set(["沪深两市", "创业板指", "科创50", "科创综指"]);
     const chart = echarts.init(document.getElementById("retailSentimentChart"), null, { renderer: "canvas" });
     document.getElementById("retailDataStatus").textContent =
       "市场数据 " + retailData.series[0].date + " 起 / 指数按实际起点显示";
@@ -144,7 +161,7 @@ const script = `
       const cutoff = new Date(end);
       if (activeYears) cutoff.setUTCFullYear(cutoff.getUTCFullYear() - activeYears);
       const minDate = activeYears ? cutoff.toISOString().slice(0, 10) : "";
-      const series = cfg.sources.map(source => ({
+      const series = cfg.sources.filter(source => selectedSeries.has(source.name)).map(source => ({
         name: source.name,
         type: "line",
         data: source.rows.filter(row => row.date >= minDate && Number.isFinite(row[source.field]))
@@ -163,11 +180,8 @@ const script = `
       chart.setOption({
         animation: false,
         backgroundColor: "transparent",
-        grid: { left: 72, right: 28,
-          top: window.innerWidth <= 620 ? 88 : 65, bottom: 64 },
-        legend: { show: true, type: "plain", top: 12, left: 12, right: 12,
-          itemWidth: 16, itemGap: 10,
-          textStyle: { color: "#8fa5bf", fontSize: window.innerWidth <= 620 ? 10 : 11 } },
+        grid: { left: 72, right: 28, top: 26, bottom: 64 },
+        legend: { show: false },
         tooltip: {
           trigger: "axis", axisPointer: { type: "cross" },
           backgroundColor: "rgba(7,17,31,.96)", borderColor: "#36506f",
@@ -207,6 +221,19 @@ const script = `
         activeMetric = button.dataset.metric;
         document.querySelectorAll("#retailMetricTabs [data-metric]").forEach(item => item.classList.remove("active"));
         button.classList.add("active");
+        renderChart();
+      });
+    });
+    document.querySelectorAll("#retailSeriesControls [data-series]").forEach(button => {
+      button.addEventListener("click", () => {
+        const name = button.dataset.series;
+        if (selectedSeries.has(name)) {
+          if (selectedSeries.size === 1) return;
+          selectedSeries.delete(name);
+        } else {
+          selectedSeries.add(name);
+        }
+        button.setAttribute("aria-pressed", selectedSeries.has(name) ? "true" : "false");
         renderChart();
       });
     });
