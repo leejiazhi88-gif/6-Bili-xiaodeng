@@ -79,7 +79,7 @@ const moduleHtml = `
     </article>
 
     <div class="valuation-foot">
-      <div class="note"><strong>数据口径：</strong>成交额和成交量展示两市对照与三个指数的实际交易值，成交额使用从零开始的等距刻度；两市成交量使用上证综指、深证综指成交量之和作为宽基代理。换手率均为周频：创业板指、科创50取 Tushare 指数每日换手率，科创综指按当期成分股流通市值加权；指数融资余额为成分股融资余额之和，融资占比再除以成分股流通市值。所有可选指标均按每周最后一个交易日取点，缺失数据不补造。</div>
+      <div class="note"><strong>统计口径：</strong><span id="retailMethodology"></span></div>
     </div>
   </section>
 `;
@@ -136,6 +136,13 @@ const script = `
         sources: [{ ...market, field: "marginFloatRatio" }, ...indexMetrics.map(item => ({ ...item, field: "marginFloatRatio" }))]
       }
     };
+    const methodology = {
+      amount: "沪深两市与三个指数均为实际成交额（亿元），取每周最后一个交易日；纵轴从零开始、等距显示，不是对数刻度。",
+      volume: "三个指数为实际成交量（亿手）；两市线以上证综指与深证综指成交量之和作宽基代理。均取每周最后一个交易日。",
+      turnover: "创业板指、科创50采用指数换手率原值；科创综指按当期成分股流通市值加权。均取每周最后一个交易日的百分比，不是周累计。",
+      marginBalance: "三个指数分别汇总当期成分股融资余额，两市线为沪深市场余额（亿元）；未列入融资标的的成分股按零计。取每周最后一个交易日。",
+      marginFloatRatio: "指数成分股融资余额合计 ÷ 同期成分股流通市值合计；两市线按沪深市场整体口径计算。取每周最后一个交易日的百分比。"
+    };
 
     let activeMetric = "amount";
     let activeYears = 0;
@@ -165,6 +172,7 @@ const script = `
       dates.sort();
       document.getElementById("retailMetricSubtitle").textContent = cfg.subtitle;
       document.getElementById("retailMetricNote").textContent = cfg.note;
+      document.getElementById("retailMethodology").textContent = methodology[activeMetric];
       document.getElementById("retailLatestReading").textContent =
         dates.length ? "时间轴 " + axisStart + " 起；可用数据 " + dates[0] + " 至 " + dates[dates.length - 1] : "暂无数据";
       chart.setOption({

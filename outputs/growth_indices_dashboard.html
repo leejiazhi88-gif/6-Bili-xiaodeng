@@ -350,7 +350,7 @@
     </article>
 
     <div class="valuation-foot">
-      <div class="note"><strong>数据口径：</strong>成交额和成交量展示两市对照与三个指数的实际交易值，成交额使用从零开始的等距刻度；两市成交量使用上证综指、深证综指成交量之和作为宽基代理。换手率均为周频：创业板指、科创50取 Tushare 指数每日换手率，科创综指按当期成分股流通市值加权；指数融资余额为成分股融资余额之和，融资占比再除以成分股流通市值。所有可选指标均按每周最后一个交易日取点，缺失数据不补造。</div>
+      <div class="note"><strong>统计口径：</strong><span id="retailMethodology"></span></div>
     </div>
   </section>
 
@@ -455,9 +455,7 @@
     </article>
 
     <div class="valuation-foot">
-      <div class="note"><strong>图表口径：</strong>黄色官方指标线为全市场共同环境，只出现一次，使用左轴原始单位；三条指数线使用右轴，以2020-01-07为100比较相对走势。官方指标没有按指数拆分，左右轴数值不能直接相减。</div>
-      <div class="note"><strong>数据口径：</strong>IPO融资额来自新股上市募集资金；产业资本净减持额用重要股东增减持公告和均价估算，正值为净减持；LPR、社融、M2为月频宏观数据。各指标仅从实际有数据的日期开始。</div>
-      <div class="note"><strong>缺口说明：</strong>再融资额与国家队持仓规模缺少稳定、统一、可自动更新的官方连续口径，当前暂不绘制。</div>
+      <div class="note"><strong>统计口径：</strong><span id="officialMethodology"></span></div>
     </div>
   </section>
 
@@ -877,6 +875,13 @@ window.addEventListener("resize", () => charts.forEach(chart => chart.resize()))
         sources: [{ ...market, field: "marginFloatRatio" }, ...indexMetrics.map(item => ({ ...item, field: "marginFloatRatio" }))]
       }
     };
+    const methodology = {
+      amount: "沪深两市与三个指数均为实际成交额（亿元），取每周最后一个交易日；纵轴从零开始、等距显示，不是对数刻度。",
+      volume: "三个指数为实际成交量（亿手）；两市线以上证综指与深证综指成交量之和作宽基代理。均取每周最后一个交易日。",
+      turnover: "创业板指、科创50采用指数换手率原值；科创综指按当期成分股流通市值加权。均取每周最后一个交易日的百分比，不是周累计。",
+      marginBalance: "三个指数分别汇总当期成分股融资余额，两市线为沪深市场余额（亿元）；未列入融资标的的成分股按零计。取每周最后一个交易日。",
+      marginFloatRatio: "指数成分股融资余额合计 ÷ 同期成分股流通市值合计；两市线按沪深市场整体口径计算。取每周最后一个交易日的百分比。"
+    };
 
     let activeMetric = "amount";
     let activeYears = 0;
@@ -906,6 +911,7 @@ window.addEventListener("resize", () => charts.forEach(chart => chart.resize()))
       dates.sort();
       document.getElementById("retailMetricSubtitle").textContent = cfg.subtitle;
       document.getElementById("retailMetricNote").textContent = cfg.note;
+      document.getElementById("retailMethodology").textContent = methodology[activeMetric];
       document.getElementById("retailLatestReading").textContent =
         dates.length ? "时间轴 " + axisStart + " 起；可用数据 " + dates[0] + " 至 " + dates[dates.length - 1] : "暂无数据";
       chart.setOption({
@@ -1273,6 +1279,14 @@ window.addEventListener("resize", () => charts.forEach(chart => chart.resize()))
         note: "M2增速体现广义流动性环境，需与社融和利率结合观察。"
       }
     };
+    const methodology = {
+      ipoFund: "按新股上市月份汇总实际募集资金（亿元），代表全市场 IPO 融资供给，不按指数拆分。三个指数为右轴价格相对走势。",
+      holderNetReductionAmount: "按公告月份汇总重要股东增减持股数 × 披露均价（亿元）；正值为净减持，缺少均价的不计入。三个指数为右轴价格相对走势。",
+      stampDutyRate: "证券交易印花税卖出端适用税率（%），按政策生效日变化；是全市场共同税率，不按指数拆分。三个指数为右轴价格相对走势。",
+      lpr1y: "1 年期贷款市场报价利率（LPR，%），按公布月份取值；并非股票市场专属利率。三个指数为右轴价格相对走势。",
+      socialFinancing: "当月社会融资规模增量（亿元），表示全社会新增融资，不等于流入股市的资金。三个指数为右轴价格相对走势。",
+      m2Yoy: "广义货币 M2 余额相对上年同月的增速（%），反映货币环境，不等于股市资金流入。三个指数为右轴价格相对走势。"
+    };
     const baselineDate = "2020-01-07";
     const indices = [
       { name: "创业板指", rows: DATA.sh, color: COLORS.sh },
@@ -1307,6 +1321,8 @@ window.addEventListener("resize", () => charts.forEach(chart => chart.resize()))
       });
       document.getElementById("officialMetricSubtitle").textContent = cfg.subtitle;
       document.getElementById("officialMetricNote").textContent = cfg.note;
+      document.getElementById("officialMethodology").textContent = methodology[activeMetric] +
+        " 指数以 2020-01-07 或其后首个可用点为 100，左右轴不能直接比较数值。";
       document.getElementById("officialLatestReading").textContent = policyPoints.length
         ? "官方指标 " + policyPoints[0][0] + " 至 " + policyPoints[policyPoints.length - 1][0] +
           " · 最新 " + fmt(policyPoints[policyPoints.length - 1][1], cfg.digits) + cfg.unit

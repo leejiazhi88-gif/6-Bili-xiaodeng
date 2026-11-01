@@ -66,9 +66,7 @@ const moduleHtml = `
     </article>
 
     <div class="valuation-foot">
-      <div class="note"><strong>图表口径：</strong>黄色官方指标线为全市场共同环境，只出现一次，使用左轴原始单位；三条指数线使用右轴，以2020-01-07为100比较相对走势。官方指标没有按指数拆分，左右轴数值不能直接相减。</div>
-      <div class="note"><strong>数据口径：</strong>IPO融资额来自新股上市募集资金；产业资本净减持额用重要股东增减持公告和均价估算，正值为净减持；LPR、社融、M2为月频宏观数据。各指标仅从实际有数据的日期开始。</div>
-      <div class="note"><strong>缺口说明：</strong>再融资额与国家队持仓规模缺少稳定、统一、可自动更新的官方连续口径，当前暂不绘制。</div>
+      <div class="note"><strong>统计口径：</strong><span id="officialMethodology"></span></div>
     </div>
   </section>
 `;
@@ -112,6 +110,14 @@ const script = `
         note: "M2增速体现广义流动性环境，需与社融和利率结合观察。"
       }
     };
+    const methodology = {
+      ipoFund: "按新股上市月份汇总实际募集资金（亿元），代表全市场 IPO 融资供给，不按指数拆分。三个指数为右轴价格相对走势。",
+      holderNetReductionAmount: "按公告月份汇总重要股东增减持股数 × 披露均价（亿元）；正值为净减持，缺少均价的不计入。三个指数为右轴价格相对走势。",
+      stampDutyRate: "证券交易印花税卖出端适用税率（%），按政策生效日变化；是全市场共同税率，不按指数拆分。三个指数为右轴价格相对走势。",
+      lpr1y: "1 年期贷款市场报价利率（LPR，%），按公布月份取值；并非股票市场专属利率。三个指数为右轴价格相对走势。",
+      socialFinancing: "当月社会融资规模增量（亿元），表示全社会新增融资，不等于流入股市的资金。三个指数为右轴价格相对走势。",
+      m2Yoy: "广义货币 M2 余额相对上年同月的增速（%），反映货币环境，不等于股市资金流入。三个指数为右轴价格相对走势。"
+    };
     const baselineDate = "2020-01-07";
     const indices = [
       { name: "创业板指", rows: DATA.sh, color: COLORS.sh },
@@ -146,6 +152,8 @@ const script = `
       });
       document.getElementById("officialMetricSubtitle").textContent = cfg.subtitle;
       document.getElementById("officialMetricNote").textContent = cfg.note;
+      document.getElementById("officialMethodology").textContent = methodology[activeMetric] +
+        " 指数以 2020-01-07 或其后首个可用点为 100，左右轴不能直接比较数值。";
       document.getElementById("officialLatestReading").textContent = policyPoints.length
         ? "官方指标 " + policyPoints[0][0] + " 至 " + policyPoints[policyPoints.length - 1][0] +
           " · 最新 " + fmt(policyPoints[policyPoints.length - 1][1], cfg.digits) + cfg.unit
