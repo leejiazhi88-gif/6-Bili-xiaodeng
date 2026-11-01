@@ -327,7 +327,7 @@
     </article>
 
     <div class="valuation-foot">
-      <div class="note"><strong>数据口径：</strong>成交额和成交量展示两市对照与三个指数的实际交易值；两市成交量使用上证综指、深证综指成交量之和作为宽基代理，并非交易所全市场总量。其余指标左轴是两市统计，右轴是三个指数价格相对走势（各自起点=100），不是指数自身的融资、涨停或换手率。时间轴从 2005 年开始，各线只在真实有数据的日期显示。</div>
+      <div class="note"><strong>数据口径：</strong>成交额和成交量展示两市对照与三个指数的实际交易值，成交额使用从零开始的等距刻度；两市成交量使用上证综指、深证综指成交量之和作为宽基代理，并非交易所全市场总量。其余指标左轴是两市统计，右轴是三个指数价格相对走势（各自起点=100），不是指数自身的融资、涨停或换手率。时间轴从 2005 年开始，各线只在真实有数据的日期显示。</div>
     </div>
   </section>
 
@@ -808,9 +808,9 @@ window.addEventListener("resize", () => charts.forEach(chart => chart.resize()))
       : "--";
     const metrics = {
       amount: {
-        unit: "亿元", digits: 0, log: true,
+        unit: "亿元", digits: 0,
         subtitle: "沪深两市与三个指数成交额，周频展示",
-        note: "四条线共用亿元纵轴；对数刻度可同时看清全市场和指数的不同量级。",
+        note: "四条线共用从零开始的亿元等距纵轴；指数成交额因量级较小会靠近底部。",
         sources: [{ ...market, field: "amount" }, ...indices.map(item => ({ ...item, field: "amountYi" }))]
       },
       volume: {
@@ -865,7 +865,7 @@ window.addEventListener("resize", () => charts.forEach(chart => chart.resize()))
         name: source.name,
         type: "line",
         yAxisIndex: source.compare ? 1 : 0,
-        data: source.rows.filter(row => row.date >= minDate && Number.isFinite(row[source.field]) && (!cfg.log || row[source.field] > 0))
+        data: source.rows.filter(row => row.date >= minDate && Number.isFinite(row[source.field]))
           .map(row => [row.date, source.compare ? row.close / source.rows[0].close * 100 : row[source.field]]),
         showSymbol: false,
         sampling: "lttb",
@@ -902,7 +902,7 @@ window.addEventListener("resize", () => charts.forEach(chart => chart.resize()))
           axisLabel: { color: "#7890aa", hideOverlap: true }, splitLine: { show: false }
         },
         yAxis: [{
-          type: cfg.log ? "log" : "value", scale: true,
+          type: "value", scale: activeMetric !== "amount", min: activeMetric === "amount" ? 0 : undefined,
           axisLabel: { color: "#7890aa", formatter(value) {
             return cfg.unit === "亿元" && value >= 10000
               ? fmt(value / 10000, 1) + "万亿元"
