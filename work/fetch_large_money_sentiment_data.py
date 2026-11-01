@@ -11,7 +11,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 CONFIG = Path.home() / ".codex" / "config.toml"
 OUTPUT = ROOT / "work" / "large_money_sentiment_data.json"
-START_YEAR = 2009
+START_YEAR = 2002
 END_YEAR = datetime.now().year
 END_DATE = datetime.now().strftime("%Y%m%d")
 

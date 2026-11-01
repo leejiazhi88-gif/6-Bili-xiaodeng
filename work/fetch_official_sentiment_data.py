@@ -11,7 +11,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 CONFIG = Path.home() / ".codex" / "config.toml"
 OUTPUT = ROOT / "work" / "official_sentiment_data.json"
-START_YEAR = 2009
+START_YEAR = 2002
 END_YEAR = datetime.now().year
 END_DATE = datetime.now().strftime("%Y%m%d")
 
@@ -80,6 +80,8 @@ def month_end(month):
 
 
 def active_stamp_rate(month):
+    if month < "200801":
+        return None
     date = f"{month}28"
     rate = STAMP_DUTY_EVENTS[0][1]
     for event_date, event_rate in STAMP_DUTY_EVENTS:
@@ -194,8 +196,8 @@ def main():
         series.append(
             {
                 "date": month_end(month),
-                "ipoFund": round(ipo.get("funds", 0), 2),
-                "ipoCount": ipo.get("count", 0),
+                "ipoFund": round(ipo.get("funds", 0), 2) if month >= "200801" else None,
+                "ipoCount": ipo.get("count", 0) if month >= "200801" else None,
                 "refinanceFund": None,
                 "holderReductionAmount": round(holder.get("reduction", 0), 2),
                 "holderNetReductionAmount": round(holder.get("net", 0), 2),

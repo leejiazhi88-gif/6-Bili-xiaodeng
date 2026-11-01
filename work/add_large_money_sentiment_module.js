@@ -17,8 +17,10 @@ const css = `
   <style id="large-money-sentiment-style">
     .large-money-grid { display: grid; grid-template-columns: minmax(0, 1fr); }
     #largeMoneyChart { height: 500px; width: 100%; }
+    .large-index-chart { height: 280px; width: 100%; }
     @media (max-width: 980px) {
       #largeMoneyChart { height: 450px; }
+      .large-index-chart { height: 250px; }
     }
   </style>
 `;
@@ -31,15 +33,15 @@ const moduleHtml = `
         <h2>情绪-大资金</h2>
         <p>观察机构交易、北向资金和产业资本行为，识别资金集中进入与撤退的阶段。</p>
       </div>
-      <div class="module-status">大宗与增减持 2018年至今 / 北向净流入至2024年8月</div>
+      <div class="module-status" id="largeMoneyDataStatus"></div>
     </div>
 
     <div class="large-money-grid">
       <article class="valuation-panel">
         <div class="panel-head">
           <div>
-            <div class="panel-title">连续走势图</div>
-            <div class="panel-subtitle" id="largeMoneyMetricSubtitle">全市场大宗交易周成交额</div>
+            <div class="panel-title">三个指数对照</div>
+            <div class="panel-subtitle">所选资金指标为全市场口径；右轴为各指数自身走势</div>
           </div>
           <div class="range-tabs" id="largeMoneyRangeTabs">
             <button class="range-tab" data-years="3">3年</button>
@@ -56,6 +58,26 @@ const moduleHtml = `
           <button class="metric-tab" disabled title="需要公募持仓全市场截面聚合">机构持仓集中度</button>
           <button class="metric-tab" disabled title="ETF全市场历史快照待接入">ETF份额变化</button>
         </div>
+        <div class="board-chart-block">
+          <div class="board-chart-head"><strong class="sh">创业板指</strong><span id="largeIndexLatestSh"></span></div>
+          <div class="large-index-chart" id="largeIndexChartSh"></div>
+        </div>
+        <div class="board-chart-block">
+          <div class="board-chart-head"><strong class="k50">科创50</strong><span id="largeIndexLatestK50"></span></div>
+          <div class="large-index-chart" id="largeIndexChartK50"></div>
+        </div>
+        <div class="board-chart-block">
+          <div class="board-chart-head"><strong class="sz">科创综指</strong><span id="largeIndexLatestSz"></span></div>
+          <div class="large-index-chart" id="largeIndexChartSz"></div>
+        </div>
+      </article>
+      <article class="valuation-panel">
+        <div class="panel-head">
+          <div>
+            <div class="panel-title">全市场完整历史</div>
+            <div class="panel-subtitle" id="largeMoneyMetricSubtitle">全市场大宗交易周成交额</div>
+          </div>
+        </div>
         <div class="metric-note">
           <span id="largeMoneyMetricNote">大宗交易放量代表大额筹码交换活跃，需要结合机构席位净方向判断。</span>
           <span class="metric-reading" id="largeMoneyLatestReading"></span>
@@ -67,6 +89,7 @@ const moduleHtml = `
 
     <div class="valuation-foot">
       <div class="note"><strong>连续数据口径：</strong>大宗交易额按周汇总；机构净买入仅识别买卖方标记为“机构专用”的席位；产业资本净增减持按公告股数汇总，正值为净增持、负值为净减持。</div>
+      <div class="note"><strong>指数对照：</strong>上方三图的资金指标相同，均为全市场数据；指数线各自不同。它们展示同期关系，不代表资金已按指数成分股归集。</div>
       <div class="note"><strong>北向口径提示：</strong>北向净流入序列保留至2024年8月16日。此后披露机制发生变化，页面不把新口径成交数据与旧口径净流入强行拼接。</div>
     </div>
   </section>
@@ -104,6 +127,63 @@ const script = `
     let activeMetric = "blockAmount";
     let activeYears = 0;
     const chart = echarts.init(document.getElementById("largeMoneyChart"), null, { renderer: "canvas" });
+    const indexMarkets = [
+      { key: "Sh", label: "创业板指", rows: DATA.sh, color: COLORS.sh },
+      { key: "K50", label: "科创50", rows: DATA.k50, color: COLORS.k50 },
+      { key: "Sz", label: "科创综指", rows: DATA.sz, color: COLORS.sz }
+    ];
+    const indexCharts = indexMarkets.map(market => echarts.init(
+      document.getElementById("largeIndexChart" + market.key), null, { renderer: "canvas" }));
+    document.getElementById("largeMoneyDataStatus").textContent =
+      "大宗与增减持 " + largeMoneyData.series[0].date + " 起 / 北向至 2024-08-16";
+
+    function renderIndexCharts() {
+      const cfg = metrics[activeMetric];
+      indexMarkets.forEach((market, index) => {
+        const first = market.rows[0].date;
+        const end = new Date(market.rows[market.rows.length - 1].date + "T00:00:00Z");
+        const cutoff = new Date(end);
+        if (activeYears) cutoff.setUTCFullYear(cutoff.getUTCFullYear() - activeYears);
+        const minDate = activeYears ? cutoff.toISOString().slice(0, 10) : first;
+        const indexRows = market.rows.filter(row => row.date >= minDate && Number.isFinite(row.close));
+        const indexPoints = indexRows.map(row => [row.date, row.close]);
+        const metricPoints = largeMoneyData.series
+          .filter(row => row.date >= minDate && Number.isFinite(row[activeMetric]))
+          .map(row => [row.date, row[activeMetric]]);
+        document.getElementById("largeIndexLatest" + market.key).textContent =
+          "指数始于 " + first + " · 图内指标起于 " + (metricPoints[0]?.[0] || "暂无数据");
+        indexCharts[index].setOption({
+          animation: false, backgroundColor: "transparent",
+          grid: { left: 70, right: 70, top: 42, bottom: 60 },
+          legend: { top: 4, textStyle: { color: "#8fa5bf", fontSize: 10 } },
+          tooltip: { trigger: "axis", axisPointer: { type: "cross" },
+            backgroundColor: "rgba(7,17,31,.96)", borderColor: "#36506f",
+            textStyle: { color: "#edf4ff" } },
+          xAxis: { type: "time", axisLine: { lineStyle: { color: "#344760" } },
+            axisLabel: { color: "#7890aa", hideOverlap: true }, splitLine: { show: false } },
+          yAxis: [
+            { type: "value", scale: true, axisLabel: { color: "#8fa5bf", formatter: "{value}" + cfg.unit },
+              splitLine: { lineStyle: { color: "#17283d" } } },
+            { type: "value", scale: true, axisLabel: { color: market.color }, splitLine: { show: false } }
+          ],
+          dataZoom: [
+            { type: "inside", filterMode: "none", start: 0, end: 100 },
+            { type: "slider", bottom: 10, height: 20, start: 0, end: 100,
+              borderColor: "#263b58", backgroundColor: "#0d1929",
+              fillerColor: "rgba(54,194,255,.17)", handleStyle: { color: "#36c2ff" },
+              textStyle: { color: "#8fa5bf" } }
+          ],
+          series: [
+            { name: cfg.title + "（全市场）", type: "line", data: metricPoints,
+              yAxisIndex: 0, showSymbol: false, sampling: "lttb",
+              lineStyle: { width: 1.7, color: "#f6c85f" }, itemStyle: { color: "#f6c85f" } },
+            { name: market.label + "点位", type: "line", data: indexPoints,
+              yAxisIndex: 1, showSymbol: false, sampling: "lttb",
+              lineStyle: { width: 2, color: market.color }, itemStyle: { color: market.color } }
+          ]
+        }, true);
+      });
+    }
 
     function activeRows() {
       const rows = largeMoneyData.series.filter(row => Number.isFinite(row[activeMetric]));
@@ -121,7 +201,7 @@ const script = `
       document.getElementById("largeMoneyMetricSubtitle").textContent = cfg.subtitle;
       document.getElementById("largeMoneyMetricNote").textContent = cfg.note;
       document.getElementById("largeMoneyLatestReading").textContent =
-        "最新：" + fmt(latest, cfg.digits) + cfg.unit;
+        "最新：" + fmt(latest, cfg.digits) + cfg.unit + (points.length ? " · 起于 " + points[0][0] : "");
       chart.setOption({
         animation: false, backgroundColor: "transparent",
         grid: { left: 72, right: 28, top: 42, bottom: 64 },
@@ -157,6 +237,7 @@ const script = `
           areaStyle: { color: "rgba(54,194,255,.08)" }, itemStyle: { color: "#36c2ff" }
         }]
       }, true);
+      renderIndexCharts();
     }
     document.querySelectorAll("#largeMoneyMetricTabs [data-metric]").forEach(button => {
       button.addEventListener("click", () => {
@@ -175,7 +256,7 @@ const script = `
       });
     });
 
-    window.addEventListener("resize", () => chart.resize());
+    window.addEventListener("resize", () => { chart.resize(); indexCharts.forEach(item => item.resize()); });
     renderChart();
   })();
   </script>
