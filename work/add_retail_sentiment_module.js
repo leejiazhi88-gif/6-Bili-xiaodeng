@@ -71,6 +71,8 @@ const moduleHtml = `
           <div class="range-tabs" id="retailRangeTabs">
             <button class="range-tab" data-years="3">3年</button>
             <button class="range-tab" data-years="5">5年</button>
+            <button class="range-tab" data-years="10">10年</button>
+            <button class="range-tab" data-years="20">20年</button>
             <button class="range-tab active" data-years="0">全部</button>
           </div>
         </div>
@@ -153,7 +155,11 @@ const script = `
     function renderIndexCharts() {
       const unit = activeIndexMetric === "amountYi" ? "亿元" : "亿手";
       indexMarkets.forEach((market, index) => {
-        const points = market.rows.filter(row => Number.isFinite(row[activeIndexMetric]) && row[activeIndexMetric] > 0)
+        const end = new Date(market.rows[market.rows.length - 1].date + "T00:00:00Z");
+        const cutoff = new Date(end);
+        if (activeYears) cutoff.setUTCFullYear(cutoff.getUTCFullYear() - activeYears);
+        const minDate = activeYears ? cutoff.toISOString().slice(0, 10) : market.rows[0].date;
+        const points = market.rows.filter(row => row.date >= minDate && Number.isFinite(row[activeIndexMetric]) && row[activeIndexMetric] > 0)
           .map(row => [row.date, row[activeIndexMetric]]);
         const latest = points[points.length - 1];
         document.getElementById("retailIndexLatest" + market.key).textContent =
@@ -266,6 +272,7 @@ const script = `
         document.querySelectorAll("#retailRangeTabs [data-years]").forEach(item => item.classList.remove("active"));
         button.classList.add("active");
         renderChart();
+        renderIndexCharts();
       });
     });
 

@@ -11,7 +11,8 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 CONFIG = Path.home() / ".codex" / "config.toml"
 OUTPUT = ROOT / "work" / "official_sentiment_data.json"
-START_YEAR = 2002
+START_YEAR = 1991
+START_MONTH = "199112"
 END_YEAR = datetime.now().year
 END_DATE = datetime.now().strftime("%Y%m%d")
 
@@ -120,13 +121,13 @@ def main():
     money = call_api(
         token,
         "cn_m",
-        {"start_m": f"{START_YEAR}01", "end_m": END_DATE[:6]},
+        {"start_m": START_MONTH, "end_m": END_DATE[:6]},
         "month,m2,m2_yoy,m1,m1_yoy",
     )
     social = call_api(
         token,
         "sf_month",
-        {"start_m": f"{START_YEAR}01", "end_m": END_DATE[:6]},
+        {"start_m": START_MONTH, "end_m": END_DATE[:6]},
         "month,inc_month",
     )
     lpr = call_api(

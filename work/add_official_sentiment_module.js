@@ -46,6 +46,9 @@ const moduleHtml = `
           <div class="range-tabs" id="officialRangeTabs">
             <button class="range-tab" data-years="3">3年</button>
             <button class="range-tab" data-years="5">5年</button>
+            <button class="range-tab" data-years="10">10年</button>
+            <button class="range-tab" data-years="20">20年</button>
+            <button class="range-tab" data-years="30">30年</button>
             <button class="range-tab active" data-years="0">全部</button>
           </div>
         </div>

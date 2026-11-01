@@ -101,7 +101,7 @@ const moduleHtml = `
         <h2>估值</h2>
         <p>连续数据观察创业板与科创板的估值位置。</p>
       </div>
-      <div class="module-status">PE 20年 / PB与股债收益差 10年</div>
+      <div class="module-status">默认展示全部可用历史</div>
     </div>
 
     <article class="valuation-panel">
@@ -114,6 +114,7 @@ const moduleHtml = `
             <button class="range-tab" data-years="3">3年</button>
             <button class="range-tab" data-years="5">5年</button>
             <button class="range-tab" data-years="10">10年</button>
+            <button class="range-tab" data-years="15">15年</button>
             <button class="range-tab active" data-years="0">全部</button>
           </div>
         </div>
@@ -144,7 +145,7 @@ const moduleHtml = `
     </article>
 
     <div class="valuation-foot">
-      <div class="note"><strong>连续数据口径：</strong>PE(TTM)为指数动态市盈率；PE与PB分位均按当前选择的3年、5年、10年或全部可用样本动态重算。PB来自指数每日指标，股债收益差为100/PE减10年期国债收益率，两者共同可得区间为2016年6月以来。</div>
+      <div class="note"><strong>连续数据口径：</strong>PE(TTM)为指数动态市盈率；PE与PB分位均按当前所选时间跨度的可用样本动态重算。PB来自指数每日指标；股债收益差需要可靠的10年期国债收益率，当前接口无权限时不绘制。各指标从自身首个有效日期开始，不补造早期数值。</div>
     </div>
   </section>
 ${END_MARKER}
@@ -161,6 +162,11 @@ const js = `
     const valuationData = { sh: DATA.sh, sz: DATA.officialHistory.rows, k50: DATA.k50 };
     valuationExtra.k50 = DATA.k50;
     valuationExtra.sz = DATA.official.snapshots;
+    const spreadTab = document.querySelector('#valuationMetricTabs [data-metric="equityBondSpread"]');
+    if (!valuationExtra.sh.some(row => Number.isFinite(row.equityBondSpread))) {
+      spreadTab.disabled = true;
+      spreadTab.title = "当前缺少可用的10年期国债收益率历史数据";
+    }
 
     const metricConfig = {
       pe: {
