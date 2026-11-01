@@ -144,10 +144,10 @@ function htmlTemplate(data, echartsSource) {
       border: 1px solid var(--line); border-top: 0; border-radius: 0 0 14px 14px;
       padding: 0 0 10px;
     }
-    .index-chart {
-      height: min(760px, calc(100vh - 210px));
-      min-height: 620px;
-    }
+    .index-chart { height: 390px; }
+    .index-chart.volume-chart { height: 290px; }
+    .chart-heading { color: var(--text); font-size: 15px; font-weight: 700; margin: 22px 22px 0; }
+    .volume-charts { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); }
     .notes {
       display: grid; grid-template-columns: 1.3fr 1fr; gap: 16px; margin-top: 15px;
       color: var(--muted); font-size: 12px; line-height: 1.7;
@@ -158,7 +158,7 @@ function htmlTemplate(data, echartsSource) {
       .cards { grid-template-columns: repeat(3, 1fr); }
       header { align-items: flex-start; flex-direction: column; }
       .asof { text-align: left; }
-      .index-chart { height: 720px; }
+      .volume-charts { grid-template-columns: 1fr; }
     }
     @media (max-width: 620px) {
       .wrap { padding: 20px 12px 26px; }
@@ -205,9 +205,16 @@ function htmlTemplate(data, echartsSource) {
       </div>
     </div>
     <div class="index-charts">
-      <div id="chart-sh" class="index-chart"></div>
-      <div id="chart-k50" class="index-chart"></div>
-      <div id="chart-sz" class="index-chart"></div>
+      <h2 class="chart-heading">指数价格</h2><div id="chart-price" class="index-chart"></div>
+      <h2 class="chart-heading">交易规模</h2>
+      <div class="volume-charts">
+        <div id="chart-volume-sh" class="index-chart volume-chart"></div>
+        <div id="chart-volume-k50" class="index-chart volume-chart"></div>
+        <div id="chart-volume-sz" class="index-chart volume-chart"></div>
+      </div>
+      <h2 class="chart-heading">市盈率 PE(TTM)</h2><div id="chart-pe" class="index-chart"></div>
+      <h2 class="chart-heading">归母净利润 TTM（亿元）</h2><div id="chart-profit" class="index-chart"></div>
+      <h2 class="chart-heading">科创50 市净率 PB</h2><div id="chart-pb" class="index-chart"></div>
     </div>
   </section>
   <section class="notes">
@@ -272,79 +279,69 @@ const commonAxis = {
   axisLabel: { color: "#7890aa", hideOverlap: true },
   splitLine: { show: false }, axisPointer: { show: true }
 };
-function chartOption(title, rows, color) {
-  const isStar50 = title === "科创50";
-  const isComposite = title === "科创综指";
-  const boardStart = title === "创业板指" ? "${BOARD_START.sh}" : "${BOARD_START.k50}";
+function chartOption(lines, { volume = false, title = "", unit = "" } = {}) {
   return {
     animation: false,
     backgroundColor: "transparent",
-    grid: [
-      { left: 72, right: 78, top: 58, height: "21%" },
-      { left: 72, right: 78, top: "33%", height: "18%" },
-      { left: 72, right: 78, top: "57%", height: "16%" },
-      { left: 72, right: 78, top: "80%", height: "12%" }
-    ],
-    title: [
-      { text: title, left: 20, top: 12, textStyle: { color, fontSize: 16, fontWeight: 750 } },
-      { text: "指数价格", left: 20, top: 36, textStyle: { color: "#edf4ff", fontSize: 12 } },
-      { text: "交易规模", left: 20, top: "30%", textStyle: { color: "#edf4ff", fontSize: 12 } },
-      { text: isComposite ? "PE(TTM) · 中证指数" : "市盈率 PE(TTM)", left: 20, top: "54%", textStyle: { color: "#edf4ff", fontSize: 12 } },
-      { text: isStar50 ? "市净率 PB" : "归母净利润TTM（亿元）", left: 20, top: "77%", textStyle: { color: "#edf4ff", fontSize: 12 } }
-    ],
+    grid: { left: volume ? 54 : 72, right: volume ? 58 : 32, top: volume ? 50 : 55, bottom: 58 },
+    title: title ? { text: title, left: 20, top: 12, textStyle: { color: "#edf4ff", fontSize: 13 } } : undefined,
     tooltip: {
-      trigger: "axis", axisPointer: { type: "cross", link: [{ xAxisIndex: "all" }] },
+      trigger: "axis", axisPointer: { type: "cross" },
       backgroundColor: "rgba(7,17,31,.96)", borderColor: "#36506f", textStyle: { color: "#edf4ff" },
       formatter(params) {
         const date = params[0]?.axisValueLabel || "";
-        const lines = params.map(p => p.marker + p.seriesName + "：<b>" + fmt(p.value[1]) + "</b>");
-        return "<b>" + date + "</b><br>" + lines.join("<br>");
+        return "<b>" + date + "</b><br>" + params.filter(p => p.value?.[1] != null)
+          .map(p => p.marker + p.seriesName + "：<b>" + fmt(p.value[1]) + "</b>").join("<br>");
       }
     },
-    legend: {
-      right: 22, top: "29%", textStyle: { color: "#8fa5bf", fontSize: 11 },
-      itemWidth: 14, itemHeight: 8,
-      data: ["交易量（亿手）", "交易额（亿元）"]
-    },
-    axisPointer: { link: [{ xAxisIndex: "all" }], label: { backgroundColor: "#263b58" } },
-    xAxis: [
-      { ...commonAxis, gridIndex: 0, min: boardStart, axisLabel: { show: false } },
-      { ...commonAxis, gridIndex: 1, min: boardStart, axisLabel: { show: false } },
-      { ...commonAxis, gridIndex: 2, min: boardStart, axisLabel: { show: false } },
-      { ...commonAxis, gridIndex: 3, min: boardStart }
-    ],
-    yAxis: [
-      { type: "value", gridIndex: 0, scale: true, axisLabel: { color: "#7890aa" }, splitLine: { lineStyle: { color: "#17283d" } } },
-      { type: "value", gridIndex: 1, scale: true, name: "亿手", nameTextStyle: { color: "#7890aa" }, axisLabel: { color: "#7890aa" }, splitLine: { lineStyle: { color: "#17283d" } } },
-      { type: "value", gridIndex: 1, scale: true, name: "亿元", nameTextStyle: { color: "#7890aa" }, axisLabel: { color: "#7890aa" }, splitLine: { show: false }, opposite: true },
-      { type: "value", gridIndex: 2, scale: true, axisLabel: { color: "#7890aa", formatter: "{value}x" }, splitLine: { lineStyle: { color: "#17283d" } } },
-      { type: "value", gridIndex: 3, scale: true, axisLabel: { color: "#7890aa" }, splitLine: { lineStyle: { color: "#17283d" } } }
-    ],
+    legend: volume ? { top: 13, right: 12, textStyle: { color: "#8fa5bf" }, data: lines.map(line => line.name) }
+      : { top: 12, left: 20, type: "scroll", textStyle: { color: "#8fa5bf" }, data: lines.map(line => line.name) },
+    xAxis: { ...commonAxis, min: "${BOARD_START.sh}" },
+    yAxis: volume ? [
+      { type: "value", scale: true, name: "亿手", axisLabel: { color: "#7890aa" }, splitLine: { lineStyle: { color: "#17283d" } } },
+      { type: "value", scale: true, name: "亿元", opposite: true, axisLabel: { color: "#7890aa" }, splitLine: { show: false } }
+    ] : { type: "value", scale: true, name: unit, axisLabel: { color: "#7890aa" }, splitLine: { lineStyle: { color: "#17283d" } } },
     dataZoom: [
-      { type: "inside", xAxisIndex: [0,1,2,3], filterMode: "none", start: 0, end: 100 },
-      { type: "slider", xAxisIndex: [0,1,2,3], bottom: 10, height: 24, borderColor: "#263b58",
-        backgroundColor: "#0d1929", fillerColor: "rgba(246,200,95,.18)", handleStyle: { color: "#f6c85f" },
+      { type: "inside", filterMode: "none", start: 0, end: 100 },
+      { type: "slider", bottom: 8, height: 20, borderColor: "#263b58", backgroundColor: "#0d1929",
+        fillerColor: "rgba(246,200,95,.18)", handleStyle: { color: "#f6c85f" },
         textStyle: { color: "#8fa5bf" }, start: 0, end: 100 }
     ],
-    series: [
-      series(title + "价格", rows, "close", 0, 0, color, true),
-      scaleSeries("交易量（亿手）", rows, "volumeYiShou", 1, 1, COLORS.volume),
-      scaleSeries("交易额（亿元）", rows, "amountYi", 1, 2, COLORS.amount),
-      isComposite ? series("科创综指PE(TTM) · 中证指数", DATA.officialHistory.rows, "pe", 2, 3, color)
-        : series(title + "PE(TTM)", rows, "pe", 2, 3, color),
-      series(title + (isStar50 ? "PB" : "真实利润"), rows, isStar50 ? "pb" : "profitYi", 3, 4, color)
-    ]
+    series: lines.map(line => ({ ...series(line.name, line.rows, line.field, 0, line.axis || 0, line.color),
+      markLine: line.marks ? series(line.name, line.rows, line.field, 0, 0, line.color, true).markLine : undefined }))
   };
 }
 
-const charts = [
-  echarts.init(document.getElementById("chart-sh"), null, { renderer: "canvas" }),
-  echarts.init(document.getElementById("chart-sz"), null, { renderer: "canvas" })
+const chartConfigs = [
+  ["chart-price", [
+    { name: "创业板指", rows: DATA.sh, field: "close", color: COLORS.sh, marks: true },
+    { name: "科创50", rows: DATA.k50, field: "close", color: COLORS.k50 },
+    { name: "科创综指", rows: DATA.sz, field: "close", color: COLORS.sz }
+  ], { unit: "点" }],
+  ["chart-pe", [
+    { name: "创业板指 PE", rows: DATA.sh, field: "pe", color: COLORS.sh },
+    { name: "科创50 PE", rows: DATA.k50, field: "pe", color: COLORS.k50 },
+    { name: "科创综指 PE · 中证指数", rows: DATA.officialHistory.rows, field: "pe", color: COLORS.sz }
+  ], { unit: "倍" }],
+  ["chart-profit", [
+    { name: "创业板指利润", rows: DATA.sh, field: "profitYi", color: COLORS.sh },
+    { name: "科创综指利润", rows: DATA.sz, field: "profitYi", color: COLORS.sz }
+  ], { unit: "亿元" }],
+  ["chart-pb", [{ name: "科创50 PB", rows: DATA.k50, field: "pb", color: COLORS.k50 }], { unit: "倍" }]
 ];
-charts[0].setOption(chartOption("创业板指", DATA.sh, COLORS.sh));
-charts[1].setOption(chartOption("科创综指", DATA.sz, COLORS.sz));
-charts.push(echarts.init(document.getElementById("chart-k50"), null, { renderer: "canvas" }));
-charts[2].setOption(chartOption("科创50", DATA.k50, COLORS.k50));
+for (const [key, name, rows] of [
+  ["sh", "创业板指", DATA.sh], ["k50", "科创50", DATA.k50], ["sz", "科创综指", DATA.sz]
+]) {
+  chartConfigs.push(["chart-volume-" + key, [
+    { name: "成交量", rows, field: "volumeYiShou", color: COLORS.volume },
+    { name: "成交额", rows, field: "amountYi", color: COLORS.amount, axis: 1 }
+  ], { volume: true, title: name }]);
+}
+const charts = chartConfigs.map(([id, lines, options]) => {
+  const chart = echarts.init(document.getElementById(id), null, { renderer: "canvas" });
+  chart.setOption(chartOption(lines, options));
+  return chart;
+});
 
 function applySharedRange(years) {
   const end = new Date("${END}T00:00:00Z");
