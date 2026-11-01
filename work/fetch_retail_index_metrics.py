@@ -87,9 +87,21 @@ def main():
             (cached_by_date[key][date].get("marginChecked") or date in month_dates)
             for key in members
         ):
+            limit_codes = None
+            if compact >= "20200101" and any(
+                not cached_by_date[key][date].get("limitChecked") and date not in month_dates
+                for key in members
+            ):
+                limit_codes = {row["ts_code"] for row in request(
+                    token, "limit_list_d", {"trade_date": compact, "limit_type": "U"},
+                    "ts_code")}
             for key in members:
                 row = dict(cached_by_date[key][date])
                 row["marginChecked"] = True
+                row["limitChecked"] = True
+                if limit_codes is not None:
+                    row["limitUpCount"] = sum(
+                        code in limit_codes for code in members[key])
                 if compact in direct_turnover.get(key, {}):
                     row["turnover"] = direct_turnover[key][compact]
                 result[key].append(row)
@@ -100,7 +112,7 @@ def main():
         margin_rows = request(token, "margin_detail", {"trade_date": compact},
                               "ts_code,rzye")
         limit_codes = None
-        if monthly and compact >= "20200101":
+        if compact >= "20200101":
             limit_codes = {row["ts_code"] for row in request(
                 token, "limit_list_d", {"trade_date": compact, "limit_type": "U"},
                 "ts_code")}
@@ -129,13 +141,14 @@ def main():
                 "capCoverage": round(len(known) / len(codes) * 100, 2) if codes else None,
                 "marginMatched": sum(code in margins for code in codes),
                 "marginChecked": True,
+                "limitChecked": True,
             })
         if len(result["sh"]) % 50 == 0 and len(result["sh"]) > 0:
             print(date, flush=True)
     payload = {
         "meta": {
             "frequency": {"turnover": "weekly", "marginBalance": "weekly",
-                          "marginFloatRatio": "weekly", "limitUpCount": "monthly"},
+                          "marginFloatRatio": "weekly", "limitUpCount": "weekly"},
             "sources": "Tushare index_weight + daily_basic + margin_detail",
             "turnover": "Tushare index_dailybasic turnover_rate for sh/k50; constituent turnover_rate weighted by circ_mv for sz",
             "marginBalance": "Sum of constituent rzye; non-margin-eligible stocks contribute zero",

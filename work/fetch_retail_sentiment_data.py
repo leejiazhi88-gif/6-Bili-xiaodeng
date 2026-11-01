@@ -182,7 +182,7 @@ def main():
                     if margin_rows and amount
                     else None
                 ),
-                "limitUpCount": limit_counts.get(date),
+                "limitUpCount": limit_counts.get(date, 0) if date >= "20200101" else None,
             }
         )
 
