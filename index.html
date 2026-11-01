@@ -407,11 +407,7 @@
     </article>
 
     <div class="valuation-foot">
-      <div class="note"><strong>图表口径：</strong>前三个页签的四条线均为真实金额（亿元），三个指数按交易或公告当期最近一次公布的成分股名单归集，不按指数权重折算；同一股票可能同时属于多个指数。北向资金页签仍为全市场净流入金额与三个指数价格相对走势的双轴对照。所有曲线按周六标记所属周，周六不代表当天交易。</div>
-      <div class="note"><strong>数据口径：</strong>大宗交易仅统计 A 股股票，排除债券等其他证券；机构净买入仅识别买卖方标记为“机构专用”的席位。产业资本净增减持按公告日汇总有成交均价的增减持股数乘以均价；正值为净增持金额，负值为净减持金额。指数成分名单未公布的历史不补造。</div>
-      <div class="note"><strong>北向口径提示：</strong>北向净流入序列保留至2024年8月16日。此后披露机制发生变化，页面不把新口径成交数据与旧口径净流入强行拼接。</div>
-      <div class="note"><strong>北向持仓分布：</strong>按季度末公开持股数量乘以当日收盘价，汇总各指数成分股北向持仓市值；占比的分母为同日该指数全部成分股总市值之和，不是全市场北向持仓。指数成分可能重叠，各指数占比不能相加。持仓市值变化包含股价波动，不等同于净流入；指数成立前不补造数据。</div>
-      <div class="note"><strong>基金与ETF口径：</strong>基金仓位、集中度取半年报及年报中股票持仓披露不少于90%的主动股票/混合基金样本；样本覆盖不足40%的报告期不展示。仓位为样本股票市值/样本净资产；三个指数分别表示样本净资产配置到相应成分股的比例。集中度为样本在相应股票范围内持仓金额前10名股票占该范围持仓总额的比例。ETF份额为跟踪这三个指数的ETF存量份额，首条线仅为三组ETF合计，不是全市场所有ETF；定期报告与ETF周度份额不可当作实时资金流。</div>
+      <div class="note"><strong>统计口径：</strong><span id="largeMoneyMethodology"></span></div>
     </div>
   </section>
 
@@ -1043,6 +1039,15 @@ window.addEventListener("resize", () => charts.forEach(chart => chart.resize()))
         totalLabel: "三指数ETF合计"
       }
     };
+    const methodology = {
+      blockAmount: "按周汇总 A 股大宗交易成交额（亿元），不含债券；指数线按当期成分股归集，同一股票可能属于多个指数。",
+      institutionBlockNet: "按周汇总大宗交易中标记为“机构专用”的买入额减卖出额（亿元）；正值为净买入。指数线按当期成分股归集。",
+      holderNetShares: "按公告周汇总股东增减持股数乘披露均价（亿元）；正值为净增持，未披露均价的记录不计入。指数线按当期成分股归集。",
+      northMoney: "全市场北向净流入按周汇总（亿元），三个指数线是价格相对走势，并非各指数净流入。净流入旧口径止于 2024-08-16，此后不与成交额拼接。",
+      fundPosition: "取主动股票/混合基金半年报、年报样本：股票持仓市值 ÷ 基金净资产；指数线只统计投向其成分股的比例。持仓披露不足 90% 的基金剔除，样本覆盖不足 40% 的报告期不展示。",
+      institutionConcentration: "取主动股票/混合基金半年报、年报样本：各股票范围内持仓前 10 名的金额 ÷ 该范围全部持仓金额。样本覆盖不足 40% 的报告期不展示。",
+      etfShares: "按周统计跟踪三个指数的 ETF 存量份额（亿份）；首条线是这三组 ETF 合计，不是全市场 ETF。份额变化不等于资金净流入。"
+    };
     const baselineDate = "2020-01-07";
     const indices = [
       { key: "sh", name: "创业板指", rows: DATA.sh, color: COLORS.sh },
@@ -1116,6 +1121,11 @@ window.addEventListener("resize", () => charts.forEach(chart => chart.resize()))
         ? (holdingMode === "value" ? cfg.subtitle : "北向持仓市值占各指数成分股总市值的季度末比例")
         : cfg.subtitle;
       document.getElementById("largeMoneyMetricNote").textContent = cfg.note;
+      document.getElementById("largeMoneyMethodology").textContent = holdingView
+        ? (holdingMode === "value"
+          ? "季度末北向持股数量 × 当日收盘价，按各指数当期成分股汇总（亿元）。指数成分可能重叠；市值变化包含股价波动，不等于净流入。"
+          : "季度末北向持有指数成分股的市值 ÷ 同日该指数全部成分股总市值（%）。分母不是全市场北向持仓；指数成分可能重叠，占比不能相加。")
+        : methodology[activeMetric];
       const totalButton = document.querySelector('#largeMoneySeriesControls [data-series="全市场资金"]');
       totalButton.style.display = holdingView ? "none" : "";
       document.getElementById("largeMoneyHoldingModes").classList.toggle("is-visible", holdingView);
