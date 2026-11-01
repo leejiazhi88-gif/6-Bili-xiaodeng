@@ -3,8 +3,11 @@ import re
 import time
 import urllib.parse
 import urllib.request
+import unicodedata
 from collections import defaultdict
 from datetime import datetime
+
+import pymupdf
 
 from fetch_retail_sentiment_data import ROOT, call_api, get_token
 
@@ -12,6 +15,61 @@ from fetch_retail_sentiment_data import ROOT, call_api, get_token
 OUTPUT = ROOT / "work" / "retail_monthly_trends.json"
 SSE_SOURCE = "https://star.sse.com.cn/aboutus/publication/monthly/investor/"
 SSE_QUERY = "https://query.sse.com.cn/commonQuery.do"
+SSE_YEARBOOKS = "https://www.sse.com.cn/aboutus/publication/yearly/"
+
+
+def yearbook_accounts(year, url):
+    request = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0"})
+    for attempt in range(3):
+        try:
+            with urllib.request.urlopen(request, timeout=60) as response:
+                document = pymupdf.open(stream=response.read(), filetype="pdf")
+            break
+        except OSError:
+            if attempt == 2:
+                raise
+            time.sleep(attempt + 1)
+    number = r"\d+(?:\.\d+)?"
+    pattern = re.compile(rf"{year}\.\s*(\d{{1,2}})\s+({number})\s+({number})\s+({number})\s+({number})")
+    for page in document:
+        text = unicodedata.normalize("NFKC", page.get_text()).replace("􀆰", ".")
+        text = re.sub(r"(?<=\d)\s*\.\s*(?=\d)", ".", text)
+        matches = pattern.findall(text)
+        if len(matches) != 12:
+            continue
+        rows = [{"month": f"{year}-{int(month):02d}", "accountsWan": float(a_share)}
+                for month, _, a_share, _, _ in matches]
+        if [row["month"] for row in rows] != [f"{year}-{month:02d}" for month in range(1, 13)]:
+            continue
+        values = [row["accountsWan"] for row in rows]
+        if all(left <= right for left, right in zip(values, values[1:])):
+            for index in range(11, 0, -1):
+                rows[index]["accountsWan"] = round(values[index] - values[index - 1], 2)
+        return rows
+    raise ValueError(f"No complete monthly A-share accounts table in SSE yearbook {year + 1}")
+
+
+def historical_accounts(existing):
+    request = urllib.request.Request(SSE_YEARBOOKS, headers={"User-Agent": "Mozilla/5.0"})
+    with urllib.request.urlopen(request, timeout=30) as response:
+        listing = response.read().decode("utf-8", errors="replace")
+    links = {}
+    for path, title in re.findall(r'href="([^"]+\.pdf)"[^>]+title="([^"]+)"', listing):
+        match = re.search(r"(20\d{2})", title)
+        if match:
+            links[int(match.group(1)) - 1] = urllib.parse.urljoin(SSE_YEARBOOKS, path)
+    accounts = {row["month"]: row for row in existing if row["month"] >= "2005-01"}
+    for year in range(2007, 2021):
+        if all(f"{year}-{month:02d}" in accounts for month in range(1, 13)):
+            continue
+        if year not in links:
+            continue
+        try:
+            for row in yearbook_accounts(year, links[year]):
+                accounts[row["month"]] = row
+        except (OSError, ValueError) as error:
+            print(f"SSE yearbook {year + 1}: {error}")
+    return list(accounts.values())
 
 
 def sse_year(year, current_year, current_month):
@@ -57,12 +115,18 @@ def fund_months(token, current_month):
     funds = {}
     for market in ("E", "O"):
         for status in ("L", "D"):
-            rows = call_api(
-                token, "fund_basic", {"market": market, "status": status},
-                "ts_code,found_date,issue_amount,fund_type,p_value",
-            )
-            for row in rows:
-                funds[row["ts_code"]] = row
+            offset = 0
+            while True:
+                rows = call_api(
+                    token, "fund_basic", {"market": market, "status": status,
+                                          "limit": 5000, "offset": offset},
+                    "ts_code,found_date,issue_amount,fund_type,p_value",
+                )
+                for row in rows:
+                    funds[row["ts_code"]] = row
+                offset += len(rows)
+                if len(rows) < 5000:
+                    break
     months = defaultdict(lambda: {"funds": 0, "reported": 0, "sharesYi": 0.0,
                                   "equitySharesYi": 0.0})
     for row in funds.values():
@@ -70,7 +134,7 @@ def fund_months(token, current_month):
         if not re.fullmatch(r"\d{8}", founded):
             continue
         month = f"{founded[:4]}-{founded[4:6]}"
-        if month < "2022-01" or month > current_month:
+        if month < "2005-01" or month > current_month:
             continue
         item = months[month]
         item["funds"] += 1
@@ -82,8 +146,8 @@ def fund_months(token, current_month):
         if row.get("fund_type") in ("股票型", "混合型"):
             item["equitySharesYi"] += float(amount)
     return [
-        {"month": month, "sharesYi": round(item["sharesYi"], 2),
-         "equitySharesYi": round(item["equitySharesYi"], 2),
+        {"month": month, "sharesYi": round(item["sharesYi"], 2) if item["reported"] else None,
+         "equitySharesYi": round(item["equitySharesYi"], 2) if item["reported"] else None,
          "funds": item["funds"], "reported": item["reported"],
          "coverage": round(item["reported"] / item["funds"] * 100, 1)}
         for month, item in sorted(months.items())
@@ -93,18 +157,20 @@ def fund_months(token, current_month):
 def main():
     today = datetime.now()
     current_month = today.strftime("%Y-%m")
-    accounts = []
+    existing = json.loads(OUTPUT.read_text(encoding="utf-8")) if OUTPUT.exists() else {}
+    accounts = historical_accounts(existing.get("accounts", []))
     for year in range(2021, today.year + 1):
         accounts.extend(sse_year(year, today.year, today.month))
     if not accounts:
         raise RuntimeError("SSE account data is unavailable")
-    accounts.sort(key=lambda row: row["month"])
+    accounts = sorted({row["month"]: row for row in accounts}.values(), key=lambda row: row["month"])
     funds = fund_months(get_token(), current_month)
     if not funds:
         raise RuntimeError("Fund issuance data is unavailable")
     payload = {
         "meta": {
             "accountsSource": SSE_SOURCE,
+            "accountsHistoricalSource": SSE_YEARBOOKS,
             "fundsSource": "https://tushare.pro/document/1?doc_id=19",
             "accountsScope": "SSE monthly A-share new accounts, not unique national investors",
             "fundsScope": "Sum of reported fund-code initial issuance shares; unit 100 million shares",

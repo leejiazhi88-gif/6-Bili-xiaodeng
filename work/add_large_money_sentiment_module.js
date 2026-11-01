@@ -80,7 +80,7 @@ const moduleHtml = `
     </article>
 
     <div class="valuation-foot">
-      <div class="note"><strong>图表口径：</strong>黄色资金线为全市场所选指标，只出现一次，使用左轴原始单位；三条指数线使用右轴，以2020-01-07为100比较相对走势。资金没有按指数成分股拆分，左右轴数值不能直接相减。</div>
+      <div class="note"><strong>图表口径：</strong>四条曲线统一按周六标记所属周，指数取同周最后一个可用收盘点；周六是周标签，不代表当天交易。黄色资金线为全市场所选指标，使用左轴原始单位；三条指数线使用右轴，以2020-01-07为100比较相对走势。资金没有按指数成分股拆分，左右轴数值不能直接相减。</div>
       <div class="note"><strong>数据口径：</strong>大宗交易仅统计 A 股股票，排除债券等其他证券；机构净买入仅识别买卖方标记为“机构专用”的席位。产业资本净增减持仅统计有成交均价的股票记录，排除无价格的大额股权划转；正值为净增持、负值为净减持。</div>
       <div class="note"><strong>北向口径提示：</strong>北向净流入序列保留至2024年8月16日。此后披露机制发生变化，页面不把新口径成交数据与旧口径净流入强行拼接。</div>
     </div>
@@ -122,6 +122,11 @@ const script = `
       { name: "科创50", rows: DATA.k50, color: COLORS.k50 },
       { name: "科创综指", rows: DATA.sz, color: COLORS.sz }
     ];
+    function weekEnd(date) {
+      const day = new Date(date + "T00:00:00Z");
+      day.setUTCDate(day.getUTCDate() + (6 - day.getUTCDay()));
+      return day.toISOString().slice(0, 10);
+    }
     let activeMetric = "blockAmount";
     let activeYears = 0;
     const selectedSeries = new Set(["全市场资金", "创业板指", "科创50", "科创综指"]);
@@ -138,13 +143,16 @@ const script = `
       const moneyPoints = largeMoneyData.series
         .filter(row => row.date >= minDate && Number.isFinite(row[activeMetric]))
         .map(row => [row.date, row[activeMetric]]);
+      const weekDates = largeMoneyData.series.filter(row => row.date >= minDate).map(row => row.date);
       const indexSeries = indices.filter(index => selectedSeries.has(index.name)).map(index => {
         const baseline = index.rows.find(row => row.date >= baselineDate && Number.isFinite(row.close));
         const baseClose = baseline?.close;
+        const closes = new Map(index.rows.filter(row => Number.isFinite(row.close))
+          .map(row => [weekEnd(row.date), row.close]));
         return {
           name: index.name, type: "line", yAxisIndex: 1,
-          data: index.rows.filter(row => row.date >= minDate && Number.isFinite(row.close) && baseClose)
-            .map(row => [row.date, row.close / baseClose * 100]),
+          data: weekDates.map(date => [date, baseClose && closes.has(date)
+            ? closes.get(date) / baseClose * 100 : null]),
           showSymbol: false, sampling: "lttb",
           lineStyle: { width: 2, color: index.color }, itemStyle: { color: index.color }
         };
@@ -152,7 +160,7 @@ const script = `
       document.getElementById("largeMoneyMetricSubtitle").textContent = cfg.subtitle;
       document.getElementById("largeMoneyMetricNote").textContent = cfg.note;
       document.getElementById("largeMoneyLatestReading").textContent = moneyPoints.length
-        ? "资金 " + moneyPoints[0][0] + " 至 " + moneyPoints[moneyPoints.length - 1][0] +
+        ? "资金周标签 " + moneyPoints[0][0] + " 至 " + moneyPoints[moneyPoints.length - 1][0] +
           " · 最新 " + fmt(moneyPoints[moneyPoints.length - 1][1], cfg.digits) + cfg.unit
         : "当前范围暂无资金数据";
       chart.setOption({
@@ -164,7 +172,7 @@ const script = `
           backgroundColor: "rgba(7,17,31,.96)", borderColor: "#36506f",
           textStyle: { color: "#edf4ff" },
           formatter(params) {
-            const lines = params.map(item => item.marker + item.seriesName + "：<b>" +
+            const lines = params.filter(item => item.value?.[1] != null).map(item => item.marker + item.seriesName + "：<b>" +
               fmt(Number(item.value[1]), item.seriesName === "全市场资金" ? cfg.digits : 1) +
               (item.seriesName === "全市场资金" ? cfg.unit : "") + "</b>");
             return "<b>" + (params[0]?.axisValueLabel || "") + "</b><br>" + lines.join("<br>");

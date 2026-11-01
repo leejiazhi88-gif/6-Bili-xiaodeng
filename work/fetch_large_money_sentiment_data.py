@@ -69,7 +69,8 @@ def week_key(date):
 
 
 def week_end_date(dates):
-    return max(dates)
+    day = datetime.strptime(dates[0], "%Y%m%d")
+    return (day + timedelta(days=5 - day.weekday())).strftime("%Y%m%d")
 
 
 def complete_window(token, api_name, start, end, fields, limit):
@@ -208,6 +209,10 @@ def main():
             preserved.append(row)
         series = ([row for row in series if row["date"] < first]
                   + preserved + [row for row in series if row["date"] >= refresh_start])
+
+    for row in series:
+        date = week_end_date([row["date"].replace("-", "")])
+        row["date"] = f"{date[:4]}-{date[4:6]}-{date[6:]}"
 
     result = {
         "meta": {
