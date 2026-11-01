@@ -161,6 +161,7 @@ const script = `
       const cutoff = new Date(end);
       if (activeYears) cutoff.setUTCFullYear(cutoff.getUTCFullYear() - activeYears);
       const minDate = activeYears ? cutoff.toISOString().slice(0, 10) : "";
+      const axisStart = minDate || "2005-01-01";
       const series = cfg.sources.filter(source => selectedSeries.has(source.name)).map(source => ({
         name: source.name,
         type: "line",
@@ -176,7 +177,7 @@ const script = `
       document.getElementById("retailMetricSubtitle").textContent = cfg.subtitle;
       document.getElementById("retailMetricNote").textContent = cfg.note;
       document.getElementById("retailLatestReading").textContent =
-        dates.length ? "时间轴 2005 起；可用数据 " + dates[0] + " 至 " + dates[dates.length - 1] : "暂无数据";
+        dates.length ? "时间轴 " + axisStart + " 起；可用数据 " + dates[0] + " 至 " + dates[dates.length - 1] : "暂无数据";
       chart.setOption({
         animation: false,
         backgroundColor: "transparent",
@@ -193,7 +194,8 @@ const script = `
           }
         },
         xAxis: {
-          type: "time", min: "2005-01-01", axisLine: { lineStyle: { color: "#344760" } },
+          type: "time", min: axisStart, max: retailData.series[retailData.series.length - 1].date,
+          axisLine: { lineStyle: { color: "#344760" } },
           axisLabel: { color: "#7890aa", hideOverlap: true }, splitLine: { show: false }
         },
         yAxis: {
