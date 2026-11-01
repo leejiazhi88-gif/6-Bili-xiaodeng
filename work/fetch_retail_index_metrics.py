@@ -36,32 +36,68 @@ def snapshots(token, code, first_year, last_year):
     return dates, by_date
 
 
+def index_turnover(token, code, first_year, last_year):
+    values = {}
+    for year in range(first_year, last_year + 1):
+        for row in request(
+            token, "index_dailybasic",
+            {"ts_code": code, "start_date": f"{year}0101", "end_date": f"{year}1231"},
+            "trade_date,turnover_rate",
+        ):
+            if row.get("turnover_rate") is not None:
+                values[row["trade_date"]] = float(row["turnover_rate"])
+    return values
+
+
 def main():
     token = get_token()
     weekly = json.loads(MARKET.read_text(encoding="utf-8"))["series"]
     by_month = {row["date"][:7]: row["date"] for row in weekly}
-    months = sorted(by_month.values())
-    last_year = int(months[-1][:4])
+    month_dates = set(by_month.values())
+    dates_to_process = [row["date"] for row in weekly]
+    last_year = int(dates_to_process[-1][:4])
+    latest_month = dates_to_process[-1][:7]
+    cached = json.loads(OUTPUT.read_text(encoding="utf-8")) if OUTPUT.exists() else {}
+    cached_by_date = {
+        key: {row["date"]: row for row in cached.get(key, [])} for key in INDEXES
+    }
     memberships = {
         key: snapshots(token, code, 2010 if key == "sh" else 2019, last_year)
         for key, code in INDEXES.items()
     }
+    direct_turnover = {
+        "sh": index_turnover(token, INDEXES["sh"], 2010, last_year),
+        "k50": index_turnover(token, INDEXES["k50"], 2019, last_year),
+    }
     result = {key: [] for key in INDEXES}
-    for date in months:
+    for date in dates_to_process:
         compact = date.replace("-", "")
         members = {}
         for key, (dates, by_date) in memberships.items():
             position = bisect_right(dates, compact) - 1
             if position >= 0:
                 members[key] = by_date[dates[position]]
+        for key, values in direct_turnover.items():
+            if compact in values and key not in members:
+                members[key] = set()
         if not members:
             continue
+        if date[:7] != latest_month and all(
+            date in cached_by_date[key] for key in members
+        ):
+            for key in members:
+                row = dict(cached_by_date[key][date])
+                if compact in direct_turnover.get(key, {}):
+                    row["turnover"] = direct_turnover[key][compact]
+                result[key].append(row)
+            continue
+        monthly = date in month_dates
         basic_rows = request(token, "daily_basic", {"trade_date": compact},
                              "ts_code,circ_mv,turnover_rate")
         margin_rows = request(token, "margin_detail", {"trade_date": compact},
-                              "ts_code,rzye")
+                              "ts_code,rzye") if monthly else []
         limit_codes = None
-        if compact >= "20200101":
+        if monthly and compact >= "20200101":
             limit_codes = {row["ts_code"] for row in request(
                 token, "limit_list_d", {"trade_date": compact, "limit_type": "U"},
                 "ts_code")}
@@ -75,27 +111,29 @@ def main():
             turnover_rows = [row for row in known if row.get("turnover_rate") is not None]
             turnover_cap = sum(float(row["circ_mv"]) for row in turnover_rows)
             margin = sum(margins[code] for code in codes if code in margins)
+            derived_turnover = round(sum(float(row["turnover_rate"]) * float(row["circ_mv"])
+                                     for row in turnover_rows) / turnover_cap, 4) \
+                if turnover_cap and codes and len(known) >= len(codes) * 0.95 else None
             result[key].append({
                 "date": date,
-                "turnover": round(sum(float(row["turnover_rate"]) * float(row["circ_mv"])
-                                      for row in turnover_rows) / turnover_cap, 4)
-                            if turnover_cap and len(known) >= len(codes) * 0.95 else None,
-                "marginBalance": round(margin / 1e8, 2) if margin > 0 else None,
+                "turnover": direct_turnover.get(key, {}).get(compact, derived_turnover),
+                "marginBalance": round(margin / 1e8, 2) if monthly and margin > 0 else None,
                 "marginFloatRatio": round(margin / (cap * 1e4) * 100, 4)
-                                    if margin > 0 and cap and len(known) >= len(codes) * 0.95 else None,
+                                    if monthly and margin > 0 and cap and len(known) >= len(codes) * 0.95 else None,
                 "limitUpCount": sum(code in limit_codes for code in codes)
                                 if limit_codes is not None else None,
                 "memberCount": len(codes),
-                "capCoverage": round(len(known) / len(codes) * 100, 2),
-                "marginMatched": sum(code in margins for code in codes),
+                "capCoverage": round(len(known) / len(codes) * 100, 2) if codes else None,
+                "marginMatched": sum(code in margins for code in codes) if monthly else None,
             })
-        if date.endswith("-30") or date.endswith("-31"):
+        if monthly and (date.endswith("-30") or date.endswith("-31")):
             print(date, flush=True)
     payload = {
         "meta": {
-            "frequency": "monthly",
+            "frequency": {"turnover": "weekly", "marginBalance": "monthly",
+                          "marginFloatRatio": "monthly", "limitUpCount": "monthly"},
             "sources": "Tushare index_weight + daily_basic + margin_detail",
-            "turnover": "Constituent turnover_rate weighted by circ_mv",
+            "turnover": "Tushare index_dailybasic turnover_rate for sh/k50; constituent turnover_rate weighted by circ_mv for sz",
             "marginBalance": "Sum of constituent rzye; non-margin-eligible stocks contribute zero",
             "marginFloatRatio": "Constituent rzye / sum(circ_mv) * 100",
             "limitUpCount": "Count of current constituents in Tushare limit_list_d limit_type U",
