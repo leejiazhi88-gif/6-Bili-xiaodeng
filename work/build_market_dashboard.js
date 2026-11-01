@@ -411,10 +411,13 @@ async function main() {
     execFileSync(python, [path.join(ROOT, "work", "fetch_retail_index_metrics.py")], {
       stdio: "inherit",
     });
-    execFileSync(python, [path.join(ROOT, "work", "fetch_retail_monthly_trends.py")], {
+    execFileSync(python, [path.join(ROOT, "work", "fetch_large_money_sentiment_data.py")], {
       stdio: "inherit",
     });
-    execFileSync(python, [path.join(ROOT, "work", "fetch_large_money_sentiment_data.py")], {
+    execFileSync(python, [path.join(ROOT, "work", "fetch_large_money_fund_reports.py")], {
+      stdio: "inherit",
+    });
+    execFileSync(python, [path.join(ROOT, "work", "fetch_large_money_etf_shares.py")], {
       stdio: "inherit",
     });
     execFileSync(python, [path.join(ROOT, "work", "fetch_valuation_data.py")], {

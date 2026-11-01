@@ -5,6 +5,8 @@ const ROOT = path.resolve(__dirname, "..");
 const OUTPUT = path.join(ROOT, "outputs", "growth_indices_dashboard.html");
 const DATA_FILE = path.join(ROOT, "work", "large_money_sentiment_data.json");
 const INDEX_DATA_FILE = path.join(ROOT, "work", "large_money_index_data.json");
+const FUND_REPORTS_FILE = path.join(ROOT, "work", "large_money_fund_reports.json");
+const ETF_SHARES_FILE = path.join(ROOT, "work", "large_money_etf_shares.json");
 
 function stripExisting(html) {
   return html
@@ -69,9 +71,9 @@ const moduleHtml = `
         <button class="metric-tab" data-metric="institutionBlockNet">机构大宗净买入</button>
         <button class="metric-tab" data-metric="holderNetShares">产业资本净增减持</button>
         <button class="metric-tab" data-metric="northMoney">北向资金净流入</button>
-        <button class="metric-tab" disabled title="基金持仓按季度披露，待完成统一仓位估算">主动权益基金仓位</button>
-        <button class="metric-tab" disabled title="需要公募持仓全市场截面聚合">机构持仓集中度</button>
-        <button class="metric-tab" disabled title="ETF全市场历史快照待接入">ETF份额变化</button>
+        <button class="metric-tab" data-metric="fundPosition">主动权益基金仓位</button>
+        <button class="metric-tab" data-metric="institutionConcentration">机构持仓集中度</button>
+        <button class="metric-tab" data-metric="etfShares">ETF份额</button>
       </div>
       <div class="metric-note">
         <span id="largeMoneyMetricNote"></span>
@@ -84,6 +86,7 @@ const moduleHtml = `
       <div class="note"><strong>图表口径：</strong>前三个页签的四条线均为真实金额（亿元），三个指数按交易或公告当期最近一次公布的成分股名单归集，不按指数权重折算；同一股票可能同时属于多个指数。北向资金页签仍为全市场净流入金额与三个指数价格相对走势的双轴对照。所有曲线按周六标记所属周，周六不代表当天交易。</div>
       <div class="note"><strong>数据口径：</strong>大宗交易仅统计 A 股股票，排除债券等其他证券；机构净买入仅识别买卖方标记为“机构专用”的席位。产业资本净增减持按公告日汇总有成交均价的增减持股数乘以均价；正值为净增持金额，负值为净减持金额。指数成分名单未公布的历史不补造。</div>
       <div class="note"><strong>北向口径提示：</strong>北向净流入序列保留至2024年8月16日。此后披露机制发生变化，页面不把新口径成交数据与旧口径净流入强行拼接。</div>
+      <div class="note"><strong>基金与ETF口径：</strong>基金仓位、集中度取半年报及年报中股票持仓披露不少于90%的主动股票/混合基金样本；样本覆盖不足40%的报告期不展示。仓位为样本股票市值/样本净资产；三个指数分别表示样本净资产配置到相应成分股的比例。集中度为样本在相应股票范围内持仓金额前10名股票占该范围持仓总额的比例。ETF份额为跟踪这三个指数的ETF存量份额，首条线仅为三组ETF合计，不是全市场所有ETF；定期报告与ETF周度份额不可当作实时资金流。</div>
     </div>
   </section>
 `;
@@ -93,6 +96,8 @@ const script = `
   (() => {
     const largeMoneyData = __LARGE_MONEY_DATA__;
     const indexMoneyData = __INDEX_MONEY_DATA__;
+    const fundReports = __FUND_REPORTS__;
+    const etfShares = __ETF_SHARES__;
     const fmt = (value, digits = 1) => Number.isFinite(value)
       ? Number(value).toLocaleString("zh-CN", { minimumFractionDigits: digits, maximumFractionDigits: digits })
       : "--";
@@ -116,6 +121,24 @@ const script = `
         title: "北向资金净流入", field: "northMoney", unit: "亿元", digits: 1,
         subtitle: "全市场北向净流入与三个指数价格走势（右轴），资金止于2024-08-16",
         note: "披露机制变化后不再与旧口径拼接，指数线仍延伸至最新交易日。"
+      },
+      fundPosition: {
+        title: "主动权益基金仓位", field: "position", unit: "%", digits: 2,
+        subtitle: "主动股票/混合基金半年报样本股票仓位与指数成分配置",
+        note: "半年报/年报实际披露点；指数线是样本净资产投向该指数成分股的比例，并非指数本身的仓位。",
+        totalLabel: "主动基金样本"
+      },
+      institutionConcentration: {
+        title: "机构持仓集中度", field: "concentration", unit: "%", digits: 2,
+        subtitle: "主动基金样本在各股票范围内的前10名持仓集中度",
+        note: "半年报/年报实际披露点；前10名股票持仓额/该范围全部样本持仓额。",
+        totalLabel: "主动基金样本"
+      },
+      etfShares: {
+        title: "ETF份额", field: "total", unit: "亿份", digits: 2,
+        subtitle: "跟踪三个指数的ETF期末存量份额",
+        note: "周度实际份额存量；首条线仅为三组跟踪ETF合计，不等同于全市场ETF。",
+        totalLabel: "三指数ETF合计"
       }
     };
     const baselineDate = "2020-01-07";
@@ -143,9 +166,18 @@ const script = `
       if (activeYears) cutoff.setUTCFullYear(cutoff.getUTCFullYear() - activeYears);
       const minDate = activeYears ? cutoff.toISOString().slice(0, 10) : "";
       const priceMode = activeMetric === "northMoney";
-      const moneyPoints = largeMoneyData.series
-        .filter(row => row.date >= minDate && Number.isFinite(row[cfg.field]))
-        .map(row => [row.date, row[cfg.field]]);
+      const fundMode = activeMetric === "fundPosition" || activeMetric === "institutionConcentration";
+      const etfMode = activeMetric === "etfShares";
+      const moneyName = cfg.totalLabel || "全市场资金";
+      const sourceRows = fundMode ? fundReports.series : etfMode ? etfShares.series : largeMoneyData.series;
+      const valueOf = (row, key) => fundMode ? row[key]?.[cfg.field]
+        : etfMode ? row[key === "total" ? "total" : key] : row[cfg.field];
+      const available = row => !fundMode || row.coverage >= 40;
+      const moneyPoints = sourceRows
+        .filter(row => row.date >= minDate && available(row) && Number.isFinite(valueOf(row, "total")))
+        .map(row => [row.date, valueOf(row, "total")]);
+      const latestReport = fundMode && moneyPoints.length
+        ? sourceRows.find(row => row.date === moneyPoints[moneyPoints.length - 1][0]) : null;
       const weekDates = largeMoneyData.series.filter(row => row.date >= minDate).map(row => row.date);
       const indexSeries = indices.filter(index => selectedSeries.has(index.name)).map(index => {
         let values;
@@ -156,6 +188,10 @@ const script = `
             .map(row => [weekEnd(row.date), row.close]));
           values = weekDates.map(date => [date, baseClose && closes.has(date)
             ? closes.get(date) / baseClose * 100 : null]);
+        } else if (fundMode || etfMode) {
+          values = sourceRows.filter(row => row.date >= minDate)
+            .map(row => [row.date, available(row) && Number.isFinite(valueOf(row, index.key))
+              ? valueOf(row, index.key) : null]);
         } else {
           const amounts = new Map(indexMoneyData[index.key].map(row => [row.date, row[cfg.field]]));
           values = weekDates.map(date => [date, amounts.has(date) ? amounts.get(date) : null]);
@@ -163,15 +199,19 @@ const script = `
         return {
           name: index.name, type: "line", yAxisIndex: priceMode ? 1 : 0,
           data: values,
-          showSymbol: false, sampling: "lttb",
+          showSymbol: fundMode, symbolSize: 5, sampling: "lttb",
           lineStyle: { width: 2, color: index.color }, itemStyle: { color: index.color }
         };
       });
       document.getElementById("largeMoneyMetricSubtitle").textContent = cfg.subtitle;
       document.getElementById("largeMoneyMetricNote").textContent = cfg.note;
+      const totalButton = document.querySelector('#largeMoneySeriesControls [data-series="全市场资金"]');
+      totalButton.lastChild.textContent = moneyName;
+      totalButton.setAttribute("aria-label", moneyName);
       document.getElementById("largeMoneyLatestReading").textContent = moneyPoints.length
-        ? "资金周标签 " + moneyPoints[0][0] + " 至 " + moneyPoints[moneyPoints.length - 1][0] +
-          " · 最新 " + fmt(moneyPoints[moneyPoints.length - 1][1], cfg.digits) + cfg.unit
+        ? (fundMode ? "报告期 " : "周标签 ") + moneyPoints[0][0] + " 至 " + moneyPoints[moneyPoints.length - 1][0] +
+          " · 最新 " + fmt(moneyPoints[moneyPoints.length - 1][1], cfg.digits) + cfg.unit +
+          (latestReport ? " · 样本 " + latestReport.funds + " 只 / 覆盖 " + latestReport.coverage + "%" : "")
         : "当前范围暂无资金数据";
       chart.setOption({
         animation: false, backgroundColor: "transparent",
@@ -183,8 +223,13 @@ const script = `
           textStyle: { color: "#edf4ff" },
           formatter(params) {
             const lines = params.filter(item => item.value?.[1] != null).map(item => item.marker + item.seriesName + "：<b>" +
-              fmt(Number(item.value[1]), priceMode && item.seriesName !== "全市场资金" ? 1 : cfg.digits) +
-              (priceMode && item.seriesName !== "全市场资金" ? "（基准=100）" : cfg.unit) + "</b>");
+              fmt(Number(item.value[1]), priceMode && item.seriesName !== moneyName ? 1 : cfg.digits) +
+              (priceMode && item.seriesName !== moneyName ? "（基准=100）" : cfg.unit) + "</b>");
+            if (fundMode) {
+              const reportDate = params.find(item => item.value?.[0])?.value[0];
+              const report = sourceRows.find(row => row.date === reportDate);
+              if (report) lines.push("样本 " + report.funds + " 只 / 覆盖 " + report.coverage + "%");
+            }
             return "<b>" + (params[0]?.axisValueLabel || "") + "</b><br>" + lines.join("<br>");
           }
         },
@@ -204,8 +249,8 @@ const script = `
             textStyle: { color: "#8fa5bf" } }
         ],
         series: [
-          ...(selectedSeries.has("全市场资金") ? [{ name: "全市场资金", type: "line", yAxisIndex: 0, data: moneyPoints,
-            showSymbol: false, sampling: "lttb",
+          ...(selectedSeries.has("全市场资金") ? [{ name: moneyName, type: "line", yAxisIndex: 0, data: moneyPoints,
+            showSymbol: fundMode, symbolSize: 5, sampling: "lttb",
             lineStyle: { width: 2, color: "#f6c85f" }, itemStyle: { color: "#f6c85f" } }] : []),
           ...indexSeries
         ]
@@ -250,8 +295,12 @@ const script = `
 
 if (!fs.existsSync(DATA_FILE)) throw new Error("Missing large_money_sentiment_data.json.");
 if (!fs.existsSync(INDEX_DATA_FILE)) throw new Error("Missing large_money_index_data.json.");
+if (!fs.existsSync(FUND_REPORTS_FILE)) throw new Error("Missing large_money_fund_reports.json.");
+if (!fs.existsSync(ETF_SHARES_FILE)) throw new Error("Missing large_money_etf_shares.json.");
 const data = JSON.parse(fs.readFileSync(DATA_FILE, "utf8"));
 const indexData = JSON.parse(fs.readFileSync(INDEX_DATA_FILE, "utf8"));
+const fundReports = JSON.parse(fs.readFileSync(FUND_REPORTS_FILE, "utf8"));
+const etfShares = JSON.parse(fs.readFileSync(ETF_SHARES_FILE, "utf8"));
 let html = stripExisting(fs.readFileSync(OUTPUT, "utf8"));
 html = html.replace(
   '<a href="#retail-sentiment">情绪-散户</a>',
@@ -263,7 +312,9 @@ function insertBeforeLast(source, marker, content) {
   return source.slice(0, index) + content + source.slice(index);
 }
 const largeMoneyScript = script.replace("__LARGE_MONEY_DATA__", JSON.stringify(data))
-  .replace("__INDEX_MONEY_DATA__", JSON.stringify(indexData));
+  .replace("__INDEX_MONEY_DATA__", JSON.stringify(indexData))
+  .replace("__FUND_REPORTS__", JSON.stringify(fundReports))
+  .replace("__ETF_SHARES__", JSON.stringify(etfShares));
 html = insertBeforeLast(html, "</head>", css + "\n");
 html = insertBeforeLast(html, "</main>", moduleHtml + "\n");
 html = insertBeforeLast(html, "</body>", largeMoneyScript + "\n");

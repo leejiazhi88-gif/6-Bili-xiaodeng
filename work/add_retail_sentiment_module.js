@@ -5,7 +5,6 @@ const ROOT = path.resolve(__dirname, "..");
 const OUTPUT = path.join(ROOT, "outputs", "growth_indices_dashboard.html");
 const DATA_FILE = path.join(ROOT, "work", "retail_sentiment_data.json");
 const INDEX_DATA_FILE = path.join(ROOT, "work", "retail_index_metrics.json");
-const MONTHLY_DATA_FILE = path.join(ROOT, "work", "retail_monthly_trends.json");
 
 function stripExisting(html) {
   return html
@@ -18,10 +17,6 @@ function stripExisting(html) {
 const css = `
   <style id="retail-sentiment-style">
     #retailSentimentChart { height: 540px; width: 100%; }
-    .retail-monthly-heading { margin: 28px 0 12px; font-size: 20px; }
-    .retail-monthly-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
-    .retail-monthly-chart { height: 330px; width: 100%; }
-    .retail-monthly-grid .metric-note { padding: 0 16px 14px; }
     #retailSeriesControls { display: flex; flex-wrap: wrap; gap: 8px 18px; padding: 10px 16px 0; }
     #retailSeriesControls button { display: inline-flex; align-items: center; gap: 6px; padding: 4px 0;
       border: 0; background: transparent; color: #8fa5bf; font-size: 12px; cursor: pointer; }
@@ -34,7 +29,6 @@ const css = `
       width: 8px; height: 8px; border: 2px solid #edf4ff; border-radius: 50%; background: var(--series-color); }
     @media (max-width: 980px) {
       #retailSentimentChart { height: 470px; }
-      .retail-monthly-grid { grid-template-columns: 1fr; }
     }
   </style>
 `;
@@ -87,20 +81,6 @@ const moduleHtml = `
     <div class="valuation-foot">
       <div class="note"><strong>数据口径：</strong>成交额和成交量展示两市对照与三个指数的实际交易值，成交额使用从零开始的等距刻度；两市成交量使用上证综指、深证综指成交量之和作为宽基代理。换手率均为周频：创业板指、科创50取 Tushare 指数每日换手率，科创综指按当期成分股流通市值加权；指数融资余额为成分股融资余额之和，融资占比再除以成分股流通市值。所有可选指标均按每周最后一个交易日取点，缺失数据不补造。</div>
     </div>
-    <h3 class="retail-monthly-heading">月度入场趋势</h3>
-    <div class="retail-monthly-grid">
-      <article class="valuation-panel">
-        <div class="panel-head"><div><div class="panel-title">上交所 A 股新开户</div><div class="panel-subtitle">月度 · 万户</div></div></div>
-        <div id="retailAccountsChart" class="retail-monthly-chart"></div>
-        <div class="metric-note"><span>上交所开户口径，非沪深两市新增投资者人数。</span><span class="metric-reading" id="retailAccountsCoverage"></span></div>
-      </article>
-      <article class="valuation-panel">
-        <div class="panel-head"><div><div class="panel-title">已披露新基金发行份额</div><div class="panel-subtitle">月度 · 亿份</div></div></div>
-        <div id="retailFundsChart" class="retail-monthly-chart"></div>
-        <div class="metric-note"><span>淡色月份披露不足 90%；均线仅使用连续三个覆盖达标月份。</span><span class="metric-reading" id="retailFundsCoverage"></span></div>
-      </article>
-    </div>
-    <div class="valuation-foot"><div class="note"><strong>来源：</strong><a href="https://www.sse.com.cn/aboutus/publication/yearly/" target="_blank" rel="noopener">上交所统计年鉴</a>（2007–2020）与<a href="https://star.sse.com.cn/aboutus/publication/monthly/investor/" target="_blank" rel="noopener">统计月报</a>（2021 起）；<a href="https://tushare.pro/document/1?doc_id=19" target="_blank" rel="noopener">Tushare 公募基金列表</a>。基金数据按成立月份和基金代码汇总发行份额，含股票、混合、债券等类型，不等同于募集金额；未披露份额不估算。</div></div>
   </section>
 `;
 
@@ -109,7 +89,6 @@ const script = `
   (() => {
     const retailData = __RETAIL_DATA__;
     const indexData = __INDEX_DATA__;
-    const monthlyData = __MONTHLY_DATA__;
     const market = { name: "沪深两市", rows: retailData.series, color: "#f6c85f" };
     const indices = [
       { name: "创业板指", rows: DATA.sh, color: COLORS.sh },
@@ -258,66 +237,7 @@ const script = `
       });
     });
 
-    function movingAverage(values, valid = () => true) {
-      return values.map((_, index) => index >= 2 && [index - 2, index - 1, index].every(valid)
-        ? Number(((values[index - 2] + values[index - 1] + values[index]) / 3).toFixed(2))
-        : null);
-    }
-
-    function monthlyOption(rows, field, unit, color, fund = false) {
-      const values = rows.map(row => row[field]);
-      const average = movingAverage(values, index => !fund || rows[index].coverage >= 90);
-      return {
-        animation: false,
-        grid: { left: 64, right: 20, top: 48, bottom: 58 },
-        legend: { top: 10, right: 18, textStyle: { color: "#8fa5bf", fontSize: 11 },
-          data: [fund ? "已披露份额" : "新开户", "3月均线"] },
-        tooltip: { trigger: "axis", backgroundColor: "rgba(7,17,31,.96)", borderColor: "#36506f",
-          textStyle: { color: "#edf4ff" }, formatter(params) {
-            const row = rows[params[0]?.dataIndex];
-            if (!row) return "";
-            const lines = params.filter(item => item.value != null).map(item =>
-              item.marker + item.seriesName + "：<b>" + fmt(Number(item.value), 1) + unit + "</b>");
-            if (fund) lines.push("发行份额披露：" + row.reported + "/" + row.funds + "（" + row.coverage + "%）");
-            return "<b>" + row.month + "</b><br>" + lines.join("<br>");
-          } },
-        xAxis: { type: "category", data: rows.map(row => row.month), boundaryGap: true,
-          axisLine: { lineStyle: { color: "#344760" } },
-          axisLabel: { color: "#7890aa", interval: 0, formatter(value, index) {
-            return window.innerWidth <= 620
-              ? (value.endsWith("-01") ? value.slice(0, 4) : "")
-              : (index % 6 === 0 ? value : "");
-          } } },
-        yAxis: { type: "value", min: 0, axisLabel: { color: "#7890aa", formatter: "{value}" + unit },
-          splitLine: { lineStyle: { color: "#17283d" } } },
-        dataZoom: [{ type: "inside", filterMode: "none" },
-          { type: "slider", bottom: 8, height: 18, borderColor: "#263b58",
-            backgroundColor: "#0d1929", fillerColor: "rgba(246,200,95,.18)",
-            handleStyle: { color: "#f6c85f" }, textStyle: { color: "#8fa5bf" } }],
-        series: [
-          { name: fund ? "已披露份额" : "新开户", type: "bar", barMaxWidth: 16,
-            itemStyle: { color },
-            data: rows.map(row => ({ value: row[field],
-              itemStyle: { opacity: fund && row.coverage < 90 ? .3 : .85 } })) },
-          { name: "3月均线", type: "line", data: average, showSymbol: false, connectNulls: false,
-            lineStyle: { color: fund ? "#36c2ff" : "#edf4ff", width: 2 },
-            itemStyle: { color: fund ? "#36c2ff" : "#edf4ff" } }
-        ]
-      };
-    }
-
-    const accountsChart = echarts.init(document.getElementById("retailAccountsChart"), null, { renderer: "canvas" });
-    const fundsChart = echarts.init(document.getElementById("retailFundsChart"), null, { renderer: "canvas" });
-    accountsChart.setOption(monthlyOption(monthlyData.accounts, "accountsWan", "万户", "#f6c85f"));
-    fundsChart.setOption(monthlyOption(monthlyData.funds, "sharesYi", "亿份", "#7ddc82", true));
-    const latestAccounts = monthlyData.accounts.at(-1);
-    const latestFunds = monthlyData.funds.at(-1);
-    document.getElementById("retailAccountsCoverage").textContent = "最新 " + latestAccounts.month;
-    document.getElementById("retailFundsCoverage").textContent =
-      "最新 " + latestFunds.month + " · 披露 " + latestFunds.coverage + "%";
-    window.addEventListener("resize", () => {
-      chart.resize(); accountsChart.resize(); fundsChart.resize();
-    });
+    window.addEventListener("resize", () => chart.resize());
     renderChart();
   })();
   </script>
@@ -325,10 +245,8 @@ const script = `
 
 if (!fs.existsSync(DATA_FILE)) throw new Error("Missing retail_sentiment_data.json.");
 if (!fs.existsSync(INDEX_DATA_FILE)) throw new Error("Missing retail_index_metrics.json.");
-if (!fs.existsSync(MONTHLY_DATA_FILE)) throw new Error("Missing retail_monthly_trends.json.");
 const data = JSON.parse(fs.readFileSync(DATA_FILE, "utf8"));
 const indexData = JSON.parse(fs.readFileSync(INDEX_DATA_FILE, "utf8"));
-const monthlyData = JSON.parse(fs.readFileSync(MONTHLY_DATA_FILE, "utf8"));
 let html = stripExisting(fs.readFileSync(OUTPUT, "utf8"));
 html = html.replace(
   '<a href="#valuation">估值</a>',
@@ -342,8 +260,7 @@ function insertBeforeLast(source, marker, content) {
 }
 
 const retailScript = script.replace("__RETAIL_DATA__", JSON.stringify(data))
-  .replace("__INDEX_DATA__", JSON.stringify(indexData))
-  .replace("__MONTHLY_DATA__", JSON.stringify(monthlyData));
+  .replace("__INDEX_DATA__", JSON.stringify(indexData));
 html = insertBeforeLast(html, "</head>", css + "\n");
 html = insertBeforeLast(html, "</main>", moduleHtml + "\n");
 html = insertBeforeLast(html, "</body>", retailScript + "\n");

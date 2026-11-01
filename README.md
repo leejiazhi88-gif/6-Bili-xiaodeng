@@ -17,8 +17,7 @@ GitHub 仓库：https://github.com/leejiazhi88-gif/6-Bili-xiaodeng
 - 总览：价格图可通过曲线图例选择展示三个指数，PE 合图对比；创业板指与科创综指的真实利润合图；交易规模按三个指数分别呈现
 - 单图叠加创业板指、科创50、科创综指的估值曲线：PE(TTM)、PE历史分位等；缺失的连续PB不补造
 - 情绪-散户模块：图外统一选择沪深两市与三个指数曲线，选择在全部指标页签间生效；成交额与成交量同轴对比，两市成交量采用上证综指与深证综指成交量之和作为宽基代理。换手率使用周频原值，创业板指和科创50取 Tushare 指数每日换手率，科创综指按当期成分股流通市值加权；指数融资余额汇总当期成分股融资余额，融资占比用融资余额除以成分股流通市值。所有可选指标均按每周最后一个交易日取点；时间轴从 2005 年开始，缺失历史不补造
-- 月度入场趋势：上交所 A 股新开户数（万户，统计年鉴与月报覆盖 2007 年起）与 Tushare 已披露的新基金发行份额（亿份，2005 年起）分图展示，均附 3 个月均线。基金份额覆盖不足 90% 的月份淡化显示且不参与均线；发行份额不是募集金额，也不是完整的全市场发行总额
-- 情绪-大资金模块：图外统一选择全市场与三个指数曲线，选择在全部指标页签间生效。前三个页签按当期指数成分股归集大宗交易额、机构大宗净买入额、产业资本净增减持金额，四条线同为亿元；北向页签仍以全市场净流入对照三个指数价格走势。所有曲线按同一周六标签取点，缺失历史不补造
+- 情绪-大资金模块：图外统一选择全市场与三个指数曲线，选择在全部指标页签间生效。前三个页签按当期指数成分股归集大宗交易额、机构大宗净买入额、产业资本净增减持金额，四条线同为亿元；北向页签仍以全市场净流入对照三个指数价格走势。主动基金仓位与持仓集中度来自半年报/年报完整持仓样本，ETF份额为跟踪三个指数的ETF周度存量。缺失历史不补造
 - 情绪-官方模块：一张图中只绘一条所选共同政策指标（IPO融资额、产业资本净减持额、印花税率、LPR、社融增量或M2增速），并叠加三个指数的相对走势；左轴为政策原值，右轴以 2020-01-07 为 100
 
 ## 运行
@@ -34,8 +33,9 @@ python3 ./work/fetch_star_official_history.py
 python3 ./work/fetch_valuation_data.py
 python3 ./work/fetch_retail_sentiment_data.py
 python3 ./work/fetch_retail_index_metrics.py
-python3 ./work/fetch_retail_monthly_trends.py
 python3 ./work/fetch_large_money_sentiment_data.py
+python3 ./work/fetch_large_money_fund_reports.py
+python3 ./work/fetch_large_money_etf_shares.py
 python3 ./work/fetch_official_sentiment_data.py
 python3 ./work/fetch_index_profit_data.py
 node ./work/build_market_dashboard.js --cached
@@ -76,8 +76,10 @@ http://127.0.0.1:9876
 - `work/market_overview_data.json`：总览数据缓存
 - `work/fetch_retail_index_metrics.py`：按周计算指数换手率、融资余额、融资占比和涨停家数
 - `work/retail_index_metrics.json`：上述指数指标缓存
-- `work/fetch_retail_monthly_trends.py`：上交所月度开户与公募基金发行份额抓取
-- `work/retail_monthly_trends.json`：月度入场趋势数据及披露覆盖率
+- `work/fetch_large_money_fund_reports.py`：主动基金半年报仓位与前十大持仓集中度
+- `work/large_money_fund_reports.json`：基金样本历史数据和覆盖率
+- `work/fetch_large_money_etf_shares.py`：三个指数跟踪ETF的周度份额汇总
+- `work/large_money_etf_shares.json`：ETF份额历史缓存
 - `work/add_valuation_module.js`：估值模块注入脚本
 - `work/fetch_valuation_data.py`：PB、股债收益差数据更新脚本
 - `work/valuation_data.json`：估值扩展数据缓存
