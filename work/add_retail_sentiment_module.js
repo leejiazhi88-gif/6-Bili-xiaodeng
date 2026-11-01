@@ -68,7 +68,7 @@ const moduleHtml = `
     </article>
 
     <div class="valuation-foot">
-      <div class="note"><strong>数据口径：</strong>成交额和成交量展示两市对照与三个指数的实际交易值，成交额使用从零开始的等距刻度；两市成交量使用上证综指、深证综指成交量之和作为宽基代理。换手率均为周频：创业板指、科创50取 Tushare 指数每日换手率，科创综指按当期成分股流通市值加权；指数融资余额为成分股融资余额之和，融资占比再除以成分股流通市值；涨停家数按成分股匹配，后三项指数指标为月频。时间轴从 2005 年开始，缺失数据不补造。</div>
+      <div class="note"><strong>数据口径：</strong>成交额和成交量展示两市对照与三个指数的实际交易值，成交额使用从零开始的等距刻度；两市成交量使用上证综指、深证综指成交量之和作为宽基代理。换手率均为周频：创业板指、科创50取 Tushare 指数每日换手率，科创综指按当期成分股流通市值加权；指数融资余额为成分股融资余额之和，融资占比再除以成分股流通市值，两项均按周取点；涨停家数按成分股匹配、指数线为月频。时间轴从 2005 年开始，缺失数据不补造。</div>
     </div>
   </section>
 `;
@@ -115,13 +115,13 @@ const script = `
       marginBalance: {
         unit: "亿元", digits: 0,
         subtitle: "沪深两市与三个指数成分股融资余额",
-        note: "三个指数为当期成分股融资余额之和，未列入融资标的的成分股按零计；指数线为月频。",
+        note: "三个指数为当期成分股融资余额之和，未列入融资标的的成分股按零计；均为周频。",
         sources: [{ ...market, field: "marginBalance" }, ...indexMetrics.map(item => ({ ...item, field: "marginBalance" }))]
       },
       marginFloatRatio: {
         unit: "%", digits: 2,
         subtitle: "沪深两市与三个指数的融资余额/流通市值",
-        note: "三个指数的融资余额除以当期成分股流通市值合计；指数线为月频。",
+        note: "三个指数的融资余额除以当期成分股流通市值合计；均为周频。",
         sources: [{ ...market, field: "marginFloatRatio" }, ...indexMetrics.map(item => ({ ...item, field: "marginFloatRatio" }))]
       },
       limitUpCount: {

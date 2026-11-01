@@ -83,10 +83,13 @@ def main():
         if not members:
             continue
         if date[:7] != latest_month and all(
-            date in cached_by_date[key] for key in members
+            date in cached_by_date[key] and
+            (cached_by_date[key][date].get("marginChecked") or date in month_dates)
+            for key in members
         ):
             for key in members:
                 row = dict(cached_by_date[key][date])
+                row["marginChecked"] = True
                 if compact in direct_turnover.get(key, {}):
                     row["turnover"] = direct_turnover[key][compact]
                 result[key].append(row)
@@ -95,7 +98,7 @@ def main():
         basic_rows = request(token, "daily_basic", {"trade_date": compact},
                              "ts_code,circ_mv,turnover_rate")
         margin_rows = request(token, "margin_detail", {"trade_date": compact},
-                              "ts_code,rzye") if monthly else []
+                              "ts_code,rzye")
         limit_codes = None
         if monthly and compact >= "20200101":
             limit_codes = {row["ts_code"] for row in request(
@@ -117,21 +120,22 @@ def main():
             result[key].append({
                 "date": date,
                 "turnover": direct_turnover.get(key, {}).get(compact, derived_turnover),
-                "marginBalance": round(margin / 1e8, 2) if monthly and margin > 0 else None,
+                "marginBalance": round(margin / 1e8, 2) if margin > 0 else None,
                 "marginFloatRatio": round(margin / (cap * 1e4) * 100, 4)
-                                    if monthly and margin > 0 and cap and len(known) >= len(codes) * 0.95 else None,
+                                    if margin > 0 and cap and len(known) >= len(codes) * 0.95 else None,
                 "limitUpCount": sum(code in limit_codes for code in codes)
                                 if limit_codes is not None else None,
                 "memberCount": len(codes),
                 "capCoverage": round(len(known) / len(codes) * 100, 2) if codes else None,
-                "marginMatched": sum(code in margins for code in codes) if monthly else None,
+                "marginMatched": sum(code in margins for code in codes),
+                "marginChecked": True,
             })
-        if monthly and (date.endswith("-30") or date.endswith("-31")):
+        if len(result["sh"]) % 50 == 0 and len(result["sh"]) > 0:
             print(date, flush=True)
     payload = {
         "meta": {
-            "frequency": {"turnover": "weekly", "marginBalance": "monthly",
-                          "marginFloatRatio": "monthly", "limitUpCount": "monthly"},
+            "frequency": {"turnover": "weekly", "marginBalance": "weekly",
+                          "marginFloatRatio": "weekly", "limitUpCount": "monthly"},
             "sources": "Tushare index_weight + daily_basic + margin_detail",
             "turnover": "Tushare index_dailybasic turnover_rate for sh/k50; constituent turnover_rate weighted by circ_mv for sz",
             "marginBalance": "Sum of constituent rzye; non-margin-eligible stocks contribute zero",
