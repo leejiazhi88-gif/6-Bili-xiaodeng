@@ -98,6 +98,11 @@ def last_by_week(rows):
 
 def main():
     token = get_token()
+    broad_volume = defaultdict(dict)
+    for code, exchange in (("000001.SH", "SH"), ("399106.SZ", "SZ")):
+        for row in yearly(token, "index_daily", {"ts_code": code}, "trade_date,vol"):
+            if row.get("vol") is not None:
+                broad_volume[row["trade_date"]][exchange] = float(row["vol"])
     market_rows = []
     for exchange, market_code in (("SH", "SH_A"), ("SH", "SH_MARKET"),
                                   ("SZ", "SZ_MARKET")):
@@ -161,6 +166,10 @@ def main():
             {
                 "date": f"{date[:4]}-{date[4:6]}-{date[6:]}",
                 "amount": round(amount, 2),
+                "volumeProxy": (
+                    round(sum(broad_volume[date].values()) / 1e8, 4)
+                    if len(broad_volume[date]) == 2 else None
+                ),
                 "turnover": round(turnover, 4) if turnover is not None else None,
                 "marginBalance": round(margin_balance, 2) if margin_rows else None,
                 "marginFloatRatio": (
@@ -185,6 +194,7 @@ def main():
             "frequency": "weekly",
             "sources": {
                 "market": "Tushare daily_info",
+                "volumeProxy": "Tushare index_daily 000001.SH + 399106.SZ (broad-index proxy)",
                 "margin": "Tushare margin",
                 "limit": "Tushare limit_list_d (available since 2020)",
             },

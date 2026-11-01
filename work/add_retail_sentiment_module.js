@@ -28,7 +28,7 @@ const moduleHtml = `
       <div>
         <div class="module-kicker">Module 02 / Retail Sentiment</div>
         <h2>情绪-散户</h2>
-        <p>比较三个指数与全市场的交易热度。</p>
+        <p>沪深两市指标与三个指数的交易及相对走势。</p>
       </div>
       <div class="module-status" id="retailDataStatus"></div>
     </div>
@@ -67,7 +67,7 @@ const moduleHtml = `
     </article>
 
     <div class="valuation-foot">
-      <div class="note"><strong>数据口径：</strong>成交额四条线共用亿元纵轴；为同时看清指数和全市场的量级，成交额使用对数刻度。成交量只含三个指数，其他指标只含全市场，切换指标时仍共用同一张图。指数成交不等于散户独占成交；各线从实际有数据的日期起显示。</div>
+      <div class="note"><strong>数据口径：</strong>成交额和成交量展示两市对照与三个指数的实际交易值；两市成交量使用上证综指、深证综指成交量之和作为宽基代理，并非交易所全市场总量。其余指标左轴是两市统计，右轴是三个指数价格相对走势（各自起点=100），不是指数自身的融资、涨停或换手率。时间轴从 2005 年开始，各线只在真实有数据的日期显示。</div>
     </div>
   </section>
 `;
@@ -94,33 +94,34 @@ const script = `
       },
       volume: {
         unit: "亿手", digits: 2,
-        subtitle: "三个指数的成交量，周频展示",
-        note: "此处只有指数成交量，没有同口径的两市成交量序列。",
-        sources: indices.map(item => ({ ...item, field: "volumeYiShou" }))
+        subtitle: "两市宽基代理与三个指数成交量，周频展示",
+        note: "两市成交量为上证综指与深证综指之和，属于宽基代理。",
+        sources: [{ ...market, name: "沪深两市·宽基代理", field: "volumeProxy" },
+          ...indices.map(item => ({ ...item, field: "volumeYiShou" }))]
       },
       turnover: {
         unit: "%", digits: 2,
         subtitle: "按沪深流通市值加权的市场换手率",
-        note: "换手率越高，筹码交换越快；高位持续高换手通常意味着分歧扩大。",
-        sources: [{ ...market, field: "turnover" }]
+        note: "左轴为两市换手率；右轴为三个指数价格相对走势，不是指数换手率。",
+        sources: [{ ...market, field: "turnover" }], compare: true
       },
       marginBalance: {
         unit: "亿元", digits: 0,
         subtitle: "沪深交易所融资余额合计",
-        note: "融资余额持续抬升表示杠杆资金扩张。",
-        sources: [{ ...market, field: "marginBalance" }]
+        note: "左轴为两市融资余额；右轴为三个指数价格相对走势，不是指数融资余额。",
+        sources: [{ ...market, field: "marginBalance" }], compare: true
       },
       marginFloatRatio: {
         unit: "%", digits: 2,
         subtitle: "融资余额占沪深市场流通市值比例",
-        note: "比例比融资余额绝对值更适合跨年份比较市场杠杆拥挤度。",
-        sources: [{ ...market, field: "marginFloatRatio" }]
+        note: "左轴为两市融资余额占比；右轴为三个指数价格相对走势。",
+        sources: [{ ...market, field: "marginFloatRatio" }], compare: true
       },
       limitUpCount: {
         unit: "家", digits: 0,
         subtitle: "当日非ST股票涨停数量，数据自2020年起",
-        note: "涨停家数反映短线风险偏好，极高值也可能意味着情绪亢奋。",
-        sources: [{ ...market, field: "limitUpCount" }]
+        note: "左轴为两市涨停家数（2020 年起）；右轴为三个指数价格相对走势。",
+        sources: [{ ...market, field: "limitUpCount" }], compare: true
       }
     };
 
@@ -128,7 +129,7 @@ const script = `
     let activeYears = 0;
     const chart = echarts.init(document.getElementById("retailSentimentChart"), null, { renderer: "canvas" });
     document.getElementById("retailDataStatus").textContent =
-      "市场数据 " + retailData.series[0].date + " 起 / 涨停数据 2020 年起";
+      "市场数据 " + retailData.series[0].date + " 起 / 指数按实际起点显示";
 
     function renderChart() {
       const cfg = metrics[activeMetric];
@@ -136,11 +137,15 @@ const script = `
       const cutoff = new Date(end);
       if (activeYears) cutoff.setUTCFullYear(cutoff.getUTCFullYear() - activeYears);
       const minDate = activeYears ? cutoff.toISOString().slice(0, 10) : "";
-      const series = cfg.sources.map(source => ({
+      const sources = cfg.compare ? [...cfg.sources, ...indices.map(item => ({
+        ...item, name: item.name + "相对走势", field: "close", compare: true
+      }))] : cfg.sources;
+      const series = sources.map(source => ({
         name: source.name,
         type: "line",
+        yAxisIndex: source.compare ? 1 : 0,
         data: source.rows.filter(row => row.date >= minDate && Number.isFinite(row[source.field]) && (!cfg.log || row[source.field] > 0))
-          .map(row => [row.date, row[source.field]]),
+          .map(row => [row.date, source.compare ? row.close / source.rows[0].close * 100 : row[source.field]]),
         showSymbol: false,
         sampling: "lttb",
         lineStyle: { width: 2, color: source.color },
@@ -151,36 +156,40 @@ const script = `
       document.getElementById("retailMetricSubtitle").textContent = cfg.subtitle;
       document.getElementById("retailMetricNote").textContent = cfg.note;
       document.getElementById("retailLatestReading").textContent =
-        dates.length ? dates[0] + " 至 " + dates[dates.length - 1] : "暂无数据";
+        dates.length ? "时间轴 2005 起；可用数据 " + dates[0] + " 至 " + dates[dates.length - 1] : "暂无数据";
       chart.setOption({
         animation: false,
         backgroundColor: "transparent",
-        grid: { left: 72, right: 28, top: cfg.sources.length > 1 ? 65 : 42, bottom: 64 },
-        legend: { show: cfg.sources.length > 1, type: "scroll", top: 12,
-          textStyle: { color: "#8fa5bf", fontSize: 11 } },
+        grid: { left: 72, right: cfg.compare ? 60 : 28,
+          top: window.innerWidth <= 620 ? 88 : 65, bottom: 64 },
+        legend: { show: true, type: "plain", top: 12, left: 12, right: 12,
+          itemWidth: 16, itemGap: 10,
+          textStyle: { color: "#8fa5bf", fontSize: window.innerWidth <= 620 ? 10 : 11 } },
         tooltip: {
           trigger: "axis", axisPointer: { type: "cross" },
           backgroundColor: "rgba(7,17,31,.96)", borderColor: "#36506f",
           textStyle: { color: "#edf4ff" },
           formatter(params) {
             const lines = params.map(item => item.marker + item.seriesName + "：<b>" +
-              fmt(Number(item.value[1]), cfg.digits) + cfg.unit + "</b>");
+              fmt(Number(item.value[1]), item.seriesIndex && cfg.compare ? 0 : cfg.digits) +
+              (item.seriesIndex && cfg.compare ? "（起点=100）" : cfg.unit) + "</b>");
             return "<b>" + (params[0]?.axisValueLabel || "") + "</b><br>" + lines.join("<br>");
           }
         },
         xAxis: {
-          type: "time", axisLine: { lineStyle: { color: "#344760" } },
+          type: "time", min: "2005-01-01", axisLine: { lineStyle: { color: "#344760" } },
           axisLabel: { color: "#7890aa", hideOverlap: true }, splitLine: { show: false }
         },
-        yAxis: {
+        yAxis: [{
           type: cfg.log ? "log" : "value", scale: true,
           axisLabel: { color: "#7890aa", formatter(value) {
             return cfg.unit === "亿元" && value >= 10000
-              ? fmt(value / 10000, 0) + "万亿元"
+              ? fmt(value / 10000, 1) + "万亿元"
               : fmt(value, cfg.digits) + cfg.unit;
           } },
           splitLine: { lineStyle: { color: "#17283d" } }
-        },
+        }, ...(cfg.compare ? [{ type: "value", scale: true, opposite: true,
+          axisLabel: { color: "#7890aa" }, splitLine: { show: false } }] : [])],
         dataZoom: [
           { type: "inside", filterMode: "none", start: 0, end: 100 },
           { type: "slider", bottom: 12, height: 22, start: 0, end: 100,
