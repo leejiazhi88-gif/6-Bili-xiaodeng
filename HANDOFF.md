@@ -1,96 +1,15 @@
-# BigA-growth 本地说明
+# 项目交接与线上维护
 
-这个工程是按 `Bili Atotal / BigA-total` 模仿出的成长指数版，当前目标指数为：
+唯一长期保存的项目仓库：
 
-- 创业板指：`399006.SZ`
-- 科创综指：`000680.SH`
+https://github.com/leejiazhi88-gif/6-Bili-xiaodeng
 
-GitHub 仓库：
+固定在线页面：
 
-```text
-https://github.com/leejiazhi88-gif/Bili-xiaodeng
-```
+https://leejiazhi88-gif.github.io/6-Bili-xiaodeng/
 
-线上页面：
+GitHub Pages 从 `gh-pages` 分支根目录发布，`main` 保存源码、数据与生成后的 `index.html`。两条分支应指向同一次完成的提交。仓库中的 `README.md` 记录数据来源和运行方式。
 
-```text
-https://leejiazhi88-gif.github.io/Bili-xiaodeng/
-```
+以后换电脑时，从上述 GitHub 仓库获取项目即可继续维护；不依赖任何特定电脑上的文件夹。在线页面是发布结果，不能直接作为可编辑的项目源码。数据刷新仍需 Tushare 凭据；凭据只应配置在执行环境或 GitHub Secrets，不能提交到仓库。
 
-## 本机路径
-
-```text
-/Users/fuguiplus/Documents/Codex/2026-07-02/bi/work/BigA-growth
-```
-
-主要页面文件：
-
-```text
-index.html
-outputs/growth_indices_dashboard.html
-```
-
-## 本地运行
-
-生成页面：
-
-```bash
-node ./work/build_market_dashboard.js
-```
-
-本地预览：
-
-```bash
-node ./work/preview_server.js
-```
-
-然后打开：
-
-```text
-http://127.0.0.1:9876
-```
-
-## 数据限制
-
-Tushare 当前可以返回：
-
-- 创业板指 `399006.SZ`：价格、PE(TTM)、PB
-- 科创50 `000688.SH`：价格、Tushare PE(TTM)、PB
-- 科创综指 `000680.SH`：价格、官方历史 PE(TTM)
-
-Tushare 当前没有返回科创综指 `index_dailybasic` 的 PE/PB 序列。科创综指 PE 改用中证指数官方历史行情（有效点始于 2024-10-23）；PB 仅有官方单张月末快照。真实利润使用 `index_weight` 成分股与 `income` 归母净利润 TTM 汇总。
-
-新增的 `情绪-官方` 模块包含：
-
-- IPO融资额：Tushare `new_share` 月度汇总
-- 产业资本净减持额：Tushare `stk_holdertrade` 重要股东增减持公告估算，正值为净减持
-- 印花税率：手工政策表
-- 政策利率：Tushare `shibor_lpr`，当前展示 1年期 LPR
-- 社融增量 / M2增速：Tushare `sf_month` / `cn_m`
-- 原官方情绪事件保留在 `work/official_sentiment_events.json`，当前页面不展示情绪事件 List
-
-再融资额与国家队持仓规模当前只保留指标入口：再融资额暂缺稳定可自动更新的全市场金额接口，国家队持仓规模没有统一官方连续披露口径。
-
-相关文件：
-
-```text
-work/fetch_official_sentiment_data.py
-work/official_sentiment_data.json
-work/official_sentiment_events.json
-work/add_official_sentiment_module.js
-```
-
-## 同步与部署
-
-每次修改后：
-
-```bash
-git pull --rebase
-node ./work/build_market_dashboard.js
-git add .
-git commit -m "描述这次修改"
-git push origin main
-git push origin main:gh-pages
-```
-
-GitHub Pages 使用 `gh-pages` 分支根目录发布；`main` 保存源码与数据，两条分支都要同步。Pages/CDN 可能有几分钟缓存。
+每次更新流程：先同步 `main`，修改或刷新数据并生成 `index.html`，核对页面，再提交到 `main` 并同步到 `gh-pages`。最后检查 GitHub Pages 构建状态和公开页面。不要仅修改 `gh-pages` 而丢失 `main` 中的源码。

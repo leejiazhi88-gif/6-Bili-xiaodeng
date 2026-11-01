@@ -10,6 +10,8 @@ GitHub 仓库：https://github.com/leejiazhi88-gif/6-Bili-xiaodeng
 
 线上页面：https://leejiazhi88-gif.github.io/6-Bili-xiaodeng/
 
+长期维护以本 GitHub 仓库为准，不依赖固定本地目录。换电脑后从仓库获取项目，完成更新后将同一提交同步到 `main` 和 `gh-pages`；后者用于 GitHub Pages 发布。在线 URL 固定如上，页面本身不是可直接编辑的源码。数据刷新需要另行配置 Tushare 凭据，不要将凭据提交到仓库。详见 `HANDOFF.md`。
+
 目前包含：
 
 - 总览：创业板指、科创50、科创综指的价格和估值走势
