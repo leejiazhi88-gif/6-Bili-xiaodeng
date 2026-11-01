@@ -214,7 +214,6 @@ function htmlTemplate(data, echartsSource) {
       </div>
       <h2 class="chart-heading">市盈率 PE(TTM)</h2><div id="chart-pe" class="index-chart"></div>
       <h2 class="chart-heading">归母净利润 TTM（亿元）</h2><div id="chart-profit" class="index-chart"></div>
-      <h2 class="chart-heading">科创50 市净率 PB</h2><div id="chart-pb" class="index-chart"></div>
     </div>
   </section>
   <section class="notes">
@@ -234,7 +233,6 @@ const cards = [
   ["创业板真实利润", fmt(DATA.stats.sh.profitYi), "归母净利润TTM，亿元", "sh"],
   ["科创50", fmt(DATA.stats.k50.close), "Tushare · " + DATA.stats.k50.date, "k50"],
   ["科创50 PE(TTM)", fmt(DATA.stats.k50.pe), "Tushare · " + DATA.stats.k50.date, "k50"],
-  ["科创50 PB", fmt(DATA.stats.k50.pb), "Tushare · " + DATA.stats.k50.date, "k50"],
   ["科创综指", fmt(DATA.stats.sz.close), "近1年 " + signed(DATA.stats.sz.yearChange), "sz"],
   ["科创综指PE(TTM)", fmt(DATA.officialHistory.rows.at(-1).pe), "中证指数 · " + DATA.officialHistory.rows.at(-1).date, "sz"],
   ["科创综指真实利润", fmt(DATA.stats.sz.profitYi), "归母净利润TTM，亿元", "sz"],
@@ -326,8 +324,7 @@ const chartConfigs = [
   ["chart-profit", [
     { name: "创业板指利润", rows: DATA.sh, field: "profitYi", color: COLORS.sh },
     { name: "科创综指利润", rows: DATA.sz, field: "profitYi", color: COLORS.sz }
-  ], { unit: "亿元" }],
-  ["chart-pb", [{ name: "科创50 PB", rows: DATA.k50, field: "pb", color: COLORS.k50 }], { unit: "倍" }]
+  ], { unit: "亿元" }]
 ];
 for (const [key, name, rows] of [
   ["sh", "创业板指", DATA.sh], ["k50", "科创50", DATA.k50], ["sz", "科创综指", DATA.sz]
