@@ -178,12 +178,9 @@
 
 
   <style id="official-sentiment-style">
-    .official-grid { display: grid; grid-template-columns: minmax(0, 1fr); }
-    #officialSentimentChart { height: 500px; width: 100%; }
-    .official-index-chart { height: 280px; width: 100%; }
+    #officialSentimentChart { height: 560px; width: 100%; }
     @media (max-width: 980px) {
-      #officialSentimentChart { height: 450px; }
-      .official-index-chart { height: 250px; }
+      #officialSentimentChart { height: 490px; }
     }
   </style>
 
@@ -404,64 +401,41 @@
       <div class="module-status" id="officialDataStatus"></div>
     </div>
 
-    <div class="official-grid">
-      <article class="valuation-panel">
-        <div class="panel-head">
-          <div>
-            <div class="panel-title">三个指数对照</div>
-            <div class="panel-subtitle">所选政策指标为共同环境；右轴为各指数自身走势</div>
-          </div>
-          <div class="range-tabs" id="officialRangeTabs">
-            <button class="range-tab" data-years="3">3年</button>
-            <button class="range-tab" data-years="5">5年</button>
-            <button class="range-tab" data-years="10">10年</button>
-            <button class="range-tab" data-years="20">20年</button>
-            <button class="range-tab" data-years="30">30年</button>
-            <button class="range-tab active" data-years="0">全部</button>
-          </div>
+    <article class="valuation-panel">
+      <div class="panel-head">
+        <div>
+          <div class="panel-title">官方指标与三个指数</div>
+          <div class="panel-subtitle" id="officialMetricSubtitle">IPO月度融资额与指数走势</div>
         </div>
-        <div class="metric-tabs" id="officialMetricTabs">
-          <button class="metric-tab active" data-metric="ipoFund">IPO融资额</button>
-          <button class="metric-tab" disabled title="缺少稳定可自动更新的全市场再融资金额接口">再融资额</button>
-          <button class="metric-tab" data-metric="holderNetReductionAmount">产业资本净减持额</button>
-          <button class="metric-tab" data-metric="stampDutyRate">印花税率</button>
-          <button class="metric-tab" data-metric="lpr1y">政策利率</button>
-          <button class="metric-tab" data-metric="socialFinancing">社融增量</button>
-          <button class="metric-tab" data-metric="m2Yoy">M2增速</button>
-          <button class="metric-tab" disabled title="国家队持仓规模没有统一官方连续披露口径">国家队持仓规模</button>
+        <div class="range-tabs" id="officialRangeTabs">
+          <button class="range-tab" data-years="3">3年</button>
+          <button class="range-tab" data-years="5">5年</button>
+          <button class="range-tab" data-years="10">10年</button>
+          <button class="range-tab" data-years="20">20年</button>
+          <button class="range-tab" data-years="30">30年</button>
+          <button class="range-tab active" data-years="0">全部</button>
         </div>
-        <div class="board-chart-block">
-          <div class="board-chart-head"><strong class="sh">创业板指</strong><span id="officialIndexLatestSh"></span></div>
-          <div class="official-index-chart" id="officialIndexChartSh"></div>
-        </div>
-        <div class="board-chart-block">
-          <div class="board-chart-head"><strong class="k50">科创50</strong><span id="officialIndexLatestK50"></span></div>
-          <div class="official-index-chart" id="officialIndexChartK50"></div>
-        </div>
-        <div class="board-chart-block">
-          <div class="board-chart-head"><strong class="sz">科创综指</strong><span id="officialIndexLatestSz"></span></div>
-          <div class="official-index-chart" id="officialIndexChartSz"></div>
-        </div>
-      </article>
-      <article class="valuation-panel">
-        <div class="panel-head">
-          <div>
-            <div class="panel-title">全市场完整历史</div>
-            <div class="panel-subtitle" id="officialMetricSubtitle">IPO月度融资额</div>
-          </div>
-        </div>
-        <div class="metric-note">
-          <span id="officialMetricNote">IPO融资额反映一级市场供给压力，阶段性收紧通常对应官方稳定市场取向。</span>
-          <span class="metric-reading" id="officialLatestReading"></span>
-        </div>
-        <div id="officialSentimentChart"></div>
-      </article>
-
-    </div>
+      </div>
+      <div class="metric-tabs" id="officialMetricTabs">
+        <button class="metric-tab active" data-metric="ipoFund">IPO融资额</button>
+        <button class="metric-tab" disabled title="缺少稳定可自动更新的全市场再融资金额接口">再融资额</button>
+        <button class="metric-tab" data-metric="holderNetReductionAmount">产业资本净减持额</button>
+        <button class="metric-tab" data-metric="stampDutyRate">印花税率</button>
+        <button class="metric-tab" data-metric="lpr1y">政策利率</button>
+        <button class="metric-tab" data-metric="socialFinancing">社融增量</button>
+        <button class="metric-tab" data-metric="m2Yoy">M2增速</button>
+        <button class="metric-tab" disabled title="国家队持仓规模没有统一官方连续披露口径">国家队持仓规模</button>
+      </div>
+      <div class="metric-note">
+        <span id="officialMetricNote"></span>
+        <span class="metric-reading" id="officialLatestReading"></span>
+      </div>
+      <div id="officialSentimentChart"></div>
+    </article>
 
     <div class="valuation-foot">
-      <div class="note"><strong>连续数据口径：</strong>IPO融资额来自新股上市募集资金；产业资本净减持额用重要股东增减持公告和均价估算，正值为净减持；LPR、社融、M2为月频宏观数据。</div>
-      <div class="note"><strong>指数对照：</strong>上方三图的政策指标相同，均非指数专属数据；指数线各自不同。它们展示同期关系，不代表政策值已按指数拆分。</div>
+      <div class="note"><strong>图表口径：</strong>黄色官方指标线为全市场共同环境，只出现一次，使用左轴原始单位；三条指数线使用右轴，以2020-01-07为100比较相对走势。官方指标没有按指数拆分，左右轴数值不能直接相减。</div>
+      <div class="note"><strong>数据口径：</strong>IPO融资额来自新股上市募集资金；产业资本净减持额用重要股东增减持公告和均价估算，正值为净减持；LPR、社融、M2为月频宏观数据。各指标仅从实际有数据的日期开始。</div>
       <div class="note"><strong>缺口说明：</strong>再融资额与国家队持仓规模缺少稳定、统一、可自动更新的官方连续口径，当前暂不绘制。</div>
     </div>
   </section>
@@ -1139,135 +1113,99 @@ window.addEventListener("resize", () => charts.forEach(chart => chart.resize()))
     const metrics = {
       ipoFund: {
         title: "IPO融资额", unit: "亿元", digits: 1,
-        subtitle: "新股上市月度募集资金合计",
+        subtitle: "新股上市月度募集资金与三个指数走势",
         note: "IPO融资额反映一级市场供给压力，阶段性收紧通常对应官方稳定市场取向。"
       },
       holderNetReductionAmount: {
         title: "产业资本净减持额", unit: "亿元", digits: 1,
-        subtitle: "重要股东公告口径的月度净减持金额估算",
-        note: "正值为净减持，负值为净增持；仅统计有成交均价的增减持记录。"
+        subtitle: "重要股东公告口径月度净减持金额与三个指数走势",
+        note: "正值为净减持，负值为净增持；仅统计有成交均价的记录。"
       },
       stampDutyRate: {
         title: "印花税率", unit: "%", digits: 2,
-        subtitle: "证券交易印花税卖出端税率",
-        note: "印花税率下降是官方降低交易成本、活跃资本市场的直接信号。"
+        subtitle: "证券交易印花税卖出端税率与三个指数走势",
+        note: "印花税率下降降低交易成本，但不是指数专属政策。"
       },
       lpr1y: {
         title: "1年期LPR", unit: "%", digits: 2,
-        subtitle: "1年期贷款市场报价利率",
-        note: "政策利率下行降低折现率，并常与稳增长政策组合一起影响风险偏好。"
+        subtitle: "1年期贷款市场报价利率与三个指数走势",
+        note: "利率下行降低折现率，需结合其他政策和盈利预期观察。"
       },
       socialFinancing: {
         title: "社融增量", unit: "亿元", digits: 0,
-        subtitle: "社会融资规模月度增量",
-        note: "社融增量反映信用扩张力度，持续改善通常有利于盈利预期和风险偏好。"
+        subtitle: "社会融资规模月度增量与三个指数走势",
+        note: "社融增量反映信用扩张力度，需结合融资结构和季节性观察。"
       },
       m2Yoy: {
         title: "M2同比增速", unit: "%", digits: 1,
-        subtitle: "货币供应量M2同比增速",
-        note: "M2增速体现广义流动性环境，需要与社融和政策利率结合观察。"
+        subtitle: "广义货币M2同比增速与三个指数走势",
+        note: "M2增速体现广义流动性环境，需与社融和利率结合观察。"
       }
     };
+    const baselineDate = "2020-01-07";
+    const indices = [
+      { name: "创业板指", rows: DATA.sh, color: COLORS.sh },
+      { name: "科创50", rows: DATA.k50, color: COLORS.k50 },
+      { name: "科创综指", rows: DATA.sz, color: COLORS.sz }
+    ];
     let activeMetric = "ipoFund";
     let activeYears = 0;
     const chart = echarts.init(document.getElementById("officialSentimentChart"), null, { renderer: "canvas" });
-    const indexMarkets = [
-      { key: "Sh", label: "创业板指", rows: DATA.sh, color: COLORS.sh },
-      { key: "K50", label: "科创50", rows: DATA.k50, color: COLORS.k50 },
-      { key: "Sz", label: "科创综指", rows: DATA.sz, color: COLORS.sz }
-    ];
-    const indexCharts = indexMarkets.map(market => echarts.init(
-      document.getElementById("officialIndexChart" + market.key), null, { renderer: "canvas" }));
     document.getElementById("officialDataStatus").textContent =
       "官方月度数据 " + officialData.series[0].date + " 起";
 
-    function renderIndexCharts() {
-      const cfg = metrics[activeMetric];
-      indexMarkets.forEach((market, index) => {
-        const first = market.rows[0].date;
-        const end = new Date(market.rows[market.rows.length - 1].date + "T00:00:00Z");
-        const cutoff = new Date(end);
-        if (activeYears) cutoff.setUTCFullYear(cutoff.getUTCFullYear() - activeYears);
-        const minDate = activeYears ? cutoff.toISOString().slice(0, 10) : first;
-        const indexRows = market.rows.filter(row => row.date >= minDate && Number.isFinite(row.close));
-        const indexPoints = indexRows.map(row => [row.date, row.close]);
-        const metricPoints = officialData.series
-          .filter(row => row.date >= minDate && Number.isFinite(row[activeMetric]))
-          .map(row => [row.date, row[activeMetric]]);
-        document.getElementById("officialIndexLatest" + market.key).textContent =
-          "指数始于 " + first + " · 图内指标起于 " + (metricPoints[0]?.[0] || "暂无数据");
-        indexCharts[index].setOption({
-          animation: false, backgroundColor: "transparent",
-          grid: { left: 70, right: 70, top: 42, bottom: 60 },
-          legend: { top: 4, textStyle: { color: "#8fa5bf", fontSize: 10 } },
-          tooltip: { trigger: "axis", axisPointer: { type: "cross" },
-            backgroundColor: "rgba(7,17,31,.96)", borderColor: "#36506f",
-            textStyle: { color: "#edf4ff" } },
-          xAxis: { type: "time", axisLine: { lineStyle: { color: "#344760" } },
-            axisLabel: { color: "#7890aa", hideOverlap: true }, splitLine: { show: false } },
-          yAxis: [
-            { type: "value", scale: true, axisLabel: { color: "#8fa5bf", formatter: "{value}" + cfg.unit },
-              splitLine: { lineStyle: { color: "#17283d" } } },
-            { type: "value", scale: true, axisLabel: { color: market.color }, splitLine: { show: false } }
-          ],
-          dataZoom: [
-            { type: "inside", filterMode: "none", start: 0, end: 100 },
-            { type: "slider", bottom: 10, height: 20, start: 0, end: 100,
-              borderColor: "#263b58", backgroundColor: "#0d1929",
-              fillerColor: "rgba(255,93,115,.15)", handleStyle: { color: "#ff5d73" },
-              textStyle: { color: "#8fa5bf" } }
-          ],
-          series: [
-            { name: cfg.title + "（共同环境）", type: "line", data: metricPoints,
-              yAxisIndex: 0, showSymbol: false, sampling: "lttb",
-              lineStyle: { width: 1.7, color: "#f6c85f" }, itemStyle: { color: "#f6c85f" } },
-            { name: market.label + "点位", type: "line", data: indexPoints,
-              yAxisIndex: 1, showSymbol: false, sampling: "lttb",
-              lineStyle: { width: 2, color: market.color }, itemStyle: { color: market.color } }
-          ]
-        }, true);
-      });
-    }
-
-    function activeRows() {
-      const rows = officialData.series.filter(row => Number.isFinite(row[activeMetric]));
-      if (!activeYears || !rows.length) return rows;
-      const end = new Date(rows[rows.length - 1].date + "T00:00:00Z");
-      const cutoff = new Date(end);
-      cutoff.setUTCFullYear(cutoff.getUTCFullYear() - activeYears);
-      return rows.filter(row => new Date(row.date + "T00:00:00Z") >= cutoff);
-    }
     function renderChart() {
       const cfg = metrics[activeMetric];
-      const rows = activeRows();
-      const points = rows.map(row => [row.date, row[activeMetric]]);
-      const latest = points[points.length - 1]?.[1];
+      const end = new Date(officialData.series[officialData.series.length - 1].date + "T00:00:00Z");
+      const cutoff = new Date(end);
+      if (activeYears) cutoff.setUTCFullYear(cutoff.getUTCFullYear() - activeYears);
+      const minDate = activeYears ? cutoff.toISOString().slice(0, 10) : "";
+      const policyPoints = officialData.series
+        .filter(row => row.date >= minDate && Number.isFinite(row[activeMetric]))
+        .map(row => [row.date, row[activeMetric]]);
+      const indexSeries = indices.map(index => {
+        const baseline = index.rows.find(row => row.date >= baselineDate && Number.isFinite(row.close));
+        const baseClose = baseline?.close;
+        return {
+          name: index.name, type: "line", yAxisIndex: 1,
+          data: index.rows.filter(row => row.date >= minDate && Number.isFinite(row.close) && baseClose)
+            .map(row => [row.date, row.close / baseClose * 100]),
+          showSymbol: false, sampling: "lttb",
+          lineStyle: { width: 2, color: index.color }, itemStyle: { color: index.color }
+        };
+      });
       document.getElementById("officialMetricSubtitle").textContent = cfg.subtitle;
       document.getElementById("officialMetricNote").textContent = cfg.note;
-      document.getElementById("officialLatestReading").textContent =
-        "最新：" + fmt(latest, cfg.digits) + cfg.unit + (points.length ? " · 起于 " + points[0][0] : "");
+      document.getElementById("officialLatestReading").textContent = policyPoints.length
+        ? "官方指标 " + policyPoints[0][0] + " 至 " + policyPoints[policyPoints.length - 1][0] +
+          " · 最新 " + fmt(policyPoints[policyPoints.length - 1][1], cfg.digits) + cfg.unit
+        : "当前范围暂无官方指标数据";
       chart.setOption({
         animation: false, backgroundColor: "transparent",
-        grid: { left: 72, right: 28, top: 42, bottom: 64 },
+        grid: { left: 80, right: 66, top: 68, bottom: 66 },
+        legend: { type: "scroll", top: 12, textStyle: { color: "#8fa5bf", fontSize: 11 } },
         tooltip: {
           trigger: "axis", axisPointer: { type: "cross" },
           backgroundColor: "rgba(7,17,31,.96)", borderColor: "#36506f",
           textStyle: { color: "#edf4ff" },
           formatter(params) {
-            const item = params[0];
-            return "<b>" + (item?.axisValueLabel || "") + "</b><br>" +
-              item.marker + cfg.title + "：<b>" + fmt(Number(item.value[1]), cfg.digits) + cfg.unit + "</b>";
+            const lines = params.map(item => item.marker + item.seriesName + "：<b>" +
+              fmt(Number(item.value[1]), item.seriesName === "官方指标" ? cfg.digits : 1) +
+              (item.seriesName === "官方指标" ? cfg.unit : "") + "</b>");
+            return "<b>" + (params[0]?.axisValueLabel || "") + "</b><br>" + lines.join("<br>");
           }
         },
-        xAxis: {
-          type: "time", axisLine: { lineStyle: { color: "#344760" } },
-          axisLabel: { color: "#7890aa", hideOverlap: true }, splitLine: { show: false }
-        },
-        yAxis: {
-          type: "value", scale: true,
-          axisLabel: { color: "#7890aa", formatter: "{value}" + cfg.unit },
-          splitLine: { lineStyle: { color: "#17283d" } }
-        },
+        xAxis: { type: "time", axisLine: { lineStyle: { color: "#344760" } },
+          axisLabel: { color: "#7890aa", hideOverlap: true }, splitLine: { show: false } },
+        yAxis: [
+          { type: "value", scale: true, axisLabel: { color: "#f6c85f", formatter(value) {
+            return cfg.unit === "亿元" && Math.abs(value) >= 10000
+              ? fmt(value / 10000, 1) + "万亿元"
+              : fmt(value, cfg.digits) + cfg.unit;
+          } }, splitLine: { lineStyle: { color: "#17283d" } } },
+          { type: "value", scale: true, axisLabel: { color: "#8fa5bf", formatter: "{value}" },
+            splitLine: { show: false } }
+        ],
         dataZoom: [
           { type: "inside", filterMode: "none", start: 0, end: 100 },
           { type: "slider", bottom: 12, height: 22, start: 0, end: 100,
@@ -1275,14 +1213,15 @@ window.addEventListener("resize", () => charts.forEach(chart => chart.resize()))
             fillerColor: "rgba(255,93,115,.15)", handleStyle: { color: "#ff5d73" },
             textStyle: { color: "#8fa5bf" } }
         ],
-        series: [{
-          name: cfg.title, type: "line", data: points, showSymbol: false,
-          sampling: "lttb", lineStyle: { width: 2.2, color: "#ff5d73" },
-          areaStyle: { color: "rgba(255,93,115,.07)" }, itemStyle: { color: "#ff5d73" }
-        }]
+        series: [
+          { name: "官方指标", type: "line", yAxisIndex: 0, data: policyPoints,
+            showSymbol: false, sampling: "lttb",
+            lineStyle: { width: 2, color: "#f6c85f" }, itemStyle: { color: "#f6c85f" } },
+          ...indexSeries
+        ]
       }, true);
-      renderIndexCharts();
     }
+
     document.querySelectorAll("#officialMetricTabs [data-metric]").forEach(button => {
       button.addEventListener("click", () => {
         activeMetric = button.dataset.metric;
@@ -1300,7 +1239,7 @@ window.addEventListener("resize", () => charts.forEach(chart => chart.resize()))
       });
     });
 
-    window.addEventListener("resize", () => { chart.resize(); indexCharts.forEach(item => item.resize()); });
+    window.addEventListener("resize", () => chart.resize());
     renderChart();
   })();
   </script>
