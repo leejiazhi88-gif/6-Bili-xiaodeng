@@ -76,7 +76,6 @@ const moduleHtml = `
         <button class="metric-tab" data-metric="turnover">换手率</button>
         <button class="metric-tab" data-metric="marginBalance">融资余额</button>
         <button class="metric-tab" data-metric="marginFloatRatio">融资余额/流通市值</button>
-        <button class="metric-tab" data-metric="limitUpCount">涨停数量</button>
       </div>
       <div class="metric-note">
         <span id="retailMetricNote"></span>
@@ -86,7 +85,7 @@ const moduleHtml = `
     </article>
 
     <div class="valuation-foot">
-      <div class="note"><strong>数据口径：</strong>成交额和成交量展示两市对照与三个指数的实际交易值，成交额使用从零开始的等距刻度；两市成交量使用上证综指、深证综指成交量之和作为宽基代理。换手率均为周频：创业板指、科创50取 Tushare 指数每日换手率，科创综指按当期成分股流通市值加权；指数融资余额为成分股融资余额之和，融资占比再除以成分股流通市值；涨停家数按成分股匹配。所有可选指标均按每周最后一个交易日取点，缺失数据不补造。</div>
+      <div class="note"><strong>数据口径：</strong>成交额和成交量展示两市对照与三个指数的实际交易值，成交额使用从零开始的等距刻度；两市成交量使用上证综指、深证综指成交量之和作为宽基代理。换手率均为周频：创业板指、科创50取 Tushare 指数每日换手率，科创综指按当期成分股流通市值加权；指数融资余额为成分股融资余额之和，融资占比再除以成分股流通市值。所有可选指标均按每周最后一个交易日取点，缺失数据不补造。</div>
     </div>
     <h3 class="retail-monthly-heading">月度入场趋势</h3>
     <div class="retail-monthly-grid">
@@ -156,12 +155,6 @@ const script = `
         subtitle: "沪深两市与三个指数的融资余额/流通市值",
         note: "三个指数的融资余额除以当期成分股流通市值合计；均为周频。",
         sources: [{ ...market, field: "marginFloatRatio" }, ...indexMetrics.map(item => ({ ...item, field: "marginFloatRatio" }))]
-      },
-      limitUpCount: {
-        unit: "家", digits: 0,
-        subtitle: "两市与三个指数成分股涨停数量，数据自2020年起",
-        note: "两市与三个指数当期成分股涨停家数均为周频，数据从 2020 年起。",
-        sources: [{ ...market, field: "limitUpCount" }, ...indexMetrics.map(item => ({ ...item, field: "limitUpCount" }))]
       }
     };
 
