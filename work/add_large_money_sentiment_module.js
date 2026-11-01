@@ -16,6 +16,16 @@ function stripExisting(html) {
 const css = `
   <style id="large-money-sentiment-style">
     #largeMoneyChart { height: 560px; width: 100%; }
+    #largeMoneySeriesControls { display: flex; flex-wrap: wrap; gap: 8px 18px; padding: 10px 16px 0; }
+    #largeMoneySeriesControls button { display: inline-flex; align-items: center; gap: 6px; padding: 4px 0;
+      border: 0; background: transparent; color: #8fa5bf; font-size: 12px; cursor: pointer; }
+    #largeMoneySeriesControls button:hover { color: #edf4ff; background: transparent; }
+    #largeMoneySeriesControls button[aria-pressed="false"] { opacity: .4; }
+    .large-money-series-mark { position: relative; width: 22px; height: 12px; flex: none; }
+    .large-money-series-mark::before { content: ""; position: absolute; left: 0; right: 0; top: 5px;
+      border-top: 2px solid var(--series-color); }
+    .large-money-series-mark::after { content: ""; position: absolute; left: 8px; top: 1px;
+      width: 8px; height: 8px; border: 2px solid #edf4ff; border-radius: 50%; background: var(--series-color); }
     @media (max-width: 980px) {
       #largeMoneyChart { height: 490px; }
     }
@@ -46,6 +56,12 @@ const moduleHtml = `
           <button class="range-tab" data-years="20">20年</button>
           <button class="range-tab active" data-years="0">全部</button>
         </div>
+      </div>
+      <div id="largeMoneySeriesControls" role="group" aria-label="选择对照曲线">
+        <button type="button" data-series="全市场资金" aria-pressed="true" style="--series-color:#f6c85f"><span class="large-money-series-mark"></span>全市场资金</button>
+        <button type="button" data-series="创业板指" aria-pressed="true" style="--series-color:#ff5d73"><span class="large-money-series-mark"></span>创业板指</button>
+        <button type="button" data-series="科创50" aria-pressed="true" style="--series-color:#7ddc82"><span class="large-money-series-mark"></span>科创50</button>
+        <button type="button" data-series="科创综指" aria-pressed="true" style="--series-color:#36c2ff"><span class="large-money-series-mark"></span>科创综指</button>
       </div>
       <div class="metric-tabs" id="largeMoneyMetricTabs">
         <button class="metric-tab active" data-metric="blockAmount">大宗交易额</button>
@@ -108,6 +124,7 @@ const script = `
     ];
     let activeMetric = "blockAmount";
     let activeYears = 0;
+    const selectedSeries = new Set(["全市场资金", "创业板指", "科创50", "科创综指"]);
     const chart = echarts.init(document.getElementById("largeMoneyChart"), null, { renderer: "canvas" });
     document.getElementById("largeMoneyDataStatus").textContent =
       "大宗与增减持 " + largeMoneyData.series[0].date + " 起 / 北向至 2024-08-16";
@@ -121,7 +138,7 @@ const script = `
       const moneyPoints = largeMoneyData.series
         .filter(row => row.date >= minDate && Number.isFinite(row[activeMetric]))
         .map(row => [row.date, row[activeMetric]]);
-      const indexSeries = indices.map(index => {
+      const indexSeries = indices.filter(index => selectedSeries.has(index.name)).map(index => {
         const baseline = index.rows.find(row => row.date >= baselineDate && Number.isFinite(row.close));
         const baseClose = baseline?.close;
         return {
@@ -141,7 +158,7 @@ const script = `
       chart.setOption({
         animation: false, backgroundColor: "transparent",
         grid: { left: 80, right: 66, top: 68, bottom: 66 },
-        legend: { type: "scroll", top: 12, textStyle: { color: "#8fa5bf", fontSize: 11 } },
+        legend: { show: false },
         tooltip: {
           trigger: "axis", axisPointer: { type: "cross" },
           backgroundColor: "rgba(7,17,31,.96)", borderColor: "#36506f",
@@ -169,9 +186,9 @@ const script = `
             textStyle: { color: "#8fa5bf" } }
         ],
         series: [
-          { name: "全市场资金", type: "line", yAxisIndex: 0, data: moneyPoints,
+          ...(selectedSeries.has("全市场资金") ? [{ name: "全市场资金", type: "line", yAxisIndex: 0, data: moneyPoints,
             showSymbol: false, sampling: "lttb",
-            lineStyle: { width: 2, color: "#f6c85f" }, itemStyle: { color: "#f6c85f" } },
+            lineStyle: { width: 2, color: "#f6c85f" }, itemStyle: { color: "#f6c85f" } }] : []),
           ...indexSeries
         ]
       }, true);
@@ -182,6 +199,19 @@ const script = `
         activeMetric = button.dataset.metric;
         document.querySelectorAll("#largeMoneyMetricTabs [data-metric]").forEach(item => item.classList.remove("active"));
         button.classList.add("active");
+        renderChart();
+      });
+    });
+    document.querySelectorAll("#largeMoneySeriesControls [data-series]").forEach(button => {
+      button.addEventListener("click", () => {
+        const name = button.dataset.series;
+        if (selectedSeries.has(name)) {
+          if (selectedSeries.size === 1) return;
+          selectedSeries.delete(name);
+        } else {
+          selectedSeries.add(name);
+        }
+        button.setAttribute("aria-pressed", selectedSeries.has(name) ? "true" : "false");
         renderChart();
       });
     });
