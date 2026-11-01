@@ -4,6 +4,7 @@ import re
 import ssl
 import sys
 import urllib.request
+from bisect import bisect_right
 from concurrent.futures import ThreadPoolExecutor
 from collections import defaultdict
 from datetime import datetime, timedelta
@@ -13,6 +14,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 CONFIG = Path.home() / ".codex" / "config.toml"
 OUTPUT = ROOT / "work" / "large_money_sentiment_data.json"
+INDEX_OUTPUT = ROOT / "work" / "large_money_index_data.json"
 START_YEAR = 2002
 END_YEAR = datetime.now().year
 END_DATE = datetime.now().strftime("%Y%m%d")
@@ -21,6 +23,7 @@ STOCK_CODE = re.compile(
     r"(?:000|001|002|003|300|301)\d{3}\.SZ|"
     r"(?:43|83|87|88|92)\d{4}\.BJ)$"
 )
+INDEX_CODES = {"sh": "399006.SZ", "k50": "000688.SH", "sz": "000680.SH"}
 
 
 def get_token():
@@ -84,10 +87,33 @@ def complete_window(token, api_name, start, end, fields, limit):
             + complete_window(token, api_name, right_start, end, fields, limit))
 
 
+def index_memberships(token):
+    memberships = {}
+    for key, code in INDEX_CODES.items():
+        by_date = defaultdict(set)
+        first_year = 2010 if key == "sh" else 2019
+        for year in range(first_year, END_YEAR + 1):
+            for month in range(1, 13):
+                start = f"{year}{month:02d}01"
+                if start > END_DATE:
+                    break
+                end = min(f"{year}{month:02d}{calendar.monthrange(year, month)[1]:02d}", END_DATE)
+                rows = call_api(token, "index_weight",
+                                {"index_code": code, "start_date": start, "end_date": end},
+                                "trade_date,con_code")
+                for row in rows:
+                    by_date[row["trade_date"]].add(row["con_code"])
+        memberships[key] = (sorted(by_date), by_date)
+    return memberships
+
+
 def main():
     token = get_token()
     previous = (json.loads(OUTPUT.read_text(encoding="utf-8"))
-                if OUTPUT.exists() and "--full" not in sys.argv else None)
+                if OUTPUT.exists() and INDEX_OUTPUT.exists() and "--full" not in sys.argv else None)
+    previous_indices = (json.loads(INDEX_OUTPUT.read_text(encoding="utf-8"))
+                        if previous else None)
+    memberships = index_memberships(token)
     previous_start = previous["series"][0]["date"].replace("-", "") if previous else None
     refresh_start = None
     if previous:
@@ -124,6 +150,16 @@ def main():
                 print(f"large money refresh: {index}/{len(ranges)} months", flush=True)
 
     block_weeks = defaultdict(lambda: {"dates": [], "amount": 0.0, "instNet": 0.0})
+    index_weeks = {key: defaultdict(lambda: {"blockAmount": 0.0,
+                                             "institutionBlockNet": 0.0,
+                                             "holderNetAmount": 0.0}) for key in INDEX_CODES}
+
+    def member_indices(code, date):
+        for key, (dates, by_date) in memberships.items():
+            position = bisect_right(dates, date) - 1
+            if position >= 0 and code in by_date[dates[position]]:
+                yield key
+
     for row in blocks:
         key = week_key(row["trade_date"])
         amount = float(row.get("amount") or 0) / 10000
@@ -136,6 +172,12 @@ def main():
             item["instNet"] += amount
         elif seller_inst and not buyer_inst:
             item["instNet"] -= amount
+        for key_name in member_indices(row["ts_code"], row["trade_date"]):
+            index_weeks[key_name][key]["blockAmount"] += amount
+            if buyer_inst and not seller_inst:
+                index_weeks[key_name][key]["institutionBlockNet"] += amount
+            elif seller_inst and not buyer_inst:
+                index_weeks[key_name][key]["institutionBlockNet"] -= amount
 
     unique_holder_rows = {}
     for row in holder_trades:
@@ -148,7 +190,7 @@ def main():
             row.get("change_ratio"),
         )
         unique_holder_rows[identity] = row
-    holder_weeks = defaultdict(lambda: {"dates": [], "netShares": 0.0})
+    holder_weeks = defaultdict(lambda: {"dates": [], "netShares": 0.0, "netAmount": 0.0})
     for row in unique_holder_rows.values():
         date = row.get("ann_date")
         if not date:
@@ -158,6 +200,10 @@ def main():
         signed = shares if row.get("in_de") == "IN" else -shares
         holder_weeks[key]["dates"].append(date)
         holder_weeks[key]["netShares"] += signed
+        amount = signed * float(row["avg_price"])
+        holder_weeks[key]["netAmount"] += amount
+        for key_name in member_indices(row["ts_code"], date):
+            index_weeks[key_name][key]["holderNetAmount"] += amount
 
     north_weeks = {}
     for row in sorted(north, key=lambda item: item["trade_date"]):
@@ -190,6 +236,7 @@ def main():
                 "blockAmount": round(block["amount"], 2) if block else None,
                 "institutionBlockNet": round(block["instNet"], 2) if block else None,
                 "holderNetShares": round(holder["netShares"], 4) if holder else None,
+                "holderNetAmount": round(holder["netAmount"], 4) if holder else None,
             }
         )
 
@@ -214,6 +261,25 @@ def main():
         date = week_end_date([row["date"].replace("-", "")])
         row["date"] = f"{date[:4]}-{date[4:6]}-{date[6:]}"
 
+    week_dates = {week_key(row["date"].replace("-", "")): row["date"] for row in series}
+    index_series = {}
+    for key, (snapshot_dates, _) in memberships.items():
+        fresh = []
+        if snapshot_dates:
+            first_week = week_key(snapshot_dates[0])
+            for week in keys:
+                if week < first_week:
+                    continue
+                date = week_dates[week]
+                values = index_weeks[key][week]
+                fresh.append({"date": date,
+                              **{field: round(value, 4) for field, value in values.items()}})
+        if previous_indices:
+            start = refresh_start
+            fresh = ([row for row in previous_indices[key] if row["date"] < start]
+                     + [row for row in fresh if row["date"] >= start])
+        index_series[key] = fresh
+
     result = {
         "meta": {
             "updated": datetime.now().strftime("%Y-%m-%d"),
@@ -230,6 +296,13 @@ def main():
     }
     OUTPUT.write_text(
         json.dumps(result, ensure_ascii=False, separators=(",", ":")),
+        encoding="utf-8",
+    )
+    INDEX_OUTPUT.write_text(
+        json.dumps({"meta": {"updated": datetime.now().strftime("%Y-%m-%d"),
+                             "source": "Tushare index_weight, block_trade, stk_holdertrade",
+                             "holderAmountUnit": "100 million yuan"},
+                    **index_series}, ensure_ascii=False, separators=(",", ":")),
         encoding="utf-8",
     )
     print(json.dumps({"output": str(OUTPUT), "points": len(series)}, ensure_ascii=False))

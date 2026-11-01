@@ -4,6 +4,7 @@ const path = require("path");
 const ROOT = path.resolve(__dirname, "..");
 const OUTPUT = path.join(ROOT, "outputs", "growth_indices_dashboard.html");
 const DATA_FILE = path.join(ROOT, "work", "large_money_sentiment_data.json");
+const INDEX_DATA_FILE = path.join(ROOT, "work", "large_money_index_data.json");
 
 function stripExisting(html) {
   return html
@@ -47,7 +48,7 @@ const moduleHtml = `
       <div class="panel-head">
         <div>
           <div class="panel-title">大资金与三个指数</div>
-          <div class="panel-subtitle" id="largeMoneyMetricSubtitle">全市场大宗交易额与指数走势</div>
+          <div class="panel-subtitle" id="largeMoneyMetricSubtitle">全市场与三个指数成分股大宗交易额</div>
         </div>
         <div class="range-tabs" id="largeMoneyRangeTabs">
           <button class="range-tab" data-years="3">3年</button>
@@ -80,8 +81,8 @@ const moduleHtml = `
     </article>
 
     <div class="valuation-foot">
-      <div class="note"><strong>图表口径：</strong>四条曲线统一按周六标记所属周，指数取同周最后一个可用收盘点；周六是周标签，不代表当天交易。黄色资金线为全市场所选指标，使用左轴原始单位；三条指数线使用右轴，以2020-01-07为100比较相对走势。资金没有按指数成分股拆分，左右轴数值不能直接相减。</div>
-      <div class="note"><strong>数据口径：</strong>大宗交易仅统计 A 股股票，排除债券等其他证券；机构净买入仅识别买卖方标记为“机构专用”的席位。产业资本净增减持仅统计有成交均价的股票记录，排除无价格的大额股权划转；正值为净增持、负值为净减持。</div>
+      <div class="note"><strong>图表口径：</strong>前三个页签的四条线均为真实金额（亿元），三个指数按交易或公告当期最近一次公布的成分股名单归集，不按指数权重折算；同一股票可能同时属于多个指数。北向资金页签仍为全市场净流入金额与三个指数价格相对走势的双轴对照。所有曲线按周六标记所属周，周六不代表当天交易。</div>
+      <div class="note"><strong>数据口径：</strong>大宗交易仅统计 A 股股票，排除债券等其他证券；机构净买入仅识别买卖方标记为“机构专用”的席位。产业资本净增减持按公告日汇总有成交均价的增减持股数乘以均价；正值为净增持金额，负值为净减持金额。指数成分名单未公布的历史不补造。</div>
       <div class="note"><strong>北向口径提示：</strong>北向净流入序列保留至2024年8月16日。此后披露机制发生变化，页面不把新口径成交数据与旧口径净流入强行拼接。</div>
     </div>
   </section>
@@ -91,36 +92,37 @@ const script = `
   <script id="large-money-sentiment-script">
   (() => {
     const largeMoneyData = __LARGE_MONEY_DATA__;
+    const indexMoneyData = __INDEX_MONEY_DATA__;
     const fmt = (value, digits = 1) => Number.isFinite(value)
       ? Number(value).toLocaleString("zh-CN", { minimumFractionDigits: digits, maximumFractionDigits: digits })
       : "--";
     const metrics = {
       blockAmount: {
-        title: "大宗交易额", unit: "亿元", digits: 1,
-        subtitle: "全市场大宗交易周成交额与三个指数走势",
+        title: "大宗交易额", field: "blockAmount", unit: "亿元", digits: 1,
+        subtitle: "全市场与三个指数成分股的周大宗交易额",
         note: "大宗交易放量代表大额筹码交换活跃，需要结合机构席位净方向判断。"
       },
       institutionBlockNet: {
-        title: "机构大宗净买入", unit: "亿元", digits: 1,
-        subtitle: "机构专用席位大宗交易周净买入额与三个指数走势",
+        title: "机构大宗净买入", field: "institutionBlockNet", unit: "亿元", digits: 1,
+        subtitle: "全市场与三个指数成分股的机构席位周净买入额",
         note: "正值表示机构席位净买入，负值表示净卖出。"
       },
       holderNetShares: {
-        title: "产业资本净增减持", unit: "亿股", digits: 2,
-        subtitle: "重要股东公告口径周净增减持股数与三个指数走势",
-        note: "正值为净增持，负值为净减持；按股数汇总，不等同于交易金额。"
+        title: "产业资本净增减持", field: "holderNetAmount", unit: "亿元", digits: 2,
+        subtitle: "全市场与三个指数成分股的周净增减持金额",
+        note: "按公告日汇总股数×披露均价；正值为净增持，负值为净减持。"
       },
       northMoney: {
-        title: "北向资金净流入", unit: "亿元", digits: 1,
-        subtitle: "沪深股通日净流入周末值与三个指数走势，资金序列止于2024-08-16",
+        title: "北向资金净流入", field: "northMoney", unit: "亿元", digits: 1,
+        subtitle: "全市场北向净流入与三个指数价格走势（右轴），资金止于2024-08-16",
         note: "披露机制变化后不再与旧口径拼接，指数线仍延伸至最新交易日。"
       }
     };
     const baselineDate = "2020-01-07";
     const indices = [
-      { name: "创业板指", rows: DATA.sh, color: COLORS.sh },
-      { name: "科创50", rows: DATA.k50, color: COLORS.k50 },
-      { name: "科创综指", rows: DATA.sz, color: COLORS.sz }
+      { key: "sh", name: "创业板指", rows: DATA.sh, color: COLORS.sh },
+      { key: "k50", name: "科创50", rows: DATA.k50, color: COLORS.k50 },
+      { key: "sz", name: "科创综指", rows: DATA.sz, color: COLORS.sz }
     ];
     function weekEnd(date) {
       const day = new Date(date + "T00:00:00Z");
@@ -140,19 +142,27 @@ const script = `
       const cutoff = new Date(end);
       if (activeYears) cutoff.setUTCFullYear(cutoff.getUTCFullYear() - activeYears);
       const minDate = activeYears ? cutoff.toISOString().slice(0, 10) : "";
+      const priceMode = activeMetric === "northMoney";
       const moneyPoints = largeMoneyData.series
-        .filter(row => row.date >= minDate && Number.isFinite(row[activeMetric]))
-        .map(row => [row.date, row[activeMetric]]);
+        .filter(row => row.date >= minDate && Number.isFinite(row[cfg.field]))
+        .map(row => [row.date, row[cfg.field]]);
       const weekDates = largeMoneyData.series.filter(row => row.date >= minDate).map(row => row.date);
       const indexSeries = indices.filter(index => selectedSeries.has(index.name)).map(index => {
-        const baseline = index.rows.find(row => row.date >= baselineDate && Number.isFinite(row.close));
-        const baseClose = baseline?.close;
-        const closes = new Map(index.rows.filter(row => Number.isFinite(row.close))
-          .map(row => [weekEnd(row.date), row.close]));
+        let values;
+        if (priceMode) {
+          const baseline = index.rows.find(row => row.date >= baselineDate && Number.isFinite(row.close));
+          const baseClose = baseline?.close;
+          const closes = new Map(index.rows.filter(row => Number.isFinite(row.close))
+            .map(row => [weekEnd(row.date), row.close]));
+          values = weekDates.map(date => [date, baseClose && closes.has(date)
+            ? closes.get(date) / baseClose * 100 : null]);
+        } else {
+          const amounts = new Map(indexMoneyData[index.key].map(row => [row.date, row[cfg.field]]));
+          values = weekDates.map(date => [date, amounts.has(date) ? amounts.get(date) : null]);
+        }
         return {
-          name: index.name, type: "line", yAxisIndex: 1,
-          data: weekDates.map(date => [date, baseClose && closes.has(date)
-            ? closes.get(date) / baseClose * 100 : null]),
+          name: index.name, type: "line", yAxisIndex: priceMode ? 1 : 0,
+          data: values,
           showSymbol: false, sampling: "lttb",
           lineStyle: { width: 2, color: index.color }, itemStyle: { color: index.color }
         };
@@ -165,7 +175,7 @@ const script = `
         : "当前范围暂无资金数据";
       chart.setOption({
         animation: false, backgroundColor: "transparent",
-        grid: { left: 80, right: 66, top: 68, bottom: 66 },
+        grid: { left: 80, right: priceMode ? 66 : 28, top: 26, bottom: 66 },
         legend: { show: false },
         tooltip: {
           trigger: "axis", axisPointer: { type: "cross" },
@@ -173,17 +183,17 @@ const script = `
           textStyle: { color: "#edf4ff" },
           formatter(params) {
             const lines = params.filter(item => item.value?.[1] != null).map(item => item.marker + item.seriesName + "：<b>" +
-              fmt(Number(item.value[1]), item.seriesName === "全市场资金" ? cfg.digits : 1) +
-              (item.seriesName === "全市场资金" ? cfg.unit : "") + "</b>");
+              fmt(Number(item.value[1]), priceMode && item.seriesName !== "全市场资金" ? 1 : cfg.digits) +
+              (priceMode && item.seriesName !== "全市场资金" ? "（基准=100）" : cfg.unit) + "</b>");
             return "<b>" + (params[0]?.axisValueLabel || "") + "</b><br>" + lines.join("<br>");
           }
         },
         xAxis: { type: "time", axisLine: { lineStyle: { color: "#344760" } },
           axisLabel: { color: "#7890aa", hideOverlap: true }, splitLine: { show: false } },
         yAxis: [
-          { type: "value", scale: true, axisLabel: { color: "#f6c85f", formatter: "{value}" + cfg.unit },
+          { type: "value", scale: true, axisLabel: { color: priceMode ? "#f6c85f" : "#8fa5bf", formatter: "{value}" + cfg.unit },
             splitLine: { lineStyle: { color: "#17283d" } } },
-          { type: "value", scale: true, axisLabel: { color: "#8fa5bf", formatter: "{value}" },
+          { type: "value", scale: true, show: priceMode, axisLabel: { color: "#8fa5bf", formatter: "{value}" },
             splitLine: { show: false } }
         ],
         dataZoom: [
@@ -239,7 +249,9 @@ const script = `
 `;
 
 if (!fs.existsSync(DATA_FILE)) throw new Error("Missing large_money_sentiment_data.json.");
+if (!fs.existsSync(INDEX_DATA_FILE)) throw new Error("Missing large_money_index_data.json.");
 const data = JSON.parse(fs.readFileSync(DATA_FILE, "utf8"));
+const indexData = JSON.parse(fs.readFileSync(INDEX_DATA_FILE, "utf8"));
 let html = stripExisting(fs.readFileSync(OUTPUT, "utf8"));
 html = html.replace(
   '<a href="#retail-sentiment">情绪-散户</a>',
@@ -250,7 +262,8 @@ function insertBeforeLast(source, marker, content) {
   if (index === -1) throw new Error(`Marker not found: ${marker}`);
   return source.slice(0, index) + content + source.slice(index);
 }
-const largeMoneyScript = script.replace("__LARGE_MONEY_DATA__", JSON.stringify(data));
+const largeMoneyScript = script.replace("__LARGE_MONEY_DATA__", JSON.stringify(data))
+  .replace("__INDEX_MONEY_DATA__", JSON.stringify(indexData));
 html = insertBeforeLast(html, "</head>", css + "\n");
 html = insertBeforeLast(html, "</main>", moduleHtml + "\n");
 html = insertBeforeLast(html, "</body>", largeMoneyScript + "\n");
