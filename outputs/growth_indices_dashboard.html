@@ -144,19 +144,13 @@
       display: flex; justify-content: space-between; gap: 12px; align-items: center;
       color: var(--muted); font-size: 11px; padding: 9px 16px 0;
     }
-    .board-chart-block { border-top: 1px solid var(--line); margin-top: 12px; }
-    .board-chart-head { display: flex; justify-content: space-between; gap: 12px; align-items: baseline; padding: 14px 16px 0; }
-    .board-chart-head strong { font-size: 14px; }
-    .board-chart-head span { color: var(--muted); font-size: 11px; text-align: right; }
-    #valuationChartChinext, #valuationChartK50, #valuationChartStar { height: 310px; width: 100%; }
-    .board-empty { display: none; color: var(--muted); padding: 28px 16px 40px; font-size: 12px; }
+    #valuationChart { height: 520px; width: 100%; }
     .valuation-foot { margin-top: 15px; }
     @media (max-width: 620px) {
       .page-nav { position: static; width: 100%; justify-content: space-between; gap: 0; }
       .page-nav a { padding: 7px 8px; font-size: 11px; text-align: center; }
       .module-head, .panel-head, .metric-note { align-items: flex-start; flex-direction: column; }
-      .board-chart-head { align-items: flex-start; flex-direction: column; gap: 5px; }
-      #valuationChartChinext, #valuationChartK50, #valuationChartStar { height: 280px; }
+      #valuationChart { height: 460px; }
     }
   </style>
 
@@ -270,25 +264,13 @@
         </div>
         <div class="metric-note">
           <span id="valuationMetricNote">PE越高，市场对未来盈利增长的要求越高。</span>
+          <span class="metric-reading" id="valuationMetricCoverage"></span>
         </div>
-        <div class="board-chart-block">
-          <div class="board-chart-head"><strong class="sh">创业板指</strong><span id="valuationLatestChinext"></span></div>
-          <div id="valuationChartChinext"></div>
-        </div>
-        <div class="board-chart-block">
-          <div class="board-chart-head"><strong class="k50">科创50</strong><span id="valuationLatestK50"></span></div>
-          <div id="valuationChartK50"></div>
-          <div class="board-empty" id="valuationK50Empty">暂无同口径连续数据</div>
-        </div>
-        <div class="board-chart-block">
-          <div class="board-chart-head"><strong class="sz">科创综指</strong><span id="valuationLatestStar"></span></div>
-          <div id="valuationChartStar"></div>
-          <div class="board-empty" id="valuationStarEmpty">暂无同口径连续数据</div>
-        </div>
+        <div id="valuationChart"></div>
     </article>
 
     <div class="valuation-foot">
-      <div class="note"><strong>连续数据口径：</strong>PE(TTM)为指数动态市盈率；PE与PB分位均按当前所选时间跨度的可用样本动态重算。PB来自指数每日指标；股债收益差需要可靠的10年期国债收益率，当前接口无权限时不绘制。各指标从自身首个有效日期开始，不补造早期数值。</div>
+      <div class="note"><strong>连续数据口径：</strong>PE(TTM)为指数动态市盈率；PE与PB分位按各指数当前所选时间跨度的可用样本分别计算。科创综指PE来自中证指数，与另外两条Tushare曲线口径不同，不宜直接比较绝对倍数；其PB暂无连续数据。股债收益差需要可靠的10年期国债收益率，当前接口无权限时不绘制。</div>
     </div>
   </section>
 <!-- VALUATION_MODULE_END -->
@@ -686,9 +668,7 @@ window.addEventListener("resize", () => charts.forEach(chart => chart.resize()))
       return metricConfig[field].extra ? valuationExtra[market] : valuationData[market];
     }
 
-    const chinextChart = echarts.init(document.getElementById("valuationChartChinext"), null, { renderer: "canvas" });
-    const k50Chart = echarts.init(document.getElementById("valuationChartK50"), null, { renderer: "canvas" });
-    const starChart = echarts.init(document.getElementById("valuationChartStar"), null, { renderer: "canvas" });
+    const chart = echarts.init(document.getElementById("valuationChart"), null, { renderer: "canvas" });
     let activeMetric = "pe";
     let activeYears = 0;
 
@@ -713,7 +693,7 @@ window.addEventListener("resize", () => charts.forEach(chart => chart.resize()))
     }
 
     function valuationPoints(market, field) {
-      if (market === "sz" && field !== "pe") return [];
+      if (market === "sz" && field !== "pe" && field !== "pePercentile") return [];
       const rows = rowsForActiveRange(market, field);
       if (field === "pePercentile" || field === "pbPercentile") {
         const sourceField = field === "pePercentile" ? "pe" : "pb";
@@ -728,19 +708,16 @@ window.addEventListener("resize", () => charts.forEach(chart => chart.resize()))
       const shPoints = valuationPoints("sh", activeMetric);
       const szPoints = valuationPoints("sz", activeMetric);
       const k50Points = valuationPoints("k50", activeMetric);
-      const shLatest = shPoints[shPoints.length - 1]?.[1];
-      const szLatest = szPoints[szPoints.length - 1]?.[1];
-      const k50Latest = k50Points[k50Points.length - 1]?.[1];
       const rangeLabel = activeYears ? activeYears + "年" : "全部可用";
       document.getElementById("valuationMetricSubtitle").textContent =
         cfg.fixedRange ? cfg.subtitle + "（" + rangeLabel + "样本动态计算）" : cfg.subtitle;
-      document.getElementById("valuationMetricNote").textContent = cfg.note;
-      document.getElementById("valuationLatestChinext").textContent =
-        "最新 " + fmt(shLatest, 2) + cfg.unit + (shPoints.length ? " · 起于 " + shPoints[0][0] : "");
-      document.getElementById("valuationLatestK50").textContent =
-        (Number.isFinite(k50Latest) ? "最新 " + fmt(k50Latest, 2) + cfg.unit + " · 起于 " + k50Points[0][0] : "暂无数据");
-      document.getElementById("valuationLatestStar").textContent =
-        (Number.isFinite(szLatest) ? "最新 " + fmt(szLatest, 2) + cfg.unit + " · 起于 " + szPoints[0][0] : "暂无数据");
+      document.getElementById("valuationMetricNote").textContent = cfg.note +
+        (activeMetric === "pbPercentile" ? " 科创综指暂无连续PB数据。" : "");
+      document.getElementById("valuationMetricCoverage").textContent = [
+        ["创业板指", shPoints], ["科创50", k50Points], ["科创综指", szPoints]
+      ].filter(([, points]) => points.length).map(([name, points]) =>
+        name + " " + fmt(points[points.length - 1][1], 2) + cfg.unit + " · " + points[0][0] + "起"
+      ).join(" / ");
 
       const riskArea = cfg.fixedRange ? {
         silent: true,
@@ -753,7 +730,7 @@ window.addEventListener("resize", () => charts.forEach(chart => chart.resize()))
       const chartOption = {
         animation: false,
         backgroundColor: "transparent",
-        grid: { left: 66, right: 28, top: 42, bottom: 64 },
+        grid: { left: 66, right: 28, top: 64, bottom: 64 },
         tooltip: {
           trigger: "axis", axisPointer: { type: "cross" },
           backgroundColor: "rgba(7,17,31,.96)", borderColor: "#36506f",
@@ -764,7 +741,7 @@ window.addEventListener("resize", () => charts.forEach(chart => chart.resize()))
             return "<b>" + (params[0]?.axisValueLabel || "") + "</b><br>" + lines.join("<br>");
           }
         },
-        legend: { show: false },
+        legend: { type: "scroll", top: 12, textStyle: { color: "#8fa5bf", fontSize: 11 } },
         xAxis: {
           type: "time", axisLine: { lineStyle: { color: "#344760" } },
           axisLabel: { color: "#7890aa", hideOverlap: true }, splitLine: { show: false }
@@ -787,23 +764,11 @@ window.addEventListener("resize", () => charts.forEach(chart => chart.resize()))
         name, type: "line", data, showSymbol: false, sampling: "lttb",
         lineStyle: { width: 2, color }, itemStyle: { color }, emphasis: { focus: "series" }
       });
-      chinextChart.setOption({ ...chartOption, series: [
-        { ...line("创业板指" + cfg.title, shPoints, COLORS.sh), markArea: riskArea }
-      ] }, true);
-      const k50Visible = k50Points.length > 0;
-      document.getElementById("valuationChartK50").style.display = k50Visible ? "block" : "none";
-      document.getElementById("valuationK50Empty").style.display = k50Visible ? "none" : "block";
-      if (k50Visible) {
-        k50Chart.resize();
-        k50Chart.setOption({ ...chartOption, series: [line("科创50" + cfg.title, k50Points, COLORS.k50)] }, true);
-      }
-      const starVisible = szPoints.length > 0;
-      document.getElementById("valuationChartStar").style.display = starVisible ? "block" : "none";
-      document.getElementById("valuationStarEmpty").style.display = starVisible ? "none" : "block";
-      if (starVisible) {
-        starChart.resize();
-        starChart.setOption({ ...chartOption, series: [line("科创综指官方" + cfg.title, szPoints, COLORS.sz)] }, true);
-      }
+      chart.setOption({ ...chartOption, series: [
+        { ...line("创业板指", shPoints, COLORS.sh), markArea: riskArea },
+        line("科创50", k50Points, COLORS.k50),
+        line("科创综指", szPoints, COLORS.sz)
+      ].filter(item => item.data.length) }, true);
     }
 
     document.querySelectorAll("#valuationMetricTabs [data-metric]").forEach(button => {
@@ -828,7 +793,7 @@ window.addEventListener("resize", () => charts.forEach(chart => chart.resize()))
       navLinks.forEach(item => item.classList.remove("active"));
       link.classList.add("active");
     }));
-    window.addEventListener("resize", () => { chinextChart.resize(); k50Chart.resize(); starChart.resize(); });
+    window.addEventListener("resize", () => chart.resize());
     renderValuationChart();
   })();
   </script>
