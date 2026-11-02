@@ -194,6 +194,7 @@
 
 
   <style id="official-sentiment-style">
+    #refinanceSourceLink { color: #f6c85f; }
     #officialSentimentChart { height: 560px; width: 100%; }
     @media (max-width: 980px) {
       #officialSentimentChart { height: 490px; }
@@ -1313,7 +1314,8 @@ window.addEventListener("resize", () => charts.forEach(chart => chart.resize()))
       const end = new Date(metricRows[metricRows.length - 1].date + "T00:00:00Z");
       const cutoff = new Date(end);
       if (activeYears) cutoff.setUTCFullYear(cutoff.getUTCFullYear() - activeYears);
-      const minDate = activeYears ? cutoff.toISOString().slice(0, 10) : "";
+      let minDate = activeYears ? cutoff.toISOString().slice(0, 10) : "";
+      if (activeMetric === "refinanceFund" && minDate < metricRows[0].date) minDate = metricRows[0].date;
       const policyPoints = metricRows
         .filter(row => row.date >= minDate && Number.isFinite(row[activeMetric]))
         .map(row => [row.date, row[activeMetric]]);
@@ -1357,7 +1359,7 @@ window.addEventListener("resize", () => charts.forEach(chart => chart.resize()))
           { type: "value", scale: true, axisLabel: { color: "#f6c85f", formatter(value) {
             return cfg.unit === "亿元" && Math.abs(value) >= 10000
               ? fmt(value / 10000, 1) + "万亿元"
-              : fmt(value, cfg.digits) + cfg.unit;
+              : fmt(value, activeMetric === "refinanceFund" ? 0 : cfg.digits) + cfg.unit;
           } }, splitLine: { lineStyle: { color: "#17283d" } } },
           { type: "value", scale: true, axisLabel: { color: "#8fa5bf", formatter: "{value}" },
             splitLine: { show: false } }
