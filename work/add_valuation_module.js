@@ -127,7 +127,7 @@ const moduleHtml = `
     </article>
 
     <div class="valuation-foot">
-      <div class="note"><strong>连续数据口径：</strong>PE(TTM)为指数动态市盈率；PE与PB分位按各指数当前所选时间跨度的可用样本分别计算。科创综指PE来自中证指数，与另外两条Tushare曲线口径不同，不宜直接比较绝对倍数；其PB暂无连续数据。股债收益差需要可靠的10年期国债收益率，当前接口无权限时不绘制。</div>
+      <div class="note"><strong>连续数据口径：</strong><span id="valuationMethodology"></span><br>未接入页签：股债收益差缺少可靠国债序列；行业分位 / 高估值占比缺少全市场行业截面，均无实际采样和曲线。</div>
     </div>
   </section>
 ${END_MARKER}
@@ -168,6 +168,13 @@ const js = `
         note: "数值越低，股票相对债券的估值补偿越薄。", extra: true, inverseRisk: true
       }
     };
+
+    const methodology = {
+      "pe": "采样：创业板指、科创50按每年1月1日起每7个自然日分组，取组内最后有效交易日的PE，另保留历史起点；不是固定周五、不是周均值。科创综指取中证指数实际可用的每日PE，自2024-10-23起，不降为周频。两来源口径不同，不宜直接比较绝对倍数。",
+      "pePercentile": "采样：创业板指、科创50按年内7天分组取最后有效交易日PE并保留起点；科创综指用可用日频PE。分位=当前所选跨度内不高于该值的样本数/有效样本数，各指数分别计算；不是逐时点只用此前历史的滚动分位，也不是周均值。",
+      "pbPercentile": "采样：创业板指按自然周取最后有效交易日PB；科创50按年内7天分组取最后有效交易日PB并保留起点，日期可能不同。分位按当前所选跨度内各自有效PB样本计算，不是周均值或仅用当时已知历史。科创综指暂无连续PB，不绘制。",
+      "equityBondSpread": "采样：若数据可用，创业板指按自然周末有效交易日PE与该日或之前最近国债收益率计算100/PE－10年期国债收益率，不是周平均。目前缺少可靠国债序列，页签禁用，无实际曲线。"
+};
 
     function metricRows(market, field) {
       return metricConfig[field].extra ? valuationExtra[market] : valuationData[market];
@@ -210,6 +217,7 @@ const js = `
 
     function renderValuationChart() {
       const cfg = metricConfig[activeMetric];
+      document.getElementById("valuationMethodology").textContent = methodology[activeMetric];
       const shPoints = valuationPoints("sh", activeMetric);
       const szPoints = valuationPoints("sz", activeMetric);
       const k50Points = valuationPoints("k50", activeMetric);

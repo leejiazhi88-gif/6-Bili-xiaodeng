@@ -257,6 +257,7 @@
     </div>
   </section>
   <section class="notes">
+    <div class="note"><strong>采样口径：</strong>价格、交易规模和总览PE按每年1月1日起每7个自然日分组，取组内最后有效交易日，并保留历史起点；并非固定周五。价格是当天收盘价，成交额/成交量是当天单日量，PE是该日可用值（缺失时可能沿用最近值），均不是周合计或周平均。利润底层为季度报告期TTM，按报告期末映射到价格采样点并沿用至下一期；重复展示不代表每周重新披露。报告期末不等于公告日，该历史汇总不是严格按当时已知信息构建的回测序列。</div>
     <div class="note"><strong>利润口径：</strong>真实利润为指数成分股归母净利润 TTM 汇总，单位为亿元；按 Tushare 指数权重表识别当期成分，再汇总这些成分股最近四个季度的归母净利润。最新报告期可能尚未披露完整：创业板覆盖率 100%，科创综指覆盖率 99.3092%；未完整披露的汇总不可直接与完整报告期比较。</div>
     <div class="note"><strong>阅读方法：</strong>价格上涨若主要由真实利润上升推动，质量更扎实；若价格快速上涨、利润横盘而PE显著抬升，则主要是估值扩张。虚线标记历史典型顶部窗口，仅用于辅助复盘。</div>
   </section>
@@ -300,7 +301,7 @@
     </article>
 
     <div class="valuation-foot">
-      <div class="note"><strong>连续数据口径：</strong>PE(TTM)为指数动态市盈率；PE与PB分位按各指数当前所选时间跨度的可用样本分别计算。科创综指PE来自中证指数，与另外两条Tushare曲线口径不同，不宜直接比较绝对倍数；其PB暂无连续数据。股债收益差需要可靠的10年期国债收益率，当前接口无权限时不绘制。</div>
+      <div class="note"><strong>连续数据口径：</strong><span id="valuationMethodology"></span><br>未接入页签：股债收益差缺少可靠国债序列；行业分位 / 高估值占比缺少全市场行业截面，均无实际采样和曲线。</div>
     </div>
   </section>
 <!-- VALUATION_MODULE_END -->
@@ -689,6 +690,13 @@ window.addEventListener("resize", () => charts.forEach(chart => chart.resize()))
       }
     };
 
+    const methodology = {
+      "pe": "采样：创业板指、科创50按每年1月1日起每7个自然日分组，取组内最后有效交易日的PE，另保留历史起点；不是固定周五、不是周均值。科创综指取中证指数实际可用的每日PE，自2024-10-23起，不降为周频。两来源口径不同，不宜直接比较绝对倍数。",
+      "pePercentile": "采样：创业板指、科创50按年内7天分组取最后有效交易日PE并保留起点；科创综指用可用日频PE。分位=当前所选跨度内不高于该值的样本数/有效样本数，各指数分别计算；不是逐时点只用此前历史的滚动分位，也不是周均值。",
+      "pbPercentile": "采样：创业板指按自然周取最后有效交易日PB；科创50按年内7天分组取最后有效交易日PB并保留起点，日期可能不同。分位按当前所选跨度内各自有效PB样本计算，不是周均值或仅用当时已知历史。科创综指暂无连续PB，不绘制。",
+      "equityBondSpread": "采样：若数据可用，创业板指按自然周末有效交易日PE与该日或之前最近国债收益率计算100/PE－10年期国债收益率，不是周平均。目前缺少可靠国债序列，页签禁用，无实际曲线。"
+};
+
     function metricRows(market, field) {
       return metricConfig[field].extra ? valuationExtra[market] : valuationData[market];
     }
@@ -730,6 +738,7 @@ window.addEventListener("resize", () => charts.forEach(chart => chart.resize()))
 
     function renderValuationChart() {
       const cfg = metricConfig[activeMetric];
+      document.getElementById("valuationMethodology").textContent = methodology[activeMetric];
       const shPoints = valuationPoints("sh", activeMetric);
       const szPoints = valuationPoints("sz", activeMetric);
       const k50Points = valuationPoints("k50", activeMetric);
@@ -876,11 +885,11 @@ window.addEventListener("resize", () => charts.forEach(chart => chart.resize()))
       }
     };
     const methodology = {
-      amount: "沪深两市与三个指数均为实际成交额（亿元），取每周最后一个交易日；纵轴从零开始、等距显示，不是对数刻度。",
-      volume: "三个指数为实际成交量（亿手）；两市线以上证综指与深证综指成交量之和作宽基代理。均取每周最后一个交易日。",
-      turnover: "创业板指、科创50采用指数换手率原值；科创综指按当期成分股流通市值加权。均取每周最后一个交易日的百分比，不是周累计。",
-      marginBalance: "三个指数分别汇总当期成分股融资余额，两市线为沪深市场余额（亿元）；未列入融资标的的成分股按零计。取每周最后一个交易日。",
-      marginFloatRatio: "指数成分股融资余额合计 ÷ 同期成分股流通市值合计；两市线按沪深市场整体口径计算。取每周最后一个交易日的百分比。"
+      amount: "采样：沪深两市按自然周取最后有效交易日的单日成交额；三个指数按年内每7天分组取组内最后有效交易日，另保留历史起点。均非整周合计或周均值，两类曲线日期可能不同。 沪深两市与三个指数均为实际成交额（亿元），纵轴从零开始、等距显示，不是对数刻度。",
+      volume: "采样：两市线按自然周取最后有效交易日的单日成交量；指数线按年内每7天分组取组内最后有效交易日，另保留历史起点。均非周成交量合计。 三个指数为实际成交量（亿手）；两市线以上证综指与深证综指成交量之和作宽基代理。不将单日量累加为周量。",
+      turnover: "采样：按自然周取最后有效交易日当天的换手率；不求周和、不取周平均。两市按流通市值加权。 创业板指、科创50采用指数换手率原值；科创综指按当期成分股流通市值加权。均取每周最后一个交易日的百分比，不是周累计。",
+      marginBalance: "采样：按自然周取最后有效交易日的余额快照（存量），不是周内融资买入额或余额增量。两市各交易所若当日未返回融资记录，沿用此前最近一次记录，因此可能不是严格同日快照。指数线查询采样日成分股数据。 三个指数分别汇总当期成分股融资余额，两市线为沪深市场余额（亿元）；未列入融资标的的成分股按零计。取每周最后一个交易日。",
+      marginFloatRatio: "采样：按自然周取最后有效交易日计算余额/市值比值，不求周和、不取周平均。两市融资余额可能沿用此前最近记录，分母为采样日流通市值；指数线使用采样日成分股口径。 指数成分股融资余额合计 ÷ 同期成分股流通市值合计；两市线按沪深市场整体口径计算。取每周最后一个交易日的百分比。"
     };
 
     let activeMetric = "amount";
@@ -1046,13 +1055,13 @@ window.addEventListener("resize", () => charts.forEach(chart => chart.resize()))
       }
     };
     const methodology = {
-      blockAmount: "按周汇总 A 股大宗交易成交额（亿元），不含债券；指数线按当期成分股归集，同一股票可能属于多个指数。",
-      institutionBlockNet: "按周汇总大宗交易中标记为“机构专用”的买入额减卖出额（亿元）；正值为净买入。指数线按当期成分股归集。",
-      holderNetShares: "按公告周汇总股东增减持股数乘披露均价（亿元）；正值为净增持，未披露均价的记录不计入。指数线按当期成分股归集。",
+      blockAmount: "采样：自然周内所有交易日成交额求和，周六为统一标签，不是周六或周五当天值；当前未结束周仅含已获取记录。 按周汇总 A 股大宗交易成交额（亿元），不含债券；指数线按当期成分股归集，同一股票可能属于多个指数。",
+      institutionBlockNet: "采样：自然周内机构席位买入额减卖出额后合计，周六为周标签，不是最后交易日单日净额；当前周可能尚未完整。 按周汇总大宗交易中标记为“机构专用”的买入额减卖出额（亿元）；正值为净买入。指数线按当期成分股归集。",
+      holderNetShares: "采样：按公告日期归入自然周，汇总该周全部有效公告金额；周六为标签，不代表实际增减持均发生于当周，也不是周末单日值。 按公告周汇总股东增减持股数乘披露均价（亿元）；正值为净增持，未披露均价的记录不计入。指数线按当期成分股归集。",
       northMoney: "Tushare moneyflow_hsgt 的每日 north_money（百万元）按自然周求和后除以100，换算为亿元；不取周末单日值。周标签统一为周六，最后标签2024-08-17对应截至2024-08-16的交易。缺失值不当作零。仅展示全市场北向净流入，不以指数价格代替指数资金流。旧口径披露止于2024-08-16，此后不补零、不拼接成交额。",
-      fundPosition: "取主动股票/混合基金半年报、年报样本：股票持仓市值 ÷ 基金净资产；指数线只统计投向其成分股的比例。持仓披露不足 90% 的基金剔除，样本覆盖不足 40% 的报告期不展示。",
-      institutionConcentration: "取主动股票/混合基金半年报、年报样本：各股票范围内持仓前 10 名的金额 ÷ 该范围全部持仓金额。样本覆盖不足 40% 的报告期不展示。",
-      etfShares: "按周统计跟踪三个指数的 ETF 存量份额（亿份）；首条线是这三组 ETF 合计，不是全市场 ETF。份额变化不等于资金净流入。"
+      fundPosition: "采样：半年频，仅取6月30日、12月31日报告期末持仓与净资产；不是每周采样。横轴是报告期末，不是公告日；连线不表示期间存在新披露值，也不适合作为当时已知数据回测。 取主动股票/混合基金半年报、年报样本：股票持仓市值 ÷ 基金净资产；指数线只统计投向其成分股的比例。持仓披露不足 90% 的基金剔除，样本覆盖不足 40% 的报告期不展示。",
+      institutionConcentration: "采样：半年频，取6月30日、12月31日报告期末的完整持仓样本计算集中度，不取周末值。横轴是报告期末而非公告日，点间连线仅辅助阅读。 取主动股票/混合基金半年报、年报样本：各股票范围内持仓前 10 名的金额 ÷ 该范围全部持仓金额。样本覆盖不足 40% 的报告期不展示。",
+      etfShares: "采样：周六为标签，逐只ETF取该标签日或之前最近一次份额记录，最多允许滞后15个自然日后汇总；不是全周份额之和，也不保证全部ETF为同日快照。有效披露覆盖不足90%时该序列留空。 按周统计跟踪三个指数的 ETF 存量份额（亿份）；首条线是这三组 ETF 合计，不是全市场 ETF。份额变化不等于资金净流入。"
     };
     const indices = [
       { key: "sh", name: "创业板指", rows: DATA.sh, color: COLORS.sh },
@@ -1126,8 +1135,8 @@ window.addEventListener("resize", () => charts.forEach(chart => chart.resize()))
       document.getElementById("largeMoneyMetricNote").textContent = cfg.note;
       document.getElementById("largeMoneyMethodology").textContent = holdingView
         ? (holdingMode === "value"
-          ? "季度末北向持股数量 × 当日收盘价，按各指数当期成分股汇总（亿元）。指数成分可能重叠；市值变化包含股价波动，不等于净流入。"
-          : "季度末北向持有指数成分股的市值 ÷ 同日该指数全部成分股总市值（%）。分母不是全市场北向持仓；指数成分可能重叠，占比不能相加。")
+          ? "采样：季度频，每季度最后一个A股交易日的持仓与价格快照；不做周采样或季度累计。横轴为实际交易日，连线不代表中间日期有披露。季度末北向持股数量 × 当日收盘价，按各指数当期成分股汇总（亿元）。指数成分可能重叠；市值变化包含股价波动，不等于净流入。"
+          : "采样：季度频，在每季度最后一个A股交易日计算比值；分子、分母取同日口径，不是季度均值或周采样。季度末北向持有指数成分股的市值 ÷ 同日该指数全部成分股总市值（%）。分母不是全市场北向持仓；指数成分可能重叠，占比不能相加。")
         : methodology[activeMetric];
       const totalButton = document.querySelector('#largeMoneySeriesControls [data-series="全市场资金"]');
       document.getElementById("largeMoneySeriesControls").style.display = northFlowMode ? "none" : "";
@@ -1282,13 +1291,13 @@ window.addEventListener("resize", () => charts.forEach(chart => chart.resize()))
       }
     };
     const methodology = {
-      refinanceFund: "来源：同花顺数据中心股票筹资月表。再融资额 = 同表股票募集资金 − 首发募集资金，涵盖增发、配股口径，不含可转债；未逐笔核验或剔除非现金资产认购，不等同于纯现金融资或二级市场净流出。该来源首发口径与本页 Tushare IPO 曲线不同，不应直接相加。当前可得历史自 2024-06 起，缺失月份留空；未结束月份不纳入。",
-      ipoFund: "按新股上市月份汇总实际募集资金（亿元），代表全市场 IPO 融资供给，不按指数拆分。三个指数为右轴价格相对走势。",
-      holderNetReductionAmount: "按公告月份汇总重要股东增减持股数 × 披露均价（亿元）；正值为净减持，缺少均价的不计入。三个指数为右轴价格相对走势。",
-      stampDutyRate: "证券交易印花税卖出端适用税率（%），按政策生效日变化；是全市场共同税率，不按指数拆分。三个指数为右轴价格相对走势。",
-      lpr1y: "1 年期贷款市场报价利率（LPR，%），按公布月份取值；并非股票市场专属利率。三个指数为右轴价格相对走势。",
-      socialFinancing: "当月社会融资规模增量（亿元），表示全社会新增融资，不等于流入股市的资金。三个指数为右轴价格相对走势。",
-      m2Yoy: "广义货币 M2 余额相对上年同月的增速（%），反映货币环境，不等于股市资金流入。三个指数为右轴价格相对走势。"
+      refinanceFund: "采样：月频，取来源表的已结束月份金额，不取月末单日、不做周采样；日期为月末标签，最近月份仍可能被来源修订。 来源：同花顺数据中心股票筹资月表。再融资额 = 同表股票募集资金 − 首发募集资金，涵盖增发、配股口径，不含可转债；未逐笔核验或剔除非现金资产认购，不等同于纯现金融资或二级市场净流出。该来源首发口径与本页 Tushare IPO 曲线不同，不应直接相加。当前可得历史自 2024-06 起，缺失月份留空；未结束月份不纳入。",
+      ipoFund: "采样：月频，按所属月份汇总整月募集资金，不取月末单日或每周值；日期标签为月末，未结束月份为抓取截止日且金额可能不完整。 按新股上市月份汇总实际募集资金（亿元），代表全市场 IPO 融资供给，不按指数拆分。三个指数为右轴价格相对走势。",
+      holderNetReductionAmount: "采样：月频，按公告月份合计净减持金额，非月末单日值或周取样；日期标月末，未结束月仅汇总到抓取截止日。公告月不一定等于实际交易月。 按公告月份汇总重要股东增减持股数 × 披露均价（亿元）；正值为净减持，缺少均价的不计入。三个指数为右轴价格相对走势。",
+      stampDutyRate: "采样：月频税率状态值，当前脚本以每月28日查询手工政策表并放在月末标签上，不是月平均或周采样；月内调整会压缩到一个月度点，不能据此定位日级生效时点。 证券交易印花税卖出端适用税率（%），按政策生效日变化；是全市场共同税率，不按指数拆分。三个指数为右轴价格相对走势。",
+      lpr1y: "采样：月频，取当月最后一条可用LPR记录；无新记录时沿用上一期。日期标月末（未结束月标抓取截止日），不是实际公布日，也不是月平均或周采样。 1 年期贷款市场报价利率（LPR，%），按公布月份取值；并非股票市场专属利率。三个指数为右轴价格相对走势。",
+      socialFinancing: "采样：月频，取官方所属月份的当月增量，不是年内累计或月末单日额；横轴标统计月末，不是公布日，不做周采样；尚未披露月份留空。 当月社会融资规模增量（亿元），表示全社会新增融资，不等于流入股市的资金。三个指数为右轴价格相对走势。",
+      m2Yoy: "采样：月频，取所属月份M2余额同比增速，不是月内增速平均或周采样；横轴标统计月末，不是公布日，尚未披露月份留空。 广义货币 M2 余额相对上年同月的增速（%），反映货币环境，不等于股市资金流入。三个指数为右轴价格相对走势。"
     };
     const baselineDate = "2020-01-07";
     const indices = [
@@ -1328,7 +1337,7 @@ window.addEventListener("resize", () => charts.forEach(chart => chart.resize()))
       document.getElementById("officialMetricSubtitle").textContent = cfg.subtitle;
       document.getElementById("officialMetricNote").textContent = cfg.note;
       document.getElementById("officialMethodology").textContent = methodology[activeMetric] +
-        " 指数以 2020-01-07 或其后首个可用点为 100，左右轴不能直接比较数值。";
+        " 指数线另按年内每7天分组取最后有效交易日价格，保留历史起点；并非按政策月末同步采样。指数以 2020-01-07 或其后首个可用点为 100，左右轴不能直接比较数值。";
       document.getElementById("officialLatestReading").textContent = policyPoints.length
         ? "官方指标 " + policyPoints[0][0] + " 至 " + policyPoints[policyPoints.length - 1][0] +
           " · 最新 " + fmt(policyPoints[policyPoints.length - 1][1], cfg.digits) + cfg.unit
