@@ -73,7 +73,6 @@ const moduleHtml = `
         <button class="metric-tab active" data-metric="blockAmount">大宗交易额</button>
         <button class="metric-tab" data-metric="institutionBlockNet">机构大宗净买入</button>
         <button class="metric-tab" data-metric="holderNetShares">产业资本净增减持</button>
-        <button class="metric-tab" data-metric="northMoney">北向资金净流入</button>
         <button class="metric-tab" data-metric="northHoldings">北向持仓分布</button>
         <button class="metric-tab" data-metric="fundPosition">主动权益基金仓位</button>
         <button class="metric-tab" data-metric="institutionConcentration">机构持仓集中度</button>
