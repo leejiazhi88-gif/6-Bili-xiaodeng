@@ -1,8 +1,9 @@
+from refresh_cache import atomic_json, full_refresh
 import json
 import re
 import time
 from collections import defaultdict
-from datetime import datetime
+from datetime import datetime, timedelta
 
 from fetch_retail_sentiment_data import ROOT, call_api, get_token
 
@@ -109,25 +110,46 @@ def report(token, period, funds):
 
 def main():
     token = get_token()
-    funds = active_funds(token)
     cached = json.loads(OUTPUT.read_text(encoding="utf-8")) if OUTPUT.exists() else {"series": []}
     by_date = {row["date"].replace("-", ""): row for row in cached["series"]}
     today = datetime.now().strftime("%Y%m%d")
     periods = [f"{year}{end}" for year in range(2005, datetime.now().year + 1)
                for end in ("0630", "1231") if f"{year}{end}" <= today]
+    checks = cached.get("meta", {}).get("checkedAt", {})
+    today_date = datetime.now()
+    baseline = cached.get("meta", {}).get("incrementalBaseline", today_date.isoformat())
     recent = set(periods[-2:])
+    due = []
     for period in periods:
-        if period in by_date and period not in recent:
-            continue
+        age = (today_date - datetime.strptime(period, "%Y%m%d")).days
+        # During the disclosure window check daily; afterwards weekly. Older
+        # reports get a monthly audit, rather than being frozen forever.
+        interval = 1 if age <= 90 else (7 if period in recent else 30)
+        checked = datetime.fromisoformat(checks[period]) if period in checks else None
+        due_unchecked = checked is None and (period in recent or today_date - datetime.fromisoformat(baseline) >= timedelta(days=30))
+        if full_refresh() or period not in by_date or due_unchecked or (checked is not None and today_date - checked >= timedelta(days=interval)):
+            due.append(period)
+    if not due:
+        print("Fund reports already checked within disclosure-aware refresh interval")
+        return
+    funds = active_funds(token)
+    for period in due:
+        print(f"Checking fund report {period}", flush=True)
         values = report(token, period, funds)
+        if not values["funds"] and by_date.get(period, {}).get("funds"):
+            raise RuntimeError(f"No complete fund holdings for {period}; previous output retained")
+        if not values["funds"] and period not in by_date:
+            print(f"{period}: complete holdings not yet available; no point added", flush=True)
+            continue
         by_date[period] = values
+        checks[period] = datetime.now().isoformat()
         print(period, values["funds"], values["coverage"], flush=True)
-        OUTPUT.write_text(json.dumps({"meta": {
+        atomic_json(OUTPUT, {"meta": {
             "source": "Tushare fund_basic + fund_portfolio + fund_nav + index_weight",
             "frequency": "semiannual", "coverageThreshold": 90,
+            "checkedAt": checks, "incrementalBaseline": baseline,
             "scope": "active stock/mixed fund sample with >=90% disclosed stock holdings",
-        }, "series": [by_date[key] for key in sorted(by_date)]},
-            ensure_ascii=False, separators=(",", ":")), encoding="utf-8")
+        }, "series": [by_date[key] for key in sorted(by_date)]})
     if not by_date:
         raise RuntimeError("No complete fund reports were available")
 

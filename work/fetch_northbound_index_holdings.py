@@ -1,3 +1,4 @@
+from refresh_cache import full_refresh
 import json
 from collections import defaultdict
 from datetime import datetime
@@ -74,7 +75,7 @@ def fetch_period(token, date):
 
 def main():
     token = get_token()
-    cached = json.loads(OUTPUT.read_text(encoding="utf-8")) if OUTPUT.exists() else {"series": []}
+    cached = json.loads(OUTPUT.read_text(encoding="utf-8")) if OUTPUT.exists() and not full_refresh() else {"series": []}
     by_date = {row["date"].replace("-", ""): row for row in cached["series"]}
     dates = quarter_dates(token)
     for date in dates:

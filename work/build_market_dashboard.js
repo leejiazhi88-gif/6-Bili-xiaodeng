@@ -376,6 +376,7 @@ window.addEventListener("resize", () => charts.forEach(chart => chart.resize()))
 }
 
 async function main() {
+  if (process.argv.includes("--full")) process.env.XIAODENG_REFRESH_FULL = "1";
   if (!process.argv.includes("--cached")) {
   const { execFileSync, spawnSync } = require("child_process");
   const candidates = [

@@ -1,3 +1,4 @@
+from refresh_cache import full_refresh
 import json
 import time
 from bisect import bisect_right
@@ -57,7 +58,7 @@ def main():
     dates_to_process = [row["date"] for row in weekly]
     last_year = int(dates_to_process[-1][:4])
     latest_month = dates_to_process[-1][:7]
-    cached = json.loads(OUTPUT.read_text(encoding="utf-8")) if OUTPUT.exists() else {}
+    cached = json.loads(OUTPUT.read_text(encoding="utf-8")) if OUTPUT.exists() and not full_refresh() else {}
     cached_by_date = {
         key: {row["date"]: row for row in cached.get(key, [])} for key in INDEXES
     }

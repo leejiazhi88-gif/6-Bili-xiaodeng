@@ -1,3 +1,4 @@
+from refresh_cache import historical_cache
 import json
 import re
 import ssl
@@ -23,6 +24,7 @@ def get_token():
     return match.group(1)
 
 
+@historical_cache
 def call_api(token, api_name, params, fields):
     payload = json.dumps(
         {"api_name": api_name, "token": token, "params": params, "fields": fields}

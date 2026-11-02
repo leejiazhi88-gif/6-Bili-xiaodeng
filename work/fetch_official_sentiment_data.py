@@ -1,3 +1,5 @@
+from refresh_cache import full_refresh
+from refresh_cache import historical_cache
 import calendar
 import json
 import re
@@ -31,6 +33,7 @@ def get_token():
     return match.group(1)
 
 
+@historical_cache
 def call_api(token, api_name, params, fields):
     payload = json.dumps(
         {"api_name": api_name, "token": token, "params": params, "fields": fields}
@@ -93,7 +96,7 @@ def active_stamp_rate(month):
 
 def main():
     token = get_token()
-    previous = json.loads(OUTPUT.read_text(encoding="utf-8")) if OUTPUT.exists() else None
+    previous = json.loads(OUTPUT.read_text(encoding="utf-8")) if OUTPUT.exists() and not full_refresh() else None
     refresh_year = int(previous["meta"]["end"][:4]) if previous else START_YEAR
     ipos = []
     holder_trades = []

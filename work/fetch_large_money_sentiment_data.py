@@ -1,3 +1,5 @@
+from refresh_cache import full_refresh
+from refresh_cache import historical_cache
 import calendar
 import json
 import re
@@ -34,6 +36,7 @@ def get_token():
     return match.group(1)
 
 
+@historical_cache
 def call_api(token, api_name, params, fields):
     payload = json.dumps(
         {"api_name": api_name, "token": token, "params": params, "fields": fields}
@@ -184,7 +187,7 @@ def main():
         repair_northbound(token)
         return
     previous = (json.loads(OUTPUT.read_text(encoding="utf-8"))
-                if OUTPUT.exists() and INDEX_OUTPUT.exists() and "--full" not in sys.argv else None)
+                if OUTPUT.exists() and INDEX_OUTPUT.exists() and not full_refresh() else None)
     previous_indices = (json.loads(INDEX_OUTPUT.read_text(encoding="utf-8"))
                         if previous else None)
     memberships = index_memberships(token)

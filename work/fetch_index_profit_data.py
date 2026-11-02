@@ -1,3 +1,5 @@
+from refresh_cache import atomic_json, full_refresh, lookback, merge_rows
+from refresh_cache import historical_cache
 from concurrent.futures import ThreadPoolExecutor
 from threading import Lock
 from datetime import datetime
@@ -31,6 +33,7 @@ def get_token():
     return match.group(1)
 
 
+@historical_cache
 def call_api(token, api_name, params, fields, timeout=90):
     payload = json.dumps(
         {"api_name": api_name, "token": token, "params": params, "fields": fields}
@@ -81,17 +84,14 @@ def load_cache():
 
 def save_cache(cache):
     cache["meta"] = {"end_date": END_DATE, "source": "Tushare income"}
-    CACHE.write_text(
-        json.dumps(cache, ensure_ascii=False, separators=(",", ":")),
-        encoding="utf-8",
-    )
+    atomic_json(CACHE, cache)
 
 
-def fetch_income_rows(token, ts_code):
+def fetch_income_rows(token, ts_code, start=None):
     return call_api(
         token,
         "income",
-        {"ts_code": ts_code, "start_date": f"{START_YEAR}0101", "end_date": END_DATE},
+        {"ts_code": ts_code, "start_date": start or f"{START_YEAR}0101", "end_date": END_DATE},
         "ts_code,ann_date,f_ann_date,end_date,report_type,comp_type,n_income_attr_p",
     )
 
@@ -100,7 +100,7 @@ def ensure_income_cache(token, codes):
     cache = load_cache()
     income = cache.setdefault("income", {})
     missing = [code for code in sorted(codes)
-               if not income.get(code) or cache.get("meta", {}).get("end_date") != END_DATE]
+               if full_refresh() or not income.get(code) or cache.get("meta", {}).get("end_date") != END_DATE]
     request_lock = Lock()
     next_request = 0.0
     def fetch_one(code):
@@ -109,7 +109,9 @@ def ensure_income_cache(token, codes):
         with request_lock:
             time.sleep(max(0, next_request - time.monotonic()))
             next_request = time.monotonic() + 0.2
-        rows = fetch_income_rows(token, code)
+        last = cache.get("meta", {}).get("end_date")
+        start = lookback(last) if last and income.get(code) and not full_refresh() else None
+        rows = fetch_income_rows(token, code, start)
         return code, rows
 
     # Bound concurrency; only publish the cache after every request succeeds.
@@ -129,7 +131,10 @@ def ensure_income_cache(token, codes):
                         "n_income_attr_p": float(value),
                     }
                 )
-            income[code] = cleaned
+            if full_refresh():
+                income[code] = cleaned
+            else:
+                income[code] = merge_rows(income.get(code, []), cleaned, ("end_date", "ann_date"))
             if index % 25 == 0:
                 print(f"income cache progress: {index}/{len(missing)} refreshed codes")
     save_cache(cache)

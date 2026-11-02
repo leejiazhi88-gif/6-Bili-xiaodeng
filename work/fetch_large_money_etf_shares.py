@@ -1,3 +1,4 @@
+from refresh_cache import CACHE_DIR, atomic_json, full_refresh, lookback, merge_rows
 import json
 import time
 from bisect import bisect_right
@@ -23,16 +24,30 @@ def request(token, api, params, fields):
 
 
 def fund_history(token, fund):
+    cache_path = CACHE_DIR / ("etf-" + fund["ts_code"] + ".json")
+    cached = json.loads(cache_path.read_text()) if cache_path.exists() and not full_refresh() else {}
+    old = cached.get("rows", [])
+    today = datetime.now().strftime("%Y%m%d")
+    start = lookback(cached["checkedThrough"]) if cached else None
+    params = {"end_date": today}
+    if start:
+        params["start_date"] = start
     rows = []
     offset = 0
     while True:
         page = request(token, "fund_share",
-                       {"ts_code": fund["ts_code"], "limit": 2000, "offset": offset},
+                       {"ts_code": fund["ts_code"], "limit": 2000, "offset": offset, **params},
                        "ts_code,trade_date,fd_share")
         rows.extend(row for row in page if row.get("fd_share") is not None)
         offset += len(page)
         if len(page) < 2000:
             break
+    if any(not row.get("trade_date") or row["trade_date"] > today for row in rows):
+        raise ValueError("Invalid ETF observation date")
+    if not cached and not rows:
+        raise ValueError("Empty initial ETF history; refusing to publish an incomplete cache")
+    rows = merge_rows(old, rows, ("trade_date",))
+    atomic_json(cache_path, {"checkedThrough": today, "rows": rows})
     by_date = {row["trade_date"]: float(row["fd_share"]) / 10000 for row in rows}
     return fund, sorted(by_date), by_date
 
@@ -84,13 +99,13 @@ def main():
         row["total"] = (round(sum(sums.values()), 4)
                         if row["coverage"] >= 90 else None)
         result.append(row)
-    OUTPUT.write_text(json.dumps({"meta": {
+    atomic_json(OUTPUT, {"meta": {
         "source": "Tushare etf_basic + fund_share",
         "scope": "ETF funds tracking 399006.SZ, 000688.SH or 000680.SH; includes delisted funds",
         "unit": "100 million shares", "coverageThreshold": 90,
         "updated": today,
         "dateSemantics": "completed weeks use Saturday labels; the current incomplete week uses the actual as-of date",
-    }, "series": result}, ensure_ascii=False, separators=(",", ":")), encoding="utf-8")
+    }, "series": result})
     print(json.dumps({"funds": len(funds), "weeks": len(result),
                       "start": result[0]["date"], "end": result[-1]["date"]}))
 

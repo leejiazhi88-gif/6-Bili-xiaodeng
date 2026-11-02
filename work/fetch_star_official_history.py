@@ -1,3 +1,4 @@
+from refresh_cache import atomic_json, full_refresh, lookback, merge_rows
 """Fetch the STAR Composite's published historical rolling PE from CSI."""
 import json
 import urllib.parse
@@ -47,22 +48,24 @@ def parse_history(payload, snapshots):
 
 def main():
     end_date = datetime.now().strftime("%Y%m%d")
-    query = urllib.parse.urlencode({"indexCode": INDEX_CODE, "startDate": START_DATE,
+    previous = json.loads(OUTPUT.read_text()) if OUTPUT.exists() and not full_refresh() else {}
+    start_date = lookback(previous["rows"][-1]["date"]) if previous.get("rows") else START_DATE
+    query = urllib.parse.urlencode({"indexCode": INDEX_CODE, "startDate": start_date,
                                     "endDate": end_date})
     url = f"{BASE_URL}?{query}"
     request = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0"})
     with urllib.request.urlopen(request, timeout=45) as response:
         payload = json.load(response)
     snapshots = json.loads(SNAPSHOTS.read_text(encoding="utf-8"))["snapshots"]
-    rows = parse_history(payload, snapshots)
+    rows = merge_rows(previous.get("rows", []), parse_history(payload, snapshots), ("date",))
     result = {
         "meta": {"tsCode": "000680.SH", "source": "中证指数官方历史行情",
                  "sourceUrl": url, "field": "peg（官网历史行情的滚动市盈率）",
-                 "startDate": START_DATE, "endDate": end_date,
+                 "startDate": START_DATE, "requestStartDate": start_date, "endDate": end_date,
                  "fetchedAt": datetime.now(timezone.utc).isoformat()},
         "rows": rows,
     }
-    OUTPUT.write_text(json.dumps(result, ensure_ascii=False, separators=(",", ":")), encoding="utf-8")
+    atomic_json(OUTPUT, result)
     print(json.dumps({"count": len(rows), "first": rows[0], "latest": rows[-1]}, ensure_ascii=False))
 
 

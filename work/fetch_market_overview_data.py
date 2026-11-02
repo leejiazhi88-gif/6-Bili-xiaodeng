@@ -1,3 +1,5 @@
+from refresh_cache import atomic_json, full_refresh, lookback, merge_rows
+from refresh_cache import historical_cache
 from datetime import datetime
 import json
 import re
@@ -21,6 +23,7 @@ def get_token():
     return match.group(1)
 
 
+@historical_cache
 def call_api(token, api_name, params, fields):
     payload = json.dumps(
         {"api_name": api_name, "token": token, "params": params, "fields": fields}
@@ -40,10 +43,10 @@ def call_api(token, api_name, params, fields):
     return [dict(zip(data.get("fields", []), row)) for row in data.get("items", [])]
 
 
-def fetch_by_year(token, api_name, ts_code, fields):
+def fetch_by_year(token, api_name, ts_code, fields, start=None):
     end_year = int(END_DATE[:4])
     rows = []
-    for year in range(START_YEAR, end_year + 1):
+    for year in range(int((start or str(START_YEAR))[:4]), end_year + 1):
         end_date = END_DATE if year == end_year else f"{year}1231"
         rows.extend(
             call_api(
@@ -51,7 +54,7 @@ def fetch_by_year(token, api_name, ts_code, fields):
                 api_name,
                 {
                     "ts_code": ts_code,
-                    "start_date": f"{year}0101",
+                    "start_date": max(f"{year}0101", start or f"{START_YEAR}0101"),
                     "end_date": end_date,
                 },
                 fields,
@@ -61,9 +64,10 @@ def fetch_by_year(token, api_name, ts_code, fields):
     return [unique[date] for date in sorted(unique)]
 
 
-def build_market(token, ts_code):
-    prices = fetch_by_year(token, "index_daily", ts_code, "trade_date,close,vol,amount")
-    basics = fetch_by_year(token, "index_dailybasic", ts_code, "trade_date,pe_ttm,pb")
+def build_market(token, ts_code, previous=()):
+    start = lookback(previous[-1]["date"]) if previous else None
+    prices = fetch_by_year(token, "index_daily", ts_code, "trade_date,close,vol,amount", start)
+    basics = fetch_by_year(token, "index_dailybasic", ts_code, "trade_date,pe_ttm,pb", start)
     pb_by_date = {row["trade_date"]: row.get("pb") for row in basics}
     pe_by_date = {
         row["trade_date"]: float(row["pe_ttm"])
@@ -88,22 +92,22 @@ def build_market(token, ts_code):
                 "amountYi": round(amount / 100000, 4),
             }
         )
-    return series
+    if not series:
+        raise RuntimeError("Empty price response; previous cache retained")
+    return merge_rows(previous, series, ("date",))
 
 
 def main():
     token = get_token()
+    previous = json.loads(OUTPUT.read_text()) if OUTPUT.exists() and not full_refresh() else {}
     result = {
-        "meta": {"end": f"{END_DATE[:4]}-{END_DATE[4:6]}-{END_DATE[6:]}"},
-        "sh": build_market(token, "399006.SZ"),
-        "sz": build_market(token, "000680.SH"),
-        "k50": build_market(token, "000688.SH"),
+        "meta": {"checkedThrough": END_DATE, "end": f"{END_DATE[:4]}-{END_DATE[4:6]}-{END_DATE[6:]}"},
+        "sh": build_market(token, "399006.SZ", previous.get("sh", [])),
+        "sz": build_market(token, "000680.SH", previous.get("sz", [])),
+        "k50": build_market(token, "000688.SH", previous.get("k50", [])),
     }
     result["meta"]["end"] = max(result["sh"][-1]["date"], result["sz"][-1]["date"])
-    OUTPUT.write_text(
-        json.dumps(result, ensure_ascii=False, separators=(",", ":")),
-        encoding="utf-8",
-    )
+    atomic_json(OUTPUT, result)
     print(
         json.dumps(
             {

@@ -1,3 +1,4 @@
+from refresh_cache import historical_cache
 import bisect
 import json
 import re
@@ -23,6 +24,7 @@ def get_token():
     return match.group(1)
 
 
+@historical_cache
 def call_api(token, api_name, params, fields):
     payload = json.dumps(
         {"api_name": api_name, "token": token, "params": params, "fields": fields}
@@ -74,7 +76,7 @@ def percentile(values, value):
 
 
 def build_index_series(rows, bond_dates, bond_by_date):
-    valid = [row for row in rows if row.get("pb") and row.get("pe_ttm", 0) > 0]
+    valid = [row for row in rows if row.get("pb") and (row.get("pe_ttm") or 0) > 0]
     if not valid:
         return []
     pb_values = sorted(float(row["pb"]) for row in valid)
@@ -102,12 +104,18 @@ def build_index_series(rows, bond_dates, bond_by_date):
 def main():
     token = get_token()
     fields = "ts_code,trade_date,pe_ttm,pb"
-    sh_rows = fetch_by_year(
-        token, "index_dailybasic", {"ts_code": "399006.SZ"}, fields
-    )
-    sz_rows = fetch_by_year(
-        token, "index_dailybasic", {"ts_code": "000680.SH"}, fields
-    )
+    # The overview already retains the same daily PB/PE source. Reuse it only
+    # when fetched by the overview script on this run's calendar date.
+    overview_path = ROOT / "work" / "market_overview_data.json"
+    overview = json.loads(overview_path.read_text()) if overview_path.exists() else {}
+    def daily_basics(key, code):
+        if overview.get("meta", {}).get("checkedThrough") == END_DATE:
+            return [{"trade_date": row["date"].replace("-", ""),
+                     "pb": row.get("pb"), "pe_ttm": row.get("pe")}
+                    for row in overview.get(key, [])]
+        return fetch_by_year(token, "index_dailybasic", {"ts_code": code}, fields)
+    sh_rows = daily_basics("sh", "399006.SZ")
+    sz_rows = daily_basics("sz", "000680.SH")
     try:
         bond_rows = fetch_by_year(
             token,
