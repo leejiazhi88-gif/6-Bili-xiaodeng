@@ -124,9 +124,9 @@ const script = `
         note: "按公告日汇总股数×披露均价；正值为净增持，负值为净减持。"
       },
       northMoney: {
-        title: "北向资金净流入", field: "northMoney", unit: "亿元", digits: 1,
-        subtitle: "全市场北向净流入与三个指数价格走势（右轴），资金止于2024-08-16",
-        note: "披露机制变化后不再与旧口径拼接，指数线仍延伸至最新交易日。"
+        title: "北向资金净流入", field: "northMoney", unit: "亿元", digits: 1, totalLabel: "北向周净流入",
+        subtitle: "北向每周净流入合计（左轴）与指数价格对照（右轴）· 历史截至2024-08-16",
+        note: "正值为净流入、负值为净流出；三个指数线仅为价格对照，不是各指数资金流。此页时间范围以历史数据截止日为准。"
       },
       northHoldings: {
         title: "北向持仓分布", field: "value", unit: "亿元", digits: 1,
@@ -156,7 +156,7 @@ const script = `
       blockAmount: "按周汇总 A 股大宗交易成交额（亿元），不含债券；指数线按当期成分股归集，同一股票可能属于多个指数。",
       institutionBlockNet: "按周汇总大宗交易中标记为“机构专用”的买入额减卖出额（亿元）；正值为净买入。指数线按当期成分股归集。",
       holderNetShares: "按公告周汇总股东增减持股数乘披露均价（亿元）；正值为净增持，未披露均价的记录不计入。指数线按当期成分股归集。",
-      northMoney: "全市场北向净流入按周汇总（亿元），三个指数线是价格相对走势，并非各指数净流入。净流入旧口径止于 2024-08-16，此后不与成交额拼接。",
+      northMoney: "Tushare moneyflow_hsgt 的每日 north_money（百万元）按自然周求和后除以100，换算为亿元；不取周末单日值。周标签统一为周六，最后标签2024-08-17对应截至2024-08-16的交易。缺失值不当作零。三个指数线是价格相对走势（右轴基准=100），并非各指数净流入；指数对照也截到同一历史区间。旧口径披露止于2024-08-16，此后不补零、不拼接成交额。",
       fundPosition: "取主动股票/混合基金半年报、年报样本：股票持仓市值 ÷ 基金净资产；指数线只统计投向其成分股的比例。持仓披露不足 90% 的基金剔除，样本覆盖不足 40% 的报告期不展示。",
       institutionConcentration: "取主动股票/混合基金半年报、年报样本：各股票范围内持仓前 10 名的金额 ÷ 该范围全部持仓金额。样本覆盖不足 40% 的报告期不展示。",
       etfShares: "按周统计跟踪三个指数的 ETF 存量份额（亿份）；首条线是这三组 ETF 合计，不是全市场 ETF。份额变化不等于资金净流入。"
@@ -183,11 +183,16 @@ const script = `
 
     function renderChart() {
       const cfg = metrics[activeMetric];
-      const end = new Date(largeMoneyData.series[largeMoneyData.series.length - 1].date + "T00:00:00Z");
+      const priceMode = activeMetric === "northMoney";
+      const maxDate = priceMode ? weekEnd(largeMoneyData.meta.northEnd) : largeMoneyData.series[largeMoneyData.series.length - 1].date;
+      const end = new Date(maxDate + "T00:00:00Z");
       const cutoff = new Date(end);
       if (activeYears) cutoff.setUTCFullYear(cutoff.getUTCFullYear() - activeYears);
-      const minDate = activeYears ? cutoff.toISOString().slice(0, 10) : "";
-      const priceMode = activeMetric === "northMoney";
+      let minDate = activeYears ? cutoff.toISOString().slice(0, 10) : "";
+      if (priceMode) {
+        const first = largeMoneyData.series.find(row => Number.isFinite(row.northMoney));
+        if (first && minDate < first.date) minDate = first.date;
+      }
       const holdingView = activeMetric === "northHoldings";
       const fundMode = activeMetric === "fundPosition" || activeMetric === "institutionConcentration";
       const etfMode = activeMetric === "etfShares";
@@ -201,11 +206,11 @@ const script = `
         : etfMode ? row[key === "total" ? "total" : key] : row[cfg.field];
       const available = row => !fundMode || row.coverage >= 40;
       const moneyPoints = holdingView ? [] : sourceRows
-        .filter(row => row.date >= minDate && available(row) && Number.isFinite(valueOf(row, "total")))
+        .filter(row => row.date >= minDate && row.date <= maxDate && available(row) && Number.isFinite(valueOf(row, "total")))
         .map(row => [row.date, valueOf(row, "total")]);
       const latestReport = fundMode && moneyPoints.length
         ? sourceRows.find(row => row.date === moneyPoints[moneyPoints.length - 1][0]) : null;
-      const weekDates = largeMoneyData.series.filter(row => row.date >= minDate).map(row => row.date);
+      const weekDates = largeMoneyData.series.filter(row => row.date >= minDate && row.date <= maxDate).map(row => row.date);
       const indexSeries = indices.filter(index => selectedSeries.has(index.name)).map(index => {
         let values;
         if (priceMode) {

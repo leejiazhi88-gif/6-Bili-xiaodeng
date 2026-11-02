@@ -76,6 +76,39 @@ def week_end_date(dates):
     return (day + timedelta(days=5 - day.weekday())).strftime("%Y%m%d")
 
 
+def aggregate_northbound(rows):
+    """Sum unique daily net flows in CNY millions into weekly CNY hundred-millions.
+
+    A null daily observation makes its week unknown instead of silently zero.
+    Dates stay as actual observations; Saturday is only the chart's week label.
+    """
+    from decimal import Decimal
+    unique = {}
+    for row in rows:
+        date = row["trade_date"]
+        if date > "20240816":
+            continue
+        if date in unique and unique[date].get("north_money") != row.get("north_money"):
+            raise ValueError(f"Conflicting northbound daily data: {date}")
+        unique[date] = row
+    weeks = {}
+    for date, row in sorted(unique.items()):
+        key = week_key(date)
+        item = weeks.setdefault(key, {"date": date, "total": Decimal(0), "missing": False})
+        item["date"] = date
+        value = row.get("north_money")
+        if value is None:
+            item["missing"] = True
+        else:
+            number = Decimal(str(value))
+            if not number.is_finite():
+                raise ValueError(f"Invalid northbound value: {date}")
+            item["total"] += number
+    return {key: {"date": item["date"],
+                  "northMoney": None if item["missing"] else float(item["total"] / 100)}
+            for key, item in weeks.items()}
+
+
 def complete_window(token, api_name, start, end, fields, limit):
     rows = call_api(token, api_name, {"start_date": start, "end_date": end}, fields)
     if len(rows) < limit or start == end:
@@ -107,8 +140,49 @@ def index_memberships(token):
     return memberships
 
 
+def fetch_northbound(token):
+    rows = []
+    for year in range(2014, 2025):
+        rows.extend(complete_window(token, "moneyflow_hsgt", f"{year}0101",
+                                    min(f"{year}1231", "20240816"),
+                                    "trade_date,north_money", 300))
+    if not rows or max(row["trade_date"] for row in rows) != "20240816":
+        raise ValueError("Incomplete northbound source; existing cache retained")
+    aggregate_northbound(rows)  # Validate before publishing the source snapshot.
+    source = {"meta": {"source": "Tushare moneyflow_hsgt", "unit": "CNY million",
+                       "end": "2024-08-16", "updated": datetime.now().isoformat(timespec="seconds")},
+              "series": sorted(rows, key=lambda row: row["trade_date"])}
+    (ROOT / "work/northbound_daily_data.json").write_text(
+        json.dumps(source, ensure_ascii=False, separators=(",", ":")), encoding="utf-8")
+    return rows
+
+
+def repair_northbound(token):
+    weeks = aggregate_northbound(fetch_northbound(token))
+    data = json.loads(OUTPUT.read_text(encoding="utf-8"))
+    by_week = {week_key(row["date"].replace("-", "")): row for row in data["series"]}
+    for key, row in by_week.items():
+        value = weeks.get(key, {}).get("northMoney")
+        row["northMoney"] = round(value, 2) if value is not None else None
+    for key, item in weeks.items():
+        if key not in by_week:
+            date = week_end_date([item["date"]])
+            by_week[key] = {"date": f"{date[:4]}-{date[4:6]}-{date[6:]}",
+                            "northMoney": round(item["northMoney"], 2) if item["northMoney"] is not None else None,
+                            "blockAmount": None, "institutionBlockNet": None,
+                            "holderNetShares": None, "holderNetAmount": None}
+    data["series"] = sorted(by_week.values(), key=lambda row: row["date"])
+    data["meta"].update(northEnd="2024-08-16", northAggregation="sum of daily net flows / 100; weekly CNY hundred-million",
+                        northUpdated=datetime.now().strftime("%Y-%m-%d"))
+    OUTPUT.write_text(json.dumps(data, ensure_ascii=False, separators=(",", ":")), encoding="utf-8")
+    print(json.dumps({"weeks": len(weeks), "last": weeks[max(weeks)]}, ensure_ascii=False))
+
+
 def main():
     token = get_token()
+    if "--north-only" in sys.argv:
+        repair_northbound(token)
+        return
     previous = (json.loads(OUTPUT.read_text(encoding="utf-8"))
                 if OUTPUT.exists() and INDEX_OUTPUT.exists() and "--full" not in sys.argv else None)
     previous_indices = (json.loads(INDEX_OUTPUT.read_text(encoding="utf-8"))
@@ -119,11 +193,7 @@ def main():
     if previous:
         last = datetime.strptime(previous["meta"]["end"], "%Y-%m-%d")
         refresh_start = (last - timedelta(days=last.weekday())).strftime("%Y%m%d")
-    north = []
-    for year in range(2014, 2025):
-        north.extend(complete_window(token, "moneyflow_hsgt", f"{year}0101",
-                                     min(f"{year}1231", "20240816"),
-                                     "trade_date,north_money", 300))
+    north = fetch_northbound(token)
     blocks = []
     holder_trades = []
     ranges = []
@@ -205,13 +275,7 @@ def main():
         for key_name in member_indices(row["ts_code"], date):
             index_weeks[key_name][key]["holderNetAmount"] += amount
 
-    north_weeks = {}
-    for row in sorted(north, key=lambda item: item["trade_date"]):
-        key = week_key(row["trade_date"])
-        north_weeks[key] = {
-            "date": row["trade_date"],
-            "northMoney": float(row.get("north_money") or 0) / 100,
-        }
+    north_weeks = aggregate_northbound(north)
 
     keys = sorted(set(block_weeks) | set(holder_weeks) | set(north_weeks))
     series = []
@@ -231,7 +295,7 @@ def main():
             {
                 "date": f"{date[:4]}-{date[4:6]}-{date[6:]}",
                 "northMoney": round(north_row["northMoney"], 2)
-                if "northMoney" in north_row
+                if north_row.get("northMoney") is not None
                 else None,
                 "blockAmount": round(block["amount"], 2) if block else None,
                 "institutionBlockNet": round(block["instNet"], 2) if block else None,
@@ -251,8 +315,7 @@ def main():
             if not first <= row["date"] < refresh_start:
                 continue
             fresh = fresh_by_week.get(week_key(row["date"].replace("-", "")))
-            if fresh and fresh["northMoney"] is not None:
-                row["northMoney"] = fresh["northMoney"]
+            row["northMoney"] = fresh["northMoney"] if fresh else None
             preserved.append(row)
         series = ([row for row in series if row["date"] < first]
                   + preserved + [row for row in series if row["date"] >= refresh_start])
@@ -286,6 +349,7 @@ def main():
             "start": series[0]["date"],
             "end": series[-1]["date"],
             "northEnd": "2024-08-16",
+            "northAggregation": "sum of daily net flows / 100; weekly CNY hundred-million",
             "sources": {
                 "north": "Tushare moneyflow_hsgt",
                 "block": "Tushare block_trade",
