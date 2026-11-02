@@ -78,7 +78,7 @@ function htmlTemplate(data, echartsSource) {
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>成长指数：创业板指、科创50、科创综指与估值</title>
+  <title>XiaoDeng</title>
   <style>
     :root {
       --bg: #07111f;
