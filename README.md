@@ -37,6 +37,7 @@ python3 ./work/fetch_large_money_sentiment_data.py
 python3 ./work/fetch_northbound_index_holdings.py
 python3 ./work/fetch_large_money_fund_reports.py
 python3 ./work/fetch_large_money_etf_shares.py
+python3 ./work/fetch_refinancing_data.py
 python3 ./work/fetch_official_sentiment_data.py
 python3 ./work/fetch_index_profit_data.py
 node ./work/build_market_dashboard.js --cached
@@ -113,4 +114,6 @@ http://127.0.0.1:9876
 
 注意：截至当前接口返回，Tushare 暂未提供 `000680.SH` 科创综指的 `index_dailybasic` PE/PB 序列。科创综指官方历史 PE 只从接口实际可得的日期开始；PB 单张比交易日数据更新慢，页面需按披露日期识别时效。真实利润仍使用成分股利润表汇总。
 
-再融资额暂未接入连续走势图：缺少当前工程可稳定自动更新的全市场再融资金额接口，页面保留禁用的指标入口。
+再融资额已接入同花顺公开股票筹资月表：同表股票募集资金减首发募集资金，属于增发、配股口径，不含可转债，未逐笔核验非现金资产认购；不能称为纯现金融资额。当前已结束月份覆盖 2024-06 至 2026-10，共 29 个月；更早历史尚未接入，未结束月份不展示。该来源首发口径与页面 Tushare IPO 数据不同，不应直接相加。来源可能修订已结束月份，公开表格也可能改变，不能保证永久可用。
+
+`work/fetch_refinancing_data.py` 使用系统 curl 获取公开月表（无需 Token），校验表头和分项金额，保留来源空值；异常时停止且不覆盖缓存。`work/refinancing_data.json` 保留分项、来源和抓取时间，历史按月份合并保存，源表快照存于 `work/sources/refinancing-ths-日期.html`。后续完整刷新流程会自动调用此脚本。

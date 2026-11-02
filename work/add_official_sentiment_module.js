@@ -50,7 +50,7 @@ const moduleHtml = `
       </div>
       <div class="metric-tabs" id="officialMetricTabs">
         <button class="metric-tab active" data-metric="ipoFund">IPO融资额</button>
-        <button class="metric-tab" disabled title="缺少稳定可自动更新的全市场再融资金额接口">再融资额</button>
+        <button class="metric-tab" data-metric="refinanceFund">再融资额</button>
         <button class="metric-tab" data-metric="holderNetReductionAmount">产业资本净减持额</button>
         <button class="metric-tab" data-metric="stampDutyRate">印花税率</button>
         <button class="metric-tab" data-metric="lpr1y">政策利率</button>
@@ -59,6 +59,7 @@ const moduleHtml = `
       </div>
       <div class="metric-note">
         <span id="officialMetricNote"></span>
+        <a id="refinanceSourceLink" href="https://data.10jqka.com.cn/macro/finance/" target="_blank" rel="noopener" hidden>查看再融资数据来源</a>
         <span class="metric-reading" id="officialLatestReading"></span>
       </div>
       <div id="officialSentimentChart"></div>
@@ -74,10 +75,16 @@ const script = `
   <script id="official-sentiment-script">
   (() => {
     const officialData = __OFFICIAL_DATA__;
+    const refinancingData = __REFINANCING_DATA__;
     const fmt = (value, digits = 1) => Number.isFinite(value)
       ? Number(value).toLocaleString("zh-CN", { minimumFractionDigits: digits, maximumFractionDigits: digits })
       : "--";
     const metrics = {
+      refinanceFund: {
+        title: "再融资额（股票筹资口径）", unit: "亿元", digits: 2,
+        subtitle: "月度股票再融资额（不含可转债）与三个指数走势",
+        note: "同花顺股票筹资月表：募集资金减首发募集资金；只展示已结束月份，最近月份仍可能修订。"
+      },
       ipoFund: {
         title: "IPO融资额", unit: "亿元", digits: 1,
         subtitle: "新股上市月度募集资金与三个指数走势",
@@ -110,6 +117,7 @@ const script = `
       }
     };
     const methodology = {
+      refinanceFund: "来源：同花顺数据中心股票筹资月表。再融资额 = 同表股票募集资金 − 首发募集资金，涵盖增发、配股口径，不含可转债；未逐笔核验或剔除非现金资产认购，不等同于纯现金融资或二级市场净流出。该来源首发口径与本页 Tushare IPO 曲线不同，不应直接相加。当前可得历史自 2024-06 起，缺失月份留空；未结束月份不纳入。",
       ipoFund: "按新股上市月份汇总实际募集资金（亿元），代表全市场 IPO 融资供给，不按指数拆分。三个指数为右轴价格相对走势。",
       holderNetReductionAmount: "按公告月份汇总重要股东增减持股数 × 披露均价（亿元）；正值为净减持，缺少均价的不计入。三个指数为右轴价格相对走势。",
       stampDutyRate: "证券交易印花税卖出端适用税率（%），按政策生效日变化；是全市场共同税率，不按指数拆分。三个指数为右轴价格相对走势。",
@@ -131,11 +139,13 @@ const script = `
 
     function renderChart() {
       const cfg = metrics[activeMetric];
-      const end = new Date(officialData.series[officialData.series.length - 1].date + "T00:00:00Z");
+      document.getElementById("refinanceSourceLink").hidden = activeMetric !== "refinanceFund";
+      const metricRows = activeMetric === "refinanceFund" ? refinancingData.series : officialData.series;
+      const end = new Date(metricRows[metricRows.length - 1].date + "T00:00:00Z");
       const cutoff = new Date(end);
       if (activeYears) cutoff.setUTCFullYear(cutoff.getUTCFullYear() - activeYears);
       const minDate = activeYears ? cutoff.toISOString().slice(0, 10) : "";
-      const policyPoints = officialData.series
+      const policyPoints = metricRows
         .filter(row => row.date >= minDate && Number.isFinite(row[activeMetric]))
         .map(row => [row.date, row[activeMetric]]);
       const indexSeries = indices.map(index => {
@@ -234,7 +244,9 @@ function insertBeforeLast(source, marker, content) {
   if (index === -1) throw new Error(`Marker not found: ${marker}`);
   return source.slice(0, index) + content + source.slice(index);
 }
-const officialScript = script.replace("__OFFICIAL_DATA__", JSON.stringify(data));
+const refinancing = JSON.parse(fs.readFileSync(path.join(ROOT, "work", "refinancing_data.json"), "utf8"));
+const officialScript = script.replace("__OFFICIAL_DATA__", JSON.stringify(data))
+  .replace("__REFINANCING_DATA__", JSON.stringify(refinancing));
 html = insertBeforeLast(html, "</head>", css + "\n");
 html = insertBeforeLast(html, "</main>", moduleHtml + "\n");
 html = insertBeforeLast(html, "</body>", officialScript + "\n");
