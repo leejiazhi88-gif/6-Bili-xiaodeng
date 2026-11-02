@@ -152,13 +152,13 @@ const script = `
       }
     };
     const methodology = {
-      blockAmount: "采样：自然周内所有交易日成交额求和，周六为统一标签，不是周六或周五当天值；当前未结束周仅含已获取记录。 按周汇总 A 股大宗交易成交额（亿元），不含债券；指数线按当期成分股归集，同一股票可能属于多个指数。",
-      institutionBlockNet: "采样：自然周内机构席位买入额减卖出额后合计，周六为周标签，不是最后交易日单日净额；当前周可能尚未完整。 按周汇总大宗交易中标记为“机构专用”的买入额减卖出额（亿元）；正值为净买入。指数线按当期成分股归集。",
-      holderNetShares: "采样：按公告日期归入自然周，汇总该周全部有效公告金额；周六为标签，不代表实际增减持均发生于当周，也不是周末单日值。 按公告周汇总股东增减持股数乘披露均价（亿元）；正值为净增持，未披露均价的记录不计入。指数线按当期成分股归集。",
+      blockAmount: "采样：自然周内所有交易日成交额求和，已结束周用周六标签，未结束周用实际刷新截止日，不是该日单日值；当前未结束周仅含已获取记录。 按周汇总 A 股大宗交易成交额（亿元），不含债券；指数线按当期成分股归集，同一股票可能属于多个指数。",
+      institutionBlockNet: "采样：自然周内机构席位买入额减卖出额后合计，已结束周用周六标签，未结束周用实际刷新截止日，不是最后交易日单日净额；当前周可能尚未完整。 按周汇总大宗交易中标记为“机构专用”的买入额减卖出额（亿元）；正值为净买入。指数线按当期成分股归集。",
+      holderNetShares: "采样：按公告日期归入自然周，汇总该周全部有效公告金额；已结束周用周六标签，未结束周用实际刷新截止日，不代表实际增减持均发生于当周，也不是周末单日值。 按公告周汇总股东增减持股数乘披露均价（亿元）；正值为净增持，未披露均价的记录不计入。指数线按当期成分股归集。",
       northMoney: "Tushare moneyflow_hsgt 的每日 north_money（百万元）按自然周求和后除以100，换算为亿元；不取周末单日值。周标签统一为周六，最后标签2024-08-17对应截至2024-08-16的交易。缺失值不当作零。仅展示全市场北向净流入，不以指数价格代替指数资金流。旧口径披露止于2024-08-16，此后不补零、不拼接成交额。",
       fundPosition: "采样：半年频，仅取6月30日、12月31日报告期末持仓与净资产；不是每周采样。横轴是报告期末，不是公告日；连线不表示期间存在新披露值，也不适合作为当时已知数据回测。 取主动股票/混合基金半年报、年报样本：股票持仓市值 ÷ 基金净资产；指数线只统计投向其成分股的比例。持仓披露不足 90% 的基金剔除，样本覆盖不足 40% 的报告期不展示。",
       institutionConcentration: "采样：半年频，取6月30日、12月31日报告期末的完整持仓样本计算集中度，不取周末值。横轴是报告期末而非公告日，点间连线仅辅助阅读。 取主动股票/混合基金半年报、年报样本：各股票范围内持仓前 10 名的金额 ÷ 该范围全部持仓金额。样本覆盖不足 40% 的报告期不展示。",
-      etfShares: "采样：周六为标签，逐只ETF取该标签日或之前最近一次份额记录，最多允许滞后15个自然日后汇总；不是全周份额之和，也不保证全部ETF为同日快照。有效披露覆盖不足90%时该序列留空。 按周统计跟踪三个指数的 ETF 存量份额（亿份）；首条线是这三组 ETF 合计，不是全市场 ETF。份额变化不等于资金净流入。"
+      etfShares: "采样：已结束周用周六标签；未结束周用实际刷新截止日并标注“本周未结束”。逐只ETF取截止日或之前最近披露的份额记录，最多允许滞后15个自然日后汇总；不是全周份额之和，也不保证全部ETF为同日快照。有效披露覆盖不足90%时该序列留空。 按周统计跟踪三个指数的 ETF 存量份额（亿份）；首条线是这三组 ETF 合计，不是全市场 ETF。份额变化不等于资金净流入。"
     };
     const indices = [
       { key: "sh", name: "创业板指", rows: DATA.sh, color: COLORS.sh },
@@ -202,6 +202,7 @@ const script = `
       const valueOf = (row, key) => holdingView ? row[key]?.[holdingMode]
         : fundMode ? row[key]?.[cfg.field]
         : etfMode ? row[key === "total" ? "total" : key] : row[cfg.field];
+      const latestIncomplete = sourceRows[sourceRows.length - 1]?.incompleteWeek;
       const available = row => !fundMode || row.coverage >= 40;
       const moneyPoints = holdingView ? [] : sourceRows
         .filter(row => row.date >= minDate && row.date <= maxDate && available(row) && Number.isFinite(valueOf(row, "total")))
@@ -247,6 +248,7 @@ const script = `
         : moneyPoints.length
         ? (fundMode ? "报告期 " : "周标签 ") + moneyPoints[0][0] + " 至 " + moneyPoints[moneyPoints.length - 1][0] +
           " · 最新 " + fmt(moneyPoints[moneyPoints.length - 1][1], cfg.digits) + displayUnit +
+          (latestIncomplete ? " · 本周未结束" + (etfMode ? "，份额取最近披露值" : "，仅含截至刷新日记录") : "") +
           (latestReport ? " · 样本 " + latestReport.funds + " 只 / 覆盖 " + latestReport.coverage + "%" : "")
         : "当前范围暂无资金数据";
       chart.setOption({
@@ -261,6 +263,10 @@ const script = `
             const lines = params.filter(item => item.value?.[1] != null).map(item => item.marker + item.seriesName + "：<b>" +
               fmt(Number(item.value[1]), holdingView && holdingMode === "ratio" ? 3 : cfg.digits) +
               displayUnit + "</b>");
+            const pointDate = params.find(item => item.value?.[0])?.value[0];
+            if (sourceRows.find(row => row.date === pointDate)?.incompleteWeek) {
+              lines.push("本周未结束" + (etfMode ? "，份额取最近披露值" : "，仅含截至刷新日记录"));
+            }
             if (fundMode) {
               const reportDate = params.find(item => item.value?.[0])?.value[0];
               const report = sourceRows.find(row => row.date === reportDate);
@@ -353,6 +359,20 @@ const indexData = JSON.parse(fs.readFileSync(INDEX_DATA_FILE, "utf8"));
 const fundReports = JSON.parse(fs.readFileSync(FUND_REPORTS_FILE, "utf8"));
 const etfShares = JSON.parse(fs.readFileSync(ETF_SHARES_FILE, "utf8"));
 const northHoldings = JSON.parse(fs.readFileSync(NORTH_HOLDINGS_FILE, "utf8"));
+// Keep historical grouping keys in source caches; render open weeks as of the
+// recorded refresh cutoff, never the browser clock or a future Saturday.
+function capWeeklyDates(rows, cutoff) {
+  return rows.map(row => row.date > cutoff
+    ? { ...row, date: cutoff, incompleteWeek: true } : row);
+}
+data.series = capWeeklyDates(data.series, data.meta.updated);
+for (const key of Object.keys(indexData)) {
+  if (Array.isArray(indexData[key])) indexData[key] = capWeeklyDates(indexData[key], data.meta.updated);
+}
+etfShares.series = capWeeklyDates(etfShares.series, etfShares.meta.updated);
+for (const row of etfShares.series) {
+  if (row.date === etfShares.meta.updated && new Date(row.date + "T00:00:00Z").getUTCDay() < 6) row.incompleteWeek = true;
+}
 let html = stripExisting(fs.readFileSync(OUTPUT, "utf8"));
 html = html.replace(
   '<a href="#retail-sentiment">情绪-散户</a>',

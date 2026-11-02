@@ -49,9 +49,11 @@ def main():
         raise RuntimeError("No ETFs tracking the three indices were returned")
     with ThreadPoolExecutor(max_workers=3) as pool:
         histories = list(pool.map(lambda fund: fund_history(token, fund), funds.values()))
+    today = datetime.now().strftime("%Y-%m-%d")
     weeks = [row["date"] for row in json.loads(WEEKS.read_text(encoding="utf-8"))["series"]]
     result = []
-    for date in weeks:
+    for week_label in weeks:
+        date = min(week_label, today)
         compact = date.replace("-", "")
         day = datetime.strptime(compact, "%Y%m%d")
         sums = {key: 0.0 for key in INDEX_CODES}
@@ -70,7 +72,11 @@ def main():
             sums[key] += values[dates[position]]
         if not any(reported.values()):
             continue
-        row = {"date": date, "funds": sum(reported.values()),
+        # The source series uses Saturday as a completed-week label. For the
+        # still-open current week, use the actual as-of date instead of a
+        # future Saturday that could be mistaken for an observed date.
+        label = date
+        row = {"date": label, "funds": sum(reported.values()),
                "coverage": round(sum(reported.values()) / sum(eligible.values()) * 100, 1)}
         for key in INDEX_CODES:
             row[key] = (round(sums[key], 4) if eligible[key] and
@@ -82,7 +88,8 @@ def main():
         "source": "Tushare etf_basic + fund_share",
         "scope": "ETF funds tracking 399006.SZ, 000688.SH or 000680.SH; includes delisted funds",
         "unit": "100 million shares", "coverageThreshold": 90,
-        "updated": datetime.now().strftime("%Y-%m-%d"),
+        "updated": today,
+        "dateSemantics": "completed weeks use Saturday labels; the current incomplete week uses the actual as-of date",
     }, "series": result}, ensure_ascii=False, separators=(",", ":")), encoding="utf-8")
     print(json.dumps({"funds": len(funds), "weeks": len(result),
                       "start": result[0]["date"], "end": result[-1]["date"]}))
