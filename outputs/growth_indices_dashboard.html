@@ -1019,8 +1019,8 @@ window.addEventListener("resize", () => charts.forEach(chart => chart.resize()))
       },
       northMoney: {
         title: "北向资金净流入", field: "northMoney", unit: "亿元", digits: 1, totalLabel: "北向周净流入",
-        subtitle: "北向每周净流入合计（左轴）与指数价格对照（右轴）· 历史截至2024-08-16",
-        note: "正值为净流入、负值为净流出；三个指数线仅为价格对照，不是各指数资金流。此页时间范围以历史数据截止日为准。"
+        subtitle: "全市场北向每周净流入合计（亿元）· 历史截至2024-08-16",
+        note: "正值为净流入、负值为净流出；仅展示全市场实际北向净流入。暂无可靠的三个指数净流入拆分数据。"
       },
       northHoldings: {
         title: "北向持仓分布", field: "value", unit: "亿元", digits: 1,
@@ -1050,12 +1050,11 @@ window.addEventListener("resize", () => charts.forEach(chart => chart.resize()))
       blockAmount: "按周汇总 A 股大宗交易成交额（亿元），不含债券；指数线按当期成分股归集，同一股票可能属于多个指数。",
       institutionBlockNet: "按周汇总大宗交易中标记为“机构专用”的买入额减卖出额（亿元）；正值为净买入。指数线按当期成分股归集。",
       holderNetShares: "按公告周汇总股东增减持股数乘披露均价（亿元）；正值为净增持，未披露均价的记录不计入。指数线按当期成分股归集。",
-      northMoney: "Tushare moneyflow_hsgt 的每日 north_money（百万元）按自然周求和后除以100，换算为亿元；不取周末单日值。周标签统一为周六，最后标签2024-08-17对应截至2024-08-16的交易。缺失值不当作零。三个指数线是价格相对走势（右轴基准=100），并非各指数净流入；指数对照也截到同一历史区间。旧口径披露止于2024-08-16，此后不补零、不拼接成交额。",
+      northMoney: "Tushare moneyflow_hsgt 的每日 north_money（百万元）按自然周求和后除以100，换算为亿元；不取周末单日值。周标签统一为周六，最后标签2024-08-17对应截至2024-08-16的交易。缺失值不当作零。仅展示全市场北向净流入，不以指数价格代替指数资金流。旧口径披露止于2024-08-16，此后不补零、不拼接成交额。",
       fundPosition: "取主动股票/混合基金半年报、年报样本：股票持仓市值 ÷ 基金净资产；指数线只统计投向其成分股的比例。持仓披露不足 90% 的基金剔除，样本覆盖不足 40% 的报告期不展示。",
       institutionConcentration: "取主动股票/混合基金半年报、年报样本：各股票范围内持仓前 10 名的金额 ÷ 该范围全部持仓金额。样本覆盖不足 40% 的报告期不展示。",
       etfShares: "按周统计跟踪三个指数的 ETF 存量份额（亿份）；首条线是这三组 ETF 合计，不是全市场 ETF。份额变化不等于资金净流入。"
     };
-    const baselineDate = "2020-01-07";
     const indices = [
       { key: "sh", name: "创业板指", rows: DATA.sh, color: COLORS.sh },
       { key: "k50", name: "科创50", rows: DATA.k50, color: COLORS.k50 },
@@ -1077,13 +1076,13 @@ window.addEventListener("resize", () => charts.forEach(chart => chart.resize()))
 
     function renderChart() {
       const cfg = metrics[activeMetric];
-      const priceMode = activeMetric === "northMoney";
-      const maxDate = priceMode ? weekEnd(largeMoneyData.meta.northEnd) : largeMoneyData.series[largeMoneyData.series.length - 1].date;
+      const northFlowMode = activeMetric === "northMoney";
+      const maxDate = northFlowMode ? weekEnd(largeMoneyData.meta.northEnd) : largeMoneyData.series[largeMoneyData.series.length - 1].date;
       const end = new Date(maxDate + "T00:00:00Z");
       const cutoff = new Date(end);
       if (activeYears) cutoff.setUTCFullYear(cutoff.getUTCFullYear() - activeYears);
       let minDate = activeYears ? cutoff.toISOString().slice(0, 10) : "";
-      if (priceMode) {
+      if (northFlowMode) {
         const first = largeMoneyData.series.find(row => Number.isFinite(row.northMoney));
         if (first && minDate < first.date) minDate = first.date;
       }
@@ -1105,16 +1104,9 @@ window.addEventListener("resize", () => charts.forEach(chart => chart.resize()))
       const latestReport = fundMode && moneyPoints.length
         ? sourceRows.find(row => row.date === moneyPoints[moneyPoints.length - 1][0]) : null;
       const weekDates = largeMoneyData.series.filter(row => row.date >= minDate && row.date <= maxDate).map(row => row.date);
-      const indexSeries = indices.filter(index => selectedSeries.has(index.name)).map(index => {
+      const indexSeries = northFlowMode ? [] : indices.filter(index => selectedSeries.has(index.name)).map(index => {
         let values;
-        if (priceMode) {
-          const baseline = index.rows.find(row => row.date >= baselineDate && Number.isFinite(row.close));
-          const baseClose = baseline?.close;
-          const closes = new Map(index.rows.filter(row => Number.isFinite(row.close))
-            .map(row => [weekEnd(row.date), row.close]));
-          values = weekDates.map(date => [date, baseClose && closes.has(date)
-            ? closes.get(date) / baseClose * 100 : null]);
-        } else if (fundMode || etfMode || holdingView) {
+        if (fundMode || etfMode || holdingView) {
           values = sourceRows.filter(row => row.date >= minDate)
             .map(row => [row.date, available(row) && Number.isFinite(valueOf(row, index.key))
               ? valueOf(row, index.key) : null]);
@@ -1123,7 +1115,7 @@ window.addEventListener("resize", () => charts.forEach(chart => chart.resize()))
           values = weekDates.map(date => [date, amounts.has(date) ? amounts.get(date) : null]);
         }
         return {
-          name: index.name, type: "line", yAxisIndex: priceMode ? 1 : 0,
+          name: index.name, type: "line", yAxisIndex: 0,
           data: values,
           showSymbol: fundMode || holdingView, symbolSize: 5, sampling: "lttb",
           lineStyle: { width: 2, color: index.color }, itemStyle: { color: index.color }
@@ -1139,6 +1131,7 @@ window.addEventListener("resize", () => charts.forEach(chart => chart.resize()))
           : "季度末北向持有指数成分股的市值 ÷ 同日该指数全部成分股总市值（%）。分母不是全市场北向持仓；指数成分可能重叠，占比不能相加。")
         : methodology[activeMetric];
       const totalButton = document.querySelector('#largeMoneySeriesControls [data-series="全市场资金"]');
+      document.getElementById("largeMoneySeriesControls").style.display = northFlowMode ? "none" : "";
       totalButton.style.display = holdingView ? "none" : "";
       document.getElementById("largeMoneyHoldingModes").classList.toggle("is-visible", holdingView);
       totalButton.lastChild.textContent = moneyName;
@@ -1153,7 +1146,7 @@ window.addEventListener("resize", () => charts.forEach(chart => chart.resize()))
         : "当前范围暂无资金数据";
       chart.setOption({
         animation: false, backgroundColor: "transparent",
-        grid: { left: 80, right: priceMode ? 66 : 28, top: 26, bottom: 66 },
+        grid: { left: 80, right: 28, top: 26, bottom: 66 },
         legend: { show: false },
         tooltip: {
           trigger: "axis", axisPointer: { type: "cross" },
@@ -1161,8 +1154,8 @@ window.addEventListener("resize", () => charts.forEach(chart => chart.resize()))
           textStyle: { color: "#edf4ff" },
           formatter(params) {
             const lines = params.filter(item => item.value?.[1] != null).map(item => item.marker + item.seriesName + "：<b>" +
-              fmt(Number(item.value[1]), priceMode && item.seriesName !== moneyName ? 1 : holdingView && holdingMode === "ratio" ? 3 : cfg.digits) +
-              (priceMode && item.seriesName !== moneyName ? "（基准=100）" : displayUnit) + "</b>");
+              fmt(Number(item.value[1]), holdingView && holdingMode === "ratio" ? 3 : cfg.digits) +
+              displayUnit + "</b>");
             if (fundMode) {
               const reportDate = params.find(item => item.value?.[0])?.value[0];
               const report = sourceRows.find(row => row.date === reportDate);
@@ -1174,10 +1167,8 @@ window.addEventListener("resize", () => charts.forEach(chart => chart.resize()))
         xAxis: { type: "time", axisLine: { lineStyle: { color: "#344760" } },
           axisLabel: { color: "#7890aa", hideOverlap: true }, splitLine: { show: false } },
         yAxis: [
-          { type: "value", scale: true, axisLabel: { color: priceMode ? "#f6c85f" : "#8fa5bf", formatter: "{value}" + displayUnit },
+          { type: "value", scale: true, axisLabel: { color: northFlowMode ? "#f6c85f" : "#8fa5bf", formatter: "{value}" + displayUnit },
             splitLine: { lineStyle: { color: "#17283d" } } },
-          { type: "value", scale: true, show: priceMode, axisLabel: { color: "#8fa5bf", formatter: "{value}" },
-            splitLine: { show: false } }
         ],
         dataZoom: [
           { type: "inside", filterMode: "none", start: 0, end: 100 },
@@ -1187,7 +1178,7 @@ window.addEventListener("resize", () => charts.forEach(chart => chart.resize()))
             textStyle: { color: "#8fa5bf" } }
         ],
         series: [
-          ...(!holdingView && selectedSeries.has("全市场资金") ? [{ name: moneyName, type: "line", yAxisIndex: 0, data: moneyPoints,
+          ...(!holdingView && (northFlowMode || selectedSeries.has("全市场资金")) ? [{ name: moneyName, type: "line", yAxisIndex: 0, data: moneyPoints,
             showSymbol: fundMode, symbolSize: 5, sampling: "lttb",
             lineStyle: { width: 2, color: "#f6c85f" }, itemStyle: { color: "#f6c85f" } }] : []),
           ...indexSeries
