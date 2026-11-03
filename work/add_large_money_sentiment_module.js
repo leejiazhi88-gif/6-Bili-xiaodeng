@@ -1,6 +1,7 @@
 const fs = require("fs");
 const path = require("path");
 const { guideCss, explanationScript } = require("./sentiment_explanations");
+const { seriesMarkerCss } = require("./series_marker");
 const { movingAverageScript, movingAverageControls, movingAverageCss } = require("./point_moving_average");
 const explanationMethods = require("./sentiment_methodology.json");
 
@@ -32,11 +33,7 @@ const css = `
     #largeMoneySeriesControls button[aria-pressed="false"] { opacity: .4; }
     #largeMoneyHoldingModes { display: none; padding: 8px 16px 0; gap: 6px; }
     #largeMoneyHoldingModes.is-visible { display: flex; }
-    .large-money-series-mark { position: relative; width: 22px; height: 12px; flex: none; }
-    .large-money-series-mark::before { content: ""; position: absolute; left: 0; right: 0; top: 5px;
-      border-top: 2px solid var(--series-color); }
-    .large-money-series-mark::after { content: ""; position: absolute; left: 8px; top: 1px;
-      width: 8px; height: 8px; border: 2px solid #edf4ff; border-radius: 50%; background: var(--series-color); }
+    ${seriesMarkerCss(".large-money-series-mark")}
     @media (max-width: 980px) {
       #largeMoneyChart { height: 490px; }
     }

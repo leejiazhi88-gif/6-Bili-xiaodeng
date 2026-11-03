@@ -1,6 +1,7 @@
 const fs = require("fs");
 const path = require("path");
 const { guideCss, explanationScript } = require("./sentiment_explanations");
+const { seriesMarkerCss } = require("./series_marker");
 const explanationMethods = require("./sentiment_methodology.json");
 
 const ROOT = path.resolve(__dirname, "..");
@@ -25,7 +26,7 @@ const css = `
     #officialSeriesControls button[aria-pressed="false"] { opacity: .4; }
     #officialSeriesControls button:disabled { opacity: .35; cursor: not-allowed; }
     #officialSeriesControls button:focus-visible { outline: 2px solid #f6c85f; outline-offset: 3px; }
-    .official-series-mark { width: 22px; border-top: 3px solid var(--series-color); }
+    ${seriesMarkerCss(".official-series-mark")}
     #officialEmptyState { padding: 16px; color: #c6d3e3; text-align: center; }
     #officialEmptyState[hidden] { display: none; }
     #officialSentimentChart { height: 560px; width: 100%; }

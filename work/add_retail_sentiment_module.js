@@ -1,6 +1,7 @@
 const fs = require("fs");
 const path = require("path");
 const { guideCss, explanationScript } = require("./sentiment_explanations");
+const { seriesMarkerCss } = require("./series_marker");
 const { movingAverageScript, movingAverageControls, movingAverageCss } = require("./point_moving_average");
 const explanationMethods = require("./sentiment_methodology.json");
 
@@ -27,11 +28,7 @@ const css = `
       border: 0; background: transparent; color: #8fa5bf; font-size: 12px; cursor: pointer; }
     #retailSeriesControls button:hover { color: #edf4ff; background: transparent; }
     #retailSeriesControls button[aria-pressed="false"] { opacity: .4; }
-    .retail-series-mark { position: relative; width: 22px; height: 12px; flex: none; }
-    .retail-series-mark::before { content: ""; position: absolute; left: 0; right: 0; top: 5px;
-      border-top: 2px solid var(--series-color); }
-    .retail-series-mark::after { content: ""; position: absolute; left: 8px; top: 1px;
-      width: 8px; height: 8px; border: 2px solid #edf4ff; border-radius: 50%; background: var(--series-color); }
+    ${seriesMarkerCss(".retail-series-mark")}
     @media (max-width: 980px) {
       #retailSentimentChart { height: 470px; }
     }
