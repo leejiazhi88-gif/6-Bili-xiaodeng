@@ -20,7 +20,13 @@ GitHub Pages 从 `gh-pages` 分支根目录发布，`main` 保存源码、数据
 
 ## 刷新性能与核验
 
-日常执行 `node work/build_market_dashboard.js` 使用增量及近期回看策略；每月或需要核对较早历史时执行 `node work/build_market_dashboard.js --full`。单个抓取脚本也识别 `--full`，构建入口会通过环境变量统一传递到子进程。不要将“跳过未到核验间隔的基金报告”说成“当天重新核验过”。具体各类窗口及缓存首次建立成本见 README。
+日常执行 `node work/build_market_dashboard.js`：最多两个有依赖约束的数据任务并行，基金半年报/年报完整核验不在日常路径里。启动时输出基金真实报告期和待核验期；不要把复用报告说成“当天重新核验过”。日常数据完成即可发布，不再为了基金历史审计让行情等待半小时。
+
+需要新增基金报告或复核到期报告时，单独执行 `node work/build_market_dashboard.js --reports`，完成后再同步页面。只查看计划用 `python3 work/fetch_large_money_fund_reports.py --status`，不访问网络。这个拆分不代表基金自动后台更新；待核验期必须如实告知，需要基金更新时执行报告入口。最近两期核验间隔仍为7天，较早历史30天，披露窗口内每日；只有完整成功才更新 checkedAt。
+
+每月或需要核对较早历史时执行 `node work/build_market_dashboard.js --full`，包含全部数据和基金全量审计。单脚本仍识别 `--full`。`--cached` 只构建；`--reports`、`--full`、`--cached` 互斥。独立脚本不得与总入口同时写同一批输出。
+
+基金持仓两页并发，按源页顺序计算、重复完整页中止、每10页报告进度；已完成报告期原子保存。利润按股票保存同日同参数成功请求，失败重试只补缺失请求，整批成功才发布正式缓存。不要用跨次 offset 页面缓存恢复基金持仓，源分页可能因新增公告移动。每轮真实耗时和状态保存在 `work/.refresh-cache/last-refresh.json`，后续评估速度使用这个记录，不声称未经测量的固定加速倍数。
 
 原始请求缓存 `work/.refresh-cache/` 只用于提速，已加入忽略规则，不提交凭据或缓存；输出JSON、源码及部署页面仍按原流程同步两条远端分支。
 

@@ -376,65 +376,8 @@ window.addEventListener("resize", () => charts.forEach(chart => chart.resize()))
 }
 
 async function main() {
-  if (process.argv.includes("--full")) process.env.XIAODENG_REFRESH_FULL = "1";
-  if (!process.argv.includes("--cached")) {
-  const { execFileSync, spawnSync } = require("child_process");
-  const candidates = [
-    process.env.CODEX_PYTHON,
-    process.env.PYTHON,
-    "python3",
-    "python",
-  ].filter(Boolean);
-  const python = candidates.find((cmd) =>
-    spawnSync(cmd, ["--version"], { stdio: "ignore" }).status === 0
-  );
-  if (!python) {
-    throw new Error("Unable to find a usable Python interpreter");
-  }
-  try {
-    execFileSync(python, [path.join(ROOT, "work", "fetch_market_overview_data.py")], {
-      stdio: "inherit",
-    });
-    execFileSync(python, [path.join(ROOT, "work", "fetch_star_official_valuation.py")], {
-      stdio: "inherit",
-    });
-    execFileSync(python, [path.join(ROOT, "work", "fetch_star_official_history.py")], {
-      stdio: "inherit",
-    });
-    execFileSync(python, [path.join(ROOT, "work", "fetch_index_profit_data.py")], {
-      stdio: "inherit",
-    });
-    execFileSync(python, [path.join(ROOT, "work", "fetch_refinancing_data.py")], {
-      stdio: "inherit",
-    });
-    execFileSync(python, [path.join(ROOT, "work", "fetch_official_sentiment_data.py")], {
-      stdio: "inherit",
-    });
-    execFileSync(python, [path.join(ROOT, "work", "fetch_retail_sentiment_data.py")], {
-      stdio: "inherit",
-    });
-    execFileSync(python, [path.join(ROOT, "work", "fetch_retail_index_metrics.py")], {
-      stdio: "inherit",
-    });
-    execFileSync(python, [path.join(ROOT, "work", "fetch_large_money_sentiment_data.py")], {
-      stdio: "inherit",
-    });
-    execFileSync(python, [path.join(ROOT, "work", "fetch_northbound_index_holdings.py")], {
-      stdio: "inherit",
-    });
-    execFileSync(python, [path.join(ROOT, "work", "fetch_large_money_fund_reports.py")], {
-      stdio: "inherit",
-    });
-    execFileSync(python, [path.join(ROOT, "work", "fetch_large_money_etf_shares.py")], {
-      stdio: "inherit",
-    });
-    execFileSync(python, [path.join(ROOT, "work", "fetch_valuation_data.py")], {
-      stdio: "inherit",
-    });
-  } catch (error) {
-    throw new Error("Data refresh failed; page generation stopped. Use --cached explicitly to rebuild cached data.", { cause: error });
-  }
-  }
+  const { refreshMode, runRefresh } = require("./refresh_dashboard_data");
+  await runRefresh(refreshMode());
   const overview = readMarketOverview();
   END = overview.meta.end;
   const profit = readIndexProfit();
@@ -463,7 +406,7 @@ async function main() {
   }, null, 2));
 }
 
-main().catch((error) => {
+require("./refresh_dashboard_data").withRefreshLock(main).catch((error) => {
   console.error(error);
   process.exit(1);
 });

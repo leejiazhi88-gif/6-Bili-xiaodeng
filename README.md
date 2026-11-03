@@ -27,35 +27,40 @@ GitHub 仓库：https://github.com/leejiazhi88-gif/6-Bili-xiaodeng
 首次运行先安装依赖：`python -m pip install -r requirements.txt`。Windows PowerShell 中按本机 Python 安装情况使用 `python` 或 `python3`；当前电脑由 Codex 自带 Python 环境运行。
 
 ```bash
-python3 ./work/fetch_market_overview_data.py
-python3 ./work/fetch_star_official_valuation.py
-python3 ./work/fetch_star_official_history.py
-python3 ./work/fetch_valuation_data.py
-python3 ./work/fetch_retail_sentiment_data.py
-python3 ./work/fetch_retail_index_metrics.py
-python3 ./work/fetch_large_money_sentiment_data.py
-python3 ./work/fetch_northbound_index_holdings.py
-python3 ./work/fetch_large_money_fund_reports.py
-python3 ./work/fetch_large_money_etf_shares.py
-python3 ./work/fetch_refinancing_data.py
-python3 ./work/fetch_official_sentiment_data.py
-python3 ./work/fetch_index_profit_data.py
-node ./work/build_market_dashboard.js --cached
+node work/build_market_dashboard.js
 ```
+
+这是**日常更新入口**：按依赖最多两个抓取任务并行，更新行情、估值、利润、散户、大资金、ETF和官方数据后生成页面。基金半年报/年报沿用已有已核实报告，启动时输出真实报告期、待核验期，不改写基金核验时间。
+
+基金完整持仓核验单独执行；有新报告或需要复核历史时使用：
+
+```bash
+node work/build_market_dashboard.js --reports
+```
+
+此入口只重核到期的基金报告并重建页面，不重复跑当天行情。基金接口单期可能返回上百万条持仓，仍需数分钟；它不再阻塞日常行情发布。每完成一期即保存，失败重试保留已完成的报告期。持仓分页最多两页并行，按原顺序处理，每10页输出进度。不会跨次保存可移动的 offset 页，以免上游新增记录造成漏页或重复。
+
+只查看基金待核验状态（不使用凭据、不请求网络）：
+
+```bash
+python3 work/fetch_large_money_fund_reports.py --status
+```
+
+单个抓取脚本仍可独立运行。默认流程不会自动创建后台任务；待核验基金报告需通过上述报告入口完成。
 
 各脚本自动使用运行当天作为查询截止日；实际数据日期以接口最新披露为准。事件库仅保留原始文件，不在页面展示。
 
 ### 增量刷新与全量核验
 
-日常刷新仍可使用上面的脚本顺序，或 `node work/build_market_dashboard.js`。默认策略如下：
+日常使用 `node work/build_market_dashboard.js`，完整基金核验使用 `--reports`。默认策略如下：
 
 | 数据 | 日常刷新策略 |
 | --- | --- |
 | 三指数行情、PE/PB | 从已保存的最后交易日向前回看90天，按日期合并修订；首次无缓存时拉完整历史 |
 | 科创综指官方历史PE | 同样回看90天，合并后保留更早历史，并继续核对官方单张 |
 | ETF份额 | 每只基金保留原始日份额；从上次成功查询截止日回看90天，补齐至今天。新基金首次拉历史，仍包含退市基金 |
-| 指数利润 | 同日复用；跨日按最近90天公告窗口拉取各成分股财报，与旧报告期合并。新股票补全历史。仍需逐股请求，不是一次接口查询 |
-| 基金仓位/集中度 | 报告期结束后90天内每日核验；之后最近两期每7天核验，更早历史每30天核验。未到期不调用完整持仓接口；首次升级时最近两期仍需完成一次核验 |
+| 指数利润 | 同日复用；跨日按最近90天公告窗口逐股查询，与旧报告期合并。成功请求立即暂存，失败后同日重试只补缺失股票；参数或日期变化重新查询，全批成功才更新正式缓存 |
+| 基金仓位/集中度 | 日常入口复用已核实报告并列出待核验期。单独的 `--reports` 按以下间隔重核：报告期结束后90天内每日，之后最近两期每7天，更早历史每30天；未到期直接跳过 |
 | 散户、指数成分及其他按年/月查询的接口 | 最近90天涉及的查询窗口照常更新（按年接口可能回拉整个当年）；更早窗口缓存30天，到期重新核验 |
 | 北向持仓 | 日常补缺失季度；使用全量入口重核已有季度 |
 | 官方月度指标、再融资、官方单张 | 保留原有少量请求与历史合并，避免为了节省少量请求而漏掉修订 |
@@ -68,9 +73,13 @@ node ./work/build_market_dashboard.js --cached
 node work/build_market_dashboard.js --full
 ```
 
-也可对单个脚本执行 `python3 work/fetch_large_money_etf_shares.py --full` 等命令。全量入口绕过历史请求缓存，重拉行情、ETF、财报等历史，并重核已有基金和北向报告期。此命令不会自动创建后台定时任务；日常运行中的历史请求缓存及基金报告会按上述有效期复核。`--cached` 只重建页面，不请求数据。
+也可对单个脚本执行 `python3 work/fetch_large_money_etf_shares.py --full` 等命令。全量入口绕过历史请求缓存，重拉行情、ETF、财报等历史，并重核已有基金和北向报告期。此命令不会自动创建后台定时任务；日常运行中的历史请求缓存会按有效期复核；基金报告通过独立的 `--reports` 入口按上述间隔核验。`--cached` 只重建页面，不请求数据。
 
-回看窗口内新旧同键记录以新值覆盖，旧窗口历史不裁掉；上游报错时终止该刷新步骤，不用零填补失败。完整构建遇到错误仍停止发布，避免将失败当成刷新成功。
+回看窗口内新旧同键记录以新值覆盖，旧窗口历史不裁掉；上游报错时终止该刷新步骤，不用零填补失败。所选刷新模式遇到错误会停止生成页面，等待已运行的数据任务退出，不启动剩余任务；不会将失败当成刷新成功。
+
+每次刷新输出各任务耗时，并将模式、完成/失败状态和实际耗时写入 `work/.refresh-cache/last-refresh.json`，用于定位慢接口。任务依赖包括行情→估值、官方单张→官方历史校验、散户→指数指标、大资金→ETF。一个构建进程最多同时执行两个抓取脚本，已有的单脚本线程限制仍保留。刷新锁防止两个入口同时写部署文件。
+
+利润暂存位于 `work/.refresh-cache/income-pending/`，不含凭据、不提交Git；仅同日同股票同查询参数可复用，次日清理旧暂存，`--full` 绕过暂存。基金成功完成的报告及真实核验时间保存在可同步的输出JSON中，换电脑仍能跳过未到期报告。
 
 仅使用缓存重新生成页面：
 

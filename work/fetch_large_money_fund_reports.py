@@ -1,8 +1,12 @@
 from refresh_cache import atomic_json, full_refresh
+import argparse
 import json
 import re
+import sys
 import time
+from hashlib import sha256
 from collections import defaultdict
+from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timedelta
 
 from fetch_retail_sentiment_data import ROOT, call_api, get_token
@@ -31,6 +35,45 @@ def pages(token, api, params, fields, size=5000):
         offset += len(rows)
         if len(rows) < size:
             break
+
+
+def portfolio_pages(token, params, fields, size=5000):
+    """Fetch two holdings pages at a time, consuming them in source order."""
+    started = time.monotonic()
+    offset = page_count = row_count = 0
+    seen = set()
+    with ThreadPoolExecutor(max_workers=2) as pool:
+        while True:
+            pending = [pool.submit(request, token, "fund_portfolio",
+                                   {**params, "limit": size, "offset": page_offset}, fields)
+                       for page_offset in (offset, offset + size)]
+            for future in pending:
+                rows = future.result()
+                if len(rows) > size:
+                    raise RuntimeError(f"Oversized fund_portfolio page at offset {offset}: "
+                                       f"{len(rows)} rows exceeds limit {size}; report not saved")
+                if len(rows) == size:
+                    # Compare complete pages, not holding keys: legitimate
+                    # revised announcements can repeat a fund/stock pair.
+                    fingerprint = sha256(json.dumps(rows, sort_keys=True,
+                                                    separators=(",", ":")).encode()).digest()
+                    if fingerprint in seen:
+                        raise RuntimeError(f"Repeated full fund_portfolio page at offset {offset}; report not saved")
+                    seen.add(fingerprint)
+                page_count += 1
+                row_count += len(rows)
+                if page_count % 10 == 0:
+                    elapsed = time.monotonic() - started
+                    print(f"Fund report {params.get('period', '')}: {page_count} pages, "
+                          f"{row_count:,} holdings, {elapsed:.1f}s", flush=True)
+                yield from rows
+                if len(rows) < size:
+                    # A later page may already be in flight; its contents or
+                    # error are irrelevant once the first short page ends the report.
+                    for remaining in pending:
+                        remaining.cancel()
+                    return
+                offset += size
 
 
 def active_funds(token):
@@ -69,8 +112,8 @@ def report(token, period, funds):
             if row["ts_code"] in funds and row.get("net_asset"):
                 nav[row["ts_code"]] = float(row["net_asset"])
     holdings = defaultdict(dict)
-    for row in pages(token, "fund_portfolio", {"period": period},
-                     "ts_code,ann_date,end_date,symbol,mkv,stk_mkv_ratio"):
+    for row in portfolio_pages(token, {"period": period},
+                               "ts_code,ann_date,end_date,symbol,mkv,stk_mkv_ratio"):
         code = row["ts_code"]
         if (code not in nav or row.get("end_date") != period or not row.get("symbol") or
                 row.get("mkv") is None or row.get("stk_mkv_ratio") is None):
@@ -108,15 +151,13 @@ def report(token, period, funds):
     return values
 
 
-def main():
-    token = get_token()
-    cached = json.loads(OUTPUT.read_text(encoding="utf-8")) if OUTPUT.exists() else {"series": []}
+def refresh_plan(cached, now=None, force=False):
+    today_date = now or datetime.now()
     by_date = {row["date"].replace("-", ""): row for row in cached["series"]}
-    today = datetime.now().strftime("%Y%m%d")
-    periods = [f"{year}{end}" for year in range(2005, datetime.now().year + 1)
+    today = today_date.strftime("%Y%m%d")
+    periods = [f"{year}{end}" for year in range(2005, today_date.year + 1)
                for end in ("0630", "1231") if f"{year}{end}" <= today]
     checks = cached.get("meta", {}).get("checkedAt", {})
-    today_date = datetime.now()
     baseline = cached.get("meta", {}).get("incrementalBaseline", today_date.isoformat())
     recent = set(periods[-2:])
     due = []
@@ -127,11 +168,32 @@ def main():
         interval = 1 if age <= 90 else (7 if period in recent else 30)
         checked = datetime.fromisoformat(checks[period]) if period in checks else None
         due_unchecked = checked is None and (period in recent or today_date - datetime.fromisoformat(baseline) >= timedelta(days=30))
-        if full_refresh() or period not in by_date or due_unchecked or (checked is not None and today_date - checked >= timedelta(days=interval)):
+        if force or full_refresh() or period not in by_date or due_unchecked or (checked is not None and today_date - checked >= timedelta(days=interval)):
             due.append(period)
+    return {"duePeriods": due, "missingPeriods": [p for p in periods if p not in by_date],
+            "latestReportDate": max((row["date"] for row in cached["series"]), default=None),
+            "checkedAt": checks}
+
+
+def main(argv=None):
+    parser = argparse.ArgumentParser(description="Verify complete semiannual fund holdings")
+    parser.add_argument("--status", action="store_true", help="Print the refresh plan without fetching data")
+    parser.add_argument("--full", action="store_true", help="Verify every report period")
+    args = parser.parse_args(argv if argv is not None else [])
+    cached = json.loads(OUTPUT.read_text(encoding="utf-8")) if OUTPUT.exists() else {"series": []}
+    today_date = datetime.now()
+    plan = refresh_plan(cached, now=today_date, force=args.full)
+    if args.status:
+        print(json.dumps(plan, ensure_ascii=False))
+        return
+    due = plan["duePeriods"]
     if not due:
         print("Fund reports already checked within disclosure-aware refresh interval")
         return
+    token = get_token()
+    by_date = {row["date"].replace("-", ""): row for row in cached["series"]}
+    checks = plan["checkedAt"]
+    baseline = cached.get("meta", {}).get("incrementalBaseline", today_date.isoformat())
     funds = active_funds(token)
     for period in due:
         print(f"Checking fund report {period}", flush=True)
@@ -155,4 +217,4 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    main(sys.argv[1:])

@@ -1,11 +1,14 @@
 from refresh_cache import atomic_json, full_refresh, lookback, merge_rows
 from refresh_cache import historical_cache
-from concurrent.futures import ThreadPoolExecutor
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from threading import Lock
 from datetime import datetime
 import bisect
+import hashlib
 import json
+import math
 import re
+import shutil
 import time
 import ssl
 import urllib.request
@@ -16,6 +19,8 @@ ROOT = Path(__file__).resolve().parents[1]
 CONFIG = Path.home() / ".codex" / "config.toml"
 OUTPUT = ROOT / "work" / "index_profit_data.json"
 CACHE = ROOT / "work" / "income_cache.json"
+STAGING_DIR = ROOT / "work" / ".refresh-cache" / "income-pending"
+INCOME_FIELDS = "ts_code,ann_date,f_ann_date,end_date,report_type,comp_type,n_income_attr_p"
 START_YEAR = 2010
 END_DATE = datetime.now().strftime("%Y%m%d")
 INDICES = {
@@ -92,52 +97,118 @@ def fetch_income_rows(token, ts_code, start=None):
         token,
         "income",
         {"ts_code": ts_code, "start_date": start or f"{START_YEAR}0101", "end_date": END_DATE},
-        "ts_code,ann_date,f_ann_date,end_date,report_type,comp_type,n_income_attr_p",
+        INCOME_FIELDS,
     )
+
+
+def clean_income_rows(rows):
+    if not isinstance(rows, list) or any(not isinstance(row, dict) for row in rows):
+        raise ValueError("Invalid income response")
+    cleaned = []
+    for row in rows:
+        if row.get("report_type") != "1" or row.get("n_income_attr_p") is None:
+            continue
+        value = float(row["n_income_attr_p"])
+        if not math.isfinite(value):
+            raise ValueError("Non-finite income value")
+        cleaned.append({"ann_date": row.get("ann_date"), "end_date": row["end_date"],
+                        "n_income_attr_p": value})
+    return cleaned
+
+
+def income_stage(code, start):
+    # Request identity deliberately excludes the token. Different request
+    # windows or field selections must never reuse an incomplete run's data.
+    identity = {"version": 1, "api": "income", "fields": INCOME_FIELDS,
+                "params": {"ts_code": code, "start_date": start or f"{START_YEAR}0101",
+                           "end_date": END_DATE}}
+    digest = hashlib.sha256(json.dumps(identity, sort_keys=True).encode()).hexdigest()
+    return STAGING_DIR / END_DATE / f"{digest}.json", identity
+
+
+def load_income_stage(path, identity):
+    try:
+        staged = json.loads(path.read_text(encoding="utf-8"))
+        if staged["identity"] == identity:
+            # A corrupt or incomplete stage is fetched again, never published.
+            return clean_income_rows(staged["rows"])
+    except (OSError, ValueError, KeyError, TypeError):
+        pass
+    return None
 
 
 def ensure_income_cache(token, codes):
     cache = load_cache()
     income = cache.setdefault("income", {})
+    full = full_refresh()
+    # Resume is only useful within the same refresh date. Bound disk usage even
+    # if earlier runs failed before reaching the final cache publication.
+    if not full and STAGING_DIR.exists():
+        for directory in STAGING_DIR.iterdir():
+            if directory.is_dir() and re.fullmatch(r"\d{8}", directory.name) and directory.name < END_DATE:
+                shutil.rmtree(directory)
     missing = [code for code in sorted(codes)
-               if full_refresh() or not income.get(code) or cache.get("meta", {}).get("end_date") != END_DATE]
+               if full or not income.get(code) or cache.get("meta", {}).get("end_date") != END_DATE]
     request_lock = Lock()
     next_request = 0.0
-    def fetch_one(code):
+    staged_paths = []
+    requests = []
+    last = cache.get("meta", {}).get("end_date")
+    for code in missing:
+        start = lookback(last) if last and income.get(code) and not full else None
+        path, identity = income_stage(code, start)
+        requests.append((code, start, path, identity))
+        staged_paths.append(path)
+
+    def fetch_one(request):
         nonlocal next_request
+        code, start, path, identity = request
+        if not full:
+            staged = load_income_stage(path, identity)
+            if staged is not None:
+                return code, staged
         # Space request starts across all workers below the API's minute limit.
         with request_lock:
             time.sleep(max(0, next_request - time.monotonic()))
             next_request = time.monotonic() + 0.2
-        last = cache.get("meta", {}).get("end_date")
-        start = lookback(last) if last and income.get(code) and not full_refresh() else None
         rows = fetch_income_rows(token, code, start)
-        return code, rows
+        cleaned = clean_income_rows(rows)
+        if not full:
+            # Save in the worker immediately, even when an earlier request is
+            # slow or another stock fails before the main loop consumes this.
+            atomic_json(path, {"identity": identity, "rows": rows})
+        return code, cleaned
 
     # Bound concurrency; only publish the cache after every request succeeds.
+    pending_income = {}
     with ThreadPoolExecutor(max_workers=4) as executor:
-        for index, (code, rows) in enumerate(executor.map(fetch_one, missing), 1):
-            cleaned = []
-            for row in rows:
-                if row.get("report_type") != "1":
-                    continue
-                value = row.get("n_income_attr_p")
-                if value is None:
-                    continue
-                cleaned.append(
-                    {
-                        "ann_date": row.get("ann_date"),
-                        "end_date": row["end_date"],
-                        "n_income_attr_p": float(value),
-                    }
-                )
-            if full_refresh():
-                income[code] = cleaned
-            else:
-                income[code] = merge_rows(income.get(code, []), cleaned, ("end_date", "ann_date"))
-            if index % 25 == 0:
-                print(f"income cache progress: {index}/{len(missing)} refreshed codes")
+        futures = [executor.submit(fetch_one, request) for request in requests]
+        try:
+            for index, future in enumerate(as_completed(futures), 1):
+                code, cleaned = future.result()
+                pending_income[code] = cleaned if full else merge_rows(
+                    income.get(code, []), cleaned, ("end_date", "ann_date"))
+                if index % 25 == 0:
+                    print(f"income cache progress: {index}/{len(missing)} refreshed codes")
+        except BaseException:
+            for future in futures:
+                future.cancel()
+            raise
+    income.update(pending_income)
     save_cache(cache)
+    # Keep stages when publication fails. A successful batch no longer needs
+    # these raw responses, so only its exact request files are removed.
+    if not full:
+        for path in staged_paths:
+            try:
+                path.unlink(missing_ok=True)
+            except OSError:
+                pass  # Cleanup must not turn a successful publication into failure.
+        today_directory = STAGING_DIR / END_DATE
+        try:
+            today_directory.rmdir()
+        except OSError:
+            pass  # Other request identities may still have resumable files.
     return cache
 
 
