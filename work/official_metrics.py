@@ -3,7 +3,7 @@ import calendar
 import math
 from bisect import bisect_right
 from datetime import datetime, timedelta
-from decimal import Decimal
+from decimal import Decimal, ROUND_HALF_UP
 
 IPO_FIELDS = 'ts_code,ipo_date,issue_date,amount,price,funds'
 HOLDER_FIELDS = 'ts_code,ann_date,holder_name,in_de,change_vol,avg_price'
@@ -37,19 +37,62 @@ def aggregate_ipo(rows, months):
         if not date or date[:6] not in result:
             continue
         identity = (row['ts_code'], date)
-        if identity in unique and unique[identity].get('funds') != row.get('funds'):
+        if identity in unique and any(unique[identity].get(k) != row.get(k) for k in ('amount', 'price')):
             raise ValueError(f'Conflicting IPO funds: {identity}')
         unique[identity] = row
     for (_, date), row in unique.items():
         item = result[date[:6]]
-        value = number(row.get('funds'))
+        volume, price = number(row.get('amount'), positive=True), number(row.get('price'), positive=True)
+        value = None if volume is None or price is None else Decimal(str(volume)) * Decimal(str(price)) / 10000
         item['count'] += 1
         if value is None:
             item['missing'] += 1
         else:
-            item['funds'] += Decimal(str(value))  # source already in 亿元
-    return {m: {'ipoFund': None if r['missing'] else round(float(r['funds']), 2),
+            item['funds'] += value  # 万股 × 元/股 / 10000 = 亿元发行总额
+    return {m: {'ipoFund': None if r['missing'] else float(r['funds'].quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)),
                 'ipoCount': r['count'], 'ipoMissingFunds': r['missing']} for m, r in result.items()}
+
+
+def aggregate_current_ipo(rows, months, memberships, end_date, overrides):
+    """Retrospective IPO amounts for one explicitly dated constituent snapshot.
+
+    These are today's companies' past offerings, not historical index membership.
+    Unmatched members are disclosed; their missing amounts are never invented.
+    """
+    aliases = {value['previousCode']: code for code, value in overrides['aliases'].items()}
+    eligible = []
+    for row in rows:
+        date = row.get('ipo_date') or row.get('issue_date') or ''
+        if not date or date > end_date or date[:6] not in months:
+            continue
+        eligible.append({**row, 'sourceCode': row['ts_code'],
+                         'ts_code': aliases.get(row['ts_code'], row['ts_code'])})
+    output, coverage = {}, {}
+    for key, membership in memberships.items():
+        dates, _ = membership
+        known_dates = [date for date in dates if date <= end_date]
+        snapshot_date = known_dates[-1] if known_dates else None
+        members = snapshot(membership, end_date)
+        if members is None or not members:
+            output[key] = {month: None for month in months}
+            coverage[key] = {'available': False, 'snapshotDate': snapshot_date, 'reason': '缺少近期成分股名单'}
+            continue
+        exclusions = {code: entry for code, entry in overrides['nonCashListings'].items() if code in members}
+        selected = [row for row in eligible if row['ts_code'] in members and row['ts_code'] not in exclusions]
+        matched = {row['ts_code'] for row in selected}
+        missing = sorted(members - matched - set(exclusions))
+        sums = aggregate_ipo(selected, months)
+        output[key] = {month: row['ipoFund'] if selected else None for month, row in sums.items()}
+        priced = {row['ts_code'] for row in selected
+                  if number(row.get('amount'), positive=True) is not None and number(row.get('price'), positive=True) is not None}
+        coverage[key] = {
+            'available': bool(selected), 'snapshotDate': snapshot_date,
+            'totalMembers': len(members), 'matchedMembers': len(matched), 'pricedMembers': len(priced),
+            'missingMembers': missing, 'nonCashListings': exclusions, 'members': sorted(members),
+            'aliases': {code: entry for code, entry in overrides['aliases'].items() if code in members},
+            'records': selected,
+        }
+    return output, coverage
 
 
 def snapshot(membership, date):

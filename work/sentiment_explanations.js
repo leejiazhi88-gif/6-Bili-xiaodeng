@@ -66,9 +66,9 @@ const guides = {
     "合计线仅包括这三组ETF，不是全市场ETF。份额不是资金金额；不同ETF每份价值不同，新基金上市和份额拆分也会改变总量。"
   ],
   "ipoFund": [
-    "IPO是公司首次公开发行股票；IPO融资额就是公司通过发行新股募集了多少钱，单位亿元。",
+    "IPO是公司首次公开发行股票。本图以发行总股数乘发行价计算IPO发行总额，单位亿元，未扣发行费用；不是股票上市后的成交额。",
     "金额越大，新股发行募集的资金越多，可用来观察新股供给节奏；它与上市后股票反复交易的成交额不同。",
-    "融资增加不必然导致股市下跌，还取决于市场承接能力。本图主要按新股发行月份汇总，发行日期缺失时使用上市日期，不包含上市公司后续再融资。"
+    "按新股发行月份汇总，发行日期缺失时使用上市日期，不含后续再融资。若发行总量含老股转让，发行总额不等于公司实际净募资；同一公司可能同时属于科创50和科创综指，两条线不能相加。"
   ],
   "refinanceFund": [
     "再融资是已上市公司再次筹集资金。本图采用增发、配股等股票筹资口径，单位亿元，不含可转债。",
@@ -105,7 +105,7 @@ const scopeText = {
   "retail": "这里的指数线展示对应股票范围的交易或融资指标；两市线范围更大，包含各种投资者，不只是散户。",
   "largeMoney": "这里的指数线展示资金交易或持仓在相应成分股中的情况；各范围可能重叠，不能把三条线相加当作全市场。",
   "official": {
-    ipoFund: "黄色线是全市场新股发行募集资金，单位亿元。新股发行时尚未纳入这些指数，因此不按现有成分股回填历史IPO。",
+    ipoFund: "黄色线是全市场IPO发行金额；三条成分股线用最新可得名单，追溯这些公司历史IPO发行金额，均为亿元。这不代表发行时已是指数成分股；名单调整会改变历史回溯金额，不能用于当时可知信息的回测。",
     refinanceFund: "黄色线是全市场股票再融资额，单位亿元。目前来源仅有月度汇总，没有已核实的同口径成分股分项。",
     holderNetReductionAmount: "黄色线是沪深京A股重要股东披露均价记录的净减持金额；其余线是同一批公告中相应历史成分股的金额。均为亿元，范围可能重叠，不能相加。",
     stampDutyRate: "黄色线是统一的证券交易印花税卖出端税率，单位%。各成分股适用同一税率，不另画重复分项。",
@@ -149,7 +149,7 @@ function explanationScript(keys, scope, methods) {
         ? "三条指数线分别统计跟踪相应指数的ETF份额；黄色线是这三组ETF的份额合计，不是全市场ETF。"
         : (typeof curveScope === "string" ? curveScope : curveScope[metric]);
       const lines = [["是什么", content.guide[0]], ["怎么看", content.guide[1]],
-        ["图中曲线", (prefix === "official" && metric !== "holderNetReductionAmount" ? "" : indexDefinitions + " ") + scope], ["注意什么", content.guide[2]]];
+        ["图中曲线", (prefix === "official" && !["holderNetReductionAmount", "ipoFund"].includes(metric) ? "" : indexDefinitions + " ") + scope], ["注意什么", content.guide[2]]];
       document.getElementById(prefix + "MetricGuide").innerHTML = "<ol>" + lines.map(([label, text]) =>
         "<li><strong>" + label + "：</strong>" + explanationEscape(text) + "</li>").join("") + "</ol>";
       document.getElementById(prefix + "Methodology").innerHTML = '<ol start="5">' + content.details.map(([label, text]) =>

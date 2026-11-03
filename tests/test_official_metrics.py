@@ -3,7 +3,7 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'work'))
-from official_metrics import complete_window, aggregate_ipo, aggregate_holders
+from official_metrics import complete_window, aggregate_ipo, aggregate_holders, aggregate_current_ipo
 from fetch_large_money_sentiment_data import STOCK_CODE
 import fetch_official_sentiment_data as official
 
@@ -32,14 +32,48 @@ class OfficialMetricsTests(unittest.TestCase):
         self.assertEqual(len(rows), 2172)
 
     def test_ipo_units_dedup_fallback_and_missing_are_not_zero(self):
-        row = dict(ts_code='688001.SH', ipo_date='20260120', issue_date='20260201', funds=7.771)
-        missing = dict(ts_code='300001.SZ', ipo_date=None, issue_date='20260201', funds=None)
+        row = dict(ts_code='688001.SH', ipo_date='20260120', issue_date='20260201', amount=1713, price=45.37, funds=999)
+        missing = dict(ts_code='300001.SZ', ipo_date=None, issue_date='20260201', amount=100, price=None, funds=5)
         result = aggregate_ipo([row, row, missing], ['202601', '202602', '202603'])
         self.assertEqual(result['202601'], {'ipoFund': 7.77, 'ipoCount': 1, 'ipoMissingFunds': 0})
         self.assertIsNone(result['202602']['ipoFund'])
         self.assertEqual(result['202603']['ipoFund'], 0)
         with self.assertRaisesRegex(ValueError, 'Conflicting IPO'):
-            aggregate_ipo([row, dict(row, funds=8)], ['202601'])
+            aggregate_ipo([row, dict(row, price=46)], ['202601'])
+
+    def test_ipo_current_members_are_explicit_retrospective_sample_with_code_changes(self):
+        rows = [dict(ts_code='OLD.SZ', ipo_date='20100102', amount=10000, price=12, funds=5.265),
+                dict(ts_code='OTHER.SZ', ipo_date='20100103', amount=20000, price=20, funds=40),
+                dict(ts_code='NEW.SZ', ipo_date='20270101', amount=20000, price=20, funds=40)]
+        member = (['20251031', '20261030', '20270101'], {
+            '20251031': {'OTHER.SZ'}, '20261030': {'NEW.SZ', 'SWAP.SZ'}, '20270101': {'OTHER.SZ'}})
+        overrides = {'aliases': {'NEW.SZ': {'previousCode': 'OLD.SZ'}},
+                     'nonCashListings': {'SWAP.SZ': {'source': 'verified listing announcement'}}}
+        values, coverage = aggregate_current_ipo(rows, ['201001', '202611'], {'sh': member}, '20261103', overrides)
+        self.assertEqual(values['sh']['201001'], 12)
+        self.assertEqual(values['sh']['202611'], 0)
+        self.assertEqual(coverage['sh']['snapshotDate'], '20261030')
+        self.assertEqual(coverage['sh']['matchedMembers'], 1)
+        self.assertEqual(coverage['sh']['missingMembers'], [])
+        self.assertEqual(coverage['sh']['records'][0]['sourceCode'], 'OLD.SZ')
+        self.assertEqual(len(coverage['sh']['records']), 1)  # excludes future IPO and former member
+        newer = (['20261101'], {'20261101': {'OTHER.SZ'}})
+        changed, _ = aggregate_current_ipo(rows, ['201001'], {'sh': newer}, '20261103', overrides)
+        self.assertEqual(changed['sh']['201001'], 40)  # changing sample must rebuild history
+
+    def test_ipo_missing_members_and_stale_snapshots_are_disclosed(self):
+        overrides = {'aliases': {}, 'nonCashListings': {}}
+        rows = [dict(ts_code='KNOWN.SZ', ipo_date='20200102', amount=100, price=10)]
+        values, cover = aggregate_current_ipo(rows, ['202001'], {
+            'partial': (['20261030'], {'20261030': {'KNOWN.SZ', 'UNKNOWN.SZ'}}),
+            'empty': (['20261030'], {'20261030': {'UNKNOWN.SZ'}}),
+            'stale': (['20250101'], {'20250101': {'KNOWN.SZ'}}),
+        }, '20261103', overrides)
+        self.assertEqual(cover['partial']['missingMembers'], ['UNKNOWN.SZ'])
+        self.assertEqual(values['partial']['202001'], .1)
+        self.assertIsNone(values['empty']['202001'])
+        self.assertIsNone(values['stale']['202001'])
+        self.assertFalse(cover['stale']['available'])
 
     def test_holders_same_records_sign_units_historical_membership_and_coverage(self):
         def row(code, day, direction, volume, price):
