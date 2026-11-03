@@ -85,7 +85,6 @@ const moduleHtml = `
         <button class="metric-tab active" type="button" data-holding-mode="value">持仓市值</button>
         <button class="metric-tab" type="button" data-holding-mode="ratio">占指数总市值</button>
       </div>
-      <div class="metric-guide" id="largeMoneyMetricGuide" aria-live="polite"></div>
       <div class="metric-note">
         <span class="metric-reading" id="largeMoneyLatestReading"></span>
       </div>
@@ -93,7 +92,11 @@ const moduleHtml = `
     </article>
 
     <div class="valuation-foot">
-      <details class="metric-method"><summary>统计口径与数据来源</summary><div id="largeMoneyMethodology"></div></details>
+      <details class="metric-method">
+        <summary>指标含义、统计口径与数据来源</summary>
+        <div class="metric-guide" id="largeMoneyMetricGuide" aria-live="polite"></div>
+        <div id="largeMoneyMethodology"></div>
+      </details>
     </div>
   </section>
 `;

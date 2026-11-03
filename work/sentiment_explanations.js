@@ -109,7 +109,7 @@ const scopeText = {
 const indices = "创业板指：创业板100只代表性股票；科创50：科创板50只代表性证券；科创综指：覆盖符合条件的科创板证券，范围更广。";
 function guideCss(scope) {
   return `
-    #${scope} .metric-guide { padding: 0 20px 12px; color: #c6d3e3; font-size: 14px; line-height: 1.8; }
+    #${scope} .metric-guide { padding: 0; color: #c6d3e3; font-size: 14px; line-height: 1.8; }
     #${scope} .metric-guide ol { margin: 0; padding-left: 1.5em; }
     #${scope} .metric-guide li { padding-left: 4px; margin: 8px 0; overflow-wrap: anywhere; }
     #${scope} .metric-guide li::marker { color: #f6c85f; font-weight: 600; }
@@ -121,7 +121,6 @@ function guideCss(scope) {
     #${scope} .metric-method summary:focus-visible { outline: 2px solid #f6c85f; outline-offset: 3px; }
     #${scope} .metric-method ol { margin: 0; padding-left: 1.5em; }
     #${scope} .metric-method li { margin-bottom: 12px; overflow-wrap: anywhere; }
-    @media (max-width: 600px) { #${scope} .metric-guide { padding: 0 14px 10px; } }
   `.trim();
 }
 function explanationScript(keys, scope, methods) {
@@ -145,7 +144,7 @@ function explanationScript(keys, scope, methods) {
         ["图中曲线", indexDefinitions + " " + scope], ["注意什么", content.guide[2]]];
       document.getElementById(prefix + "MetricGuide").innerHTML = "<ol>" + lines.map(([label, text]) =>
         "<li><strong>" + label + "：</strong>" + explanationEscape(text) + "</li>").join("") + "</ol>";
-      document.getElementById(prefix + "Methodology").innerHTML = "<ol>" + content.details.map(([label, text]) =>
+      document.getElementById(prefix + "Methodology").innerHTML = '<ol start="5">' + content.details.map(([label, text]) =>
         "<li><strong>" + explanationEscape(label) + "：</strong>" + explanationEscape(text) + "</li>").join("") + "</ol>";
     }
   `.trim();

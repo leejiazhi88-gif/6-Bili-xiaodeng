@@ -156,7 +156,7 @@
 
 
   <style id="retail-sentiment-style">
-    #retail-sentiment .metric-guide { padding: 0 20px 12px; color: #c6d3e3; font-size: 14px; line-height: 1.8; }
+    #retail-sentiment .metric-guide { padding: 0; color: #c6d3e3; font-size: 14px; line-height: 1.8; }
     #retail-sentiment .metric-guide ol { margin: 0; padding-left: 1.5em; }
     #retail-sentiment .metric-guide li { padding-left: 4px; margin: 8px 0; overflow-wrap: anywhere; }
     #retail-sentiment .metric-guide li::marker { color: #f6c85f; font-weight: 600; }
@@ -168,7 +168,6 @@
     #retail-sentiment .metric-method summary:focus-visible { outline: 2px solid #f6c85f; outline-offset: 3px; }
     #retail-sentiment .metric-method ol { margin: 0; padding-left: 1.5em; }
     #retail-sentiment .metric-method li { margin-bottom: 12px; overflow-wrap: anywhere; }
-    @media (max-width: 600px) { #retail-sentiment .metric-guide { padding: 0 14px 10px; } }
     #retailSentimentChart { height: 540px; width: 100%; }
     #retailSeriesControls { display: flex; flex-wrap: wrap; gap: 8px 18px; padding: 10px 16px 0; }
     #retailSeriesControls button { display: inline-flex; align-items: center; gap: 6px; padding: 4px 0;
@@ -187,7 +186,7 @@
 
 
   <style id="large-money-sentiment-style">
-    #large-money-sentiment .metric-guide { padding: 0 20px 12px; color: #c6d3e3; font-size: 14px; line-height: 1.8; }
+    #large-money-sentiment .metric-guide { padding: 0; color: #c6d3e3; font-size: 14px; line-height: 1.8; }
     #large-money-sentiment .metric-guide ol { margin: 0; padding-left: 1.5em; }
     #large-money-sentiment .metric-guide li { padding-left: 4px; margin: 8px 0; overflow-wrap: anywhere; }
     #large-money-sentiment .metric-guide li::marker { color: #f6c85f; font-weight: 600; }
@@ -199,7 +198,6 @@
     #large-money-sentiment .metric-method summary:focus-visible { outline: 2px solid #f6c85f; outline-offset: 3px; }
     #large-money-sentiment .metric-method ol { margin: 0; padding-left: 1.5em; }
     #large-money-sentiment .metric-method li { margin-bottom: 12px; overflow-wrap: anywhere; }
-    @media (max-width: 600px) { #large-money-sentiment .metric-guide { padding: 0 14px 10px; } }
     #largeMoneyChart { height: 560px; width: 100%; }
     #largeMoneySeriesControls { display: flex; flex-wrap: wrap; gap: 8px 18px; padding: 10px 16px 0; }
     #largeMoneySeriesControls button { display: inline-flex; align-items: center; gap: 6px; padding: 4px 0;
@@ -220,7 +218,7 @@
 
 
   <style id="official-sentiment-style">
-    #official-sentiment .metric-guide { padding: 0 20px 12px; color: #c6d3e3; font-size: 14px; line-height: 1.8; }
+    #official-sentiment .metric-guide { padding: 0; color: #c6d3e3; font-size: 14px; line-height: 1.8; }
     #official-sentiment .metric-guide ol { margin: 0; padding-left: 1.5em; }
     #official-sentiment .metric-guide li { padding-left: 4px; margin: 8px 0; overflow-wrap: anywhere; }
     #official-sentiment .metric-guide li::marker { color: #f6c85f; font-weight: 600; }
@@ -232,7 +230,6 @@
     #official-sentiment .metric-method summary:focus-visible { outline: 2px solid #f6c85f; outline-offset: 3px; }
     #official-sentiment .metric-method ol { margin: 0; padding-left: 1.5em; }
     #official-sentiment .metric-method li { margin-bottom: 12px; overflow-wrap: anywhere; }
-    @media (max-width: 600px) { #official-sentiment .metric-guide { padding: 0 14px 10px; } }
     #refinanceSourceLink { color: #f6c85f; }
     #officialSentimentChart { height: 560px; width: 100%; }
     @media (max-width: 980px) {
@@ -383,7 +380,6 @@
         <button class="metric-tab" data-metric="marginBalance">融资余额</button>
         <button class="metric-tab" data-metric="marginFloatRatio">融资余额/流通市值</button>
       </div>
-      <div class="metric-guide" id="retailMetricGuide" aria-live="polite"></div>
       <div class="metric-note">
         <span class="metric-reading" id="retailLatestReading"></span>
       </div>
@@ -391,7 +387,11 @@
     </article>
 
     <div class="valuation-foot">
-      <details class="metric-method"><summary>统计口径与数据来源</summary><div id="retailMethodology"></div></details>
+      <details class="metric-method">
+        <summary>指标含义、统计口径与数据来源</summary>
+        <div class="metric-guide" id="retailMetricGuide" aria-live="polite"></div>
+        <div id="retailMethodology"></div>
+      </details>
     </div>
   </section>
 
@@ -439,7 +439,6 @@
         <button class="metric-tab active" type="button" data-holding-mode="value">持仓市值</button>
         <button class="metric-tab" type="button" data-holding-mode="ratio">占指数总市值</button>
       </div>
-      <div class="metric-guide" id="largeMoneyMetricGuide" aria-live="polite"></div>
       <div class="metric-note">
         <span class="metric-reading" id="largeMoneyLatestReading"></span>
       </div>
@@ -447,7 +446,11 @@
     </article>
 
     <div class="valuation-foot">
-      <details class="metric-method"><summary>统计口径与数据来源</summary><div id="largeMoneyMethodology"></div></details>
+      <details class="metric-method">
+        <summary>指标含义、统计口径与数据来源</summary>
+        <div class="metric-guide" id="largeMoneyMetricGuide" aria-live="polite"></div>
+        <div id="largeMoneyMethodology"></div>
+      </details>
     </div>
   </section>
 
@@ -486,7 +489,6 @@
         <button class="metric-tab" data-metric="socialFinancing">社融增量</button>
         <button class="metric-tab" data-metric="m2Yoy">M2增速</button>
       </div>
-      <div class="metric-guide" id="officialMetricGuide" aria-live="polite"></div>
       <div class="metric-note">
         <a id="refinanceSourceLink" href="https://data.10jqka.com.cn/macro/finance/" target="_blank" rel="noopener" hidden>查看再融资数据来源</a>
         <span class="metric-reading" id="officialLatestReading"></span>
@@ -495,7 +497,11 @@
     </article>
 
     <div class="valuation-foot">
-      <details class="metric-method"><summary>统计口径与数据来源</summary><div id="officialMethodology"></div></details>
+      <details class="metric-method">
+        <summary>指标含义、统计口径与数据来源</summary>
+        <div class="metric-guide" id="officialMetricGuide" aria-live="polite"></div>
+        <div id="officialMethodology"></div>
+      </details>
     </div>
   </section>
 
@@ -933,7 +939,7 @@ window.addEventListener("resize", () => charts.forEach(chart => chart.resize()))
         ["图中曲线", indexDefinitions + " " + scope], ["注意什么", content.guide[2]]];
       document.getElementById(prefix + "MetricGuide").innerHTML = "<ol>" + lines.map(([label, text]) =>
         "<li><strong>" + label + "：</strong>" + explanationEscape(text) + "</li>").join("") + "</ol>";
-      document.getElementById(prefix + "Methodology").innerHTML = "<ol>" + content.details.map(([label, text]) =>
+      document.getElementById(prefix + "Methodology").innerHTML = '<ol start="5">' + content.details.map(([label, text]) =>
         "<li><strong>" + explanationEscape(label) + "：</strong>" + explanationEscape(text) + "</li>").join("") + "</ol>";
     }
 
@@ -1105,7 +1111,7 @@ window.addEventListener("resize", () => charts.forEach(chart => chart.resize()))
         ["图中曲线", indexDefinitions + " " + scope], ["注意什么", content.guide[2]]];
       document.getElementById(prefix + "MetricGuide").innerHTML = "<ol>" + lines.map(([label, text]) =>
         "<li><strong>" + label + "：</strong>" + explanationEscape(text) + "</li>").join("") + "</ol>";
-      document.getElementById(prefix + "Methodology").innerHTML = "<ol>" + content.details.map(([label, text]) =>
+      document.getElementById(prefix + "Methodology").innerHTML = '<ol start="5">' + content.details.map(([label, text]) =>
         "<li><strong>" + explanationEscape(label) + "：</strong>" + explanationEscape(text) + "</li>").join("") + "</ol>";
     }
     const indices = [
@@ -1344,7 +1350,7 @@ window.addEventListener("resize", () => charts.forEach(chart => chart.resize()))
         ["图中曲线", indexDefinitions + " " + scope], ["注意什么", content.guide[2]]];
       document.getElementById(prefix + "MetricGuide").innerHTML = "<ol>" + lines.map(([label, text]) =>
         "<li><strong>" + label + "：</strong>" + explanationEscape(text) + "</li>").join("") + "</ol>";
-      document.getElementById(prefix + "Methodology").innerHTML = "<ol>" + content.details.map(([label, text]) =>
+      document.getElementById(prefix + "Methodology").innerHTML = '<ol start="5">' + content.details.map(([label, text]) =>
         "<li><strong>" + explanationEscape(label) + "：</strong>" + explanationEscape(text) + "</li>").join("") + "</ol>";
     }
     const baselineDate = "2020-01-07";

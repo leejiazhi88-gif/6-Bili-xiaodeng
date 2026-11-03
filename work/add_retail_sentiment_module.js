@@ -74,7 +74,6 @@ const moduleHtml = `
         <button class="metric-tab" data-metric="marginBalance">融资余额</button>
         <button class="metric-tab" data-metric="marginFloatRatio">融资余额/流通市值</button>
       </div>
-      <div class="metric-guide" id="retailMetricGuide" aria-live="polite"></div>
       <div class="metric-note">
         <span class="metric-reading" id="retailLatestReading"></span>
       </div>
@@ -82,7 +81,11 @@ const moduleHtml = `
     </article>
 
     <div class="valuation-foot">
-      <details class="metric-method"><summary>统计口径与数据来源</summary><div id="retailMethodology"></div></details>
+      <details class="metric-method">
+        <summary>指标含义、统计口径与数据来源</summary>
+        <div class="metric-guide" id="retailMetricGuide" aria-live="polite"></div>
+        <div id="retailMethodology"></div>
+      </details>
     </div>
   </section>
 `;

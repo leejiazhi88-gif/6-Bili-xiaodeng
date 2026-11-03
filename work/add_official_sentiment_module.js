@@ -61,7 +61,6 @@ const moduleHtml = `
         <button class="metric-tab" data-metric="socialFinancing">社融增量</button>
         <button class="metric-tab" data-metric="m2Yoy">M2增速</button>
       </div>
-      <div class="metric-guide" id="officialMetricGuide" aria-live="polite"></div>
       <div class="metric-note">
         <a id="refinanceSourceLink" href="https://data.10jqka.com.cn/macro/finance/" target="_blank" rel="noopener" hidden>查看再融资数据来源</a>
         <span class="metric-reading" id="officialLatestReading"></span>
@@ -70,7 +69,11 @@ const moduleHtml = `
     </article>
 
     <div class="valuation-foot">
-      <details class="metric-method"><summary>统计口径与数据来源</summary><div id="officialMethodology"></div></details>
+      <details class="metric-method">
+        <summary>指标含义、统计口径与数据来源</summary>
+        <div class="metric-guide" id="officialMetricGuide" aria-live="polite"></div>
+        <div id="officialMethodology"></div>
+      </details>
     </div>
   </section>
 `;
