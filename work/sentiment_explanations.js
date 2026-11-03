@@ -76,7 +76,7 @@ const guides = {
     "数据为同花顺同表股票募集总额减去首发募集额，未逐笔剔除非现金资产认购，不能称为纯现金融资；与本页IPO口径不同，不能直接相加。"
   ],
   "holderNetReductionAmount": [
-    "按重要股东公告估算减持金额减去增持金额，单位亿元。产业资本通常指与公司经营相关的股东，本图未逐条限定这类身份。",
+    "重要股东净减持额是公告中的减持金额减去增持金额，单位亿元。按变动股数乘披露均价计算，包含公司、个人和高管股东，并未限定为产业资本。",
     "正数表示净减持，负数表示净增持。例如减持5亿元、增持3亿元，结果为2亿元；与大资金模块“净增减持”的正负方向相反。",
     "仅统计披露成交均价的记录，不是全部股东的完整净卖出金额。放在官方模块用于观察供给环境，并不表示这些股东代表官方。"
   ],
@@ -104,7 +104,15 @@ const guides = {
 const scopeText = {
   "retail": "这里的指数线展示对应股票范围的交易或融资指标；两市线范围更大，包含各种投资者，不只是散户。",
   "largeMoney": "这里的指数线展示资金交易或持仓在相应成分股中的情况；各范围可能重叠，不能把三条线相加当作全市场。",
-  "official": "左轴是所选政策或融资指标，右轴是三个指数的相对价格：以各自基准为100，120表示比基准上涨20%。左右轴单位不同，曲线相交没有数值相等的含义。"
+  "official": {
+    ipoFund: "黄色线是全市场新股发行募集资金，单位亿元。新股发行时尚未纳入这些指数，因此不按现有成分股回填历史IPO。",
+    refinanceFund: "黄色线是全市场股票再融资额，单位亿元。目前来源仅有月度汇总，没有已核实的同口径成分股分项。",
+    holderNetReductionAmount: "黄色线是沪深京A股重要股东披露均价记录的净减持金额；其余线是同一批公告中相应历史成分股的金额。均为亿元，范围可能重叠，不能相加。",
+    stampDutyRate: "黄色线是统一的证券交易印花税卖出端税率，单位%。各成分股适用同一税率，不另画重复分项。",
+    lpr1y: "黄色线是全国统一公布的1年期LPR，单位%，不存在三个股票指数各自的LPR。",
+    socialFinancing: "黄色线是全国社融当月增量，单位亿元，不能拆成三个股票指数的融资额。",
+    m2Yoy: "黄色线是全国M2同比增速，单位%，不能拆成三个股票指数的货币供应量。"
+  }
 };
 const indices = "创业板指：创业板100只代表性股票；科创50：科创板50只代表性证券；科创综指：覆盖符合条件的科创板证券，范围更广。";
 function guideCss(scope) {
@@ -139,9 +147,9 @@ function explanationScript(keys, scope, methods) {
       const content = metricExplanations[metric];
       const scope = metric === "etfShares"
         ? "三条指数线分别统计跟踪相应指数的ETF份额；黄色线是这三组ETF的份额合计，不是全市场ETF。"
-        : curveScope;
+        : (typeof curveScope === "string" ? curveScope : curveScope[metric]);
       const lines = [["是什么", content.guide[0]], ["怎么看", content.guide[1]],
-        ["图中曲线", indexDefinitions + " " + scope], ["注意什么", content.guide[2]]];
+        ["图中曲线", (prefix === "official" && metric !== "holderNetReductionAmount" ? "" : indexDefinitions + " ") + scope], ["注意什么", content.guide[2]]];
       document.getElementById(prefix + "MetricGuide").innerHTML = "<ol>" + lines.map(([label, text]) =>
         "<li><strong>" + label + "：</strong>" + explanationEscape(text) + "</li>").join("") + "</ol>";
       document.getElementById(prefix + "Methodology").innerHTML = '<ol start="5">' + content.details.map(([label, text]) =>

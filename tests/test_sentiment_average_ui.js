@@ -265,3 +265,93 @@ for (const def of definitions) {
     assert.equal(ui.chart.option.dataZoom[0].end, 100);
   });
 }
+
+const officialDef = { prefix: 'official', script: 'official-sentiment-script', chart: 'officialSentimentChart' };
+const officialFields = ['ipoFund', 'refinanceFund', 'holderNetReductionAmount', 'stampDutyRate', 'lpr1y', 'socialFinancing', 'm2Yoy'];
+
+test('official: seven tabs use named source amounts or percentages on one axis, with no market-price dependency', () => {
+  const ui = mount(officialDef);
+  const data = jsonConstant(scripts[officialDef.script], 'officialData');
+  const refinance = jsonConstant(scripts[officialDef.script], 'refinancingData');
+  assert.doesNotMatch(scripts[officialDef.script], /\bDATA\b|baseClose|baselineDate|yAxisIndex: 1|相对价格|官方指标/);
+  for (const metric of officialFields) {
+    ui.metric(metric);
+    const rows = metric === 'refinanceFund' ? refinance.series : data.series;
+    const option = ui.chart.option;
+    const expectedUnit = ['stampDutyRate', 'lpr1y', 'm2Yoy'].includes(metric) ? '%' : '亿元';
+    assert.equal(option.yAxis.name, expectedUnit);
+    assert.equal(Array.isArray(option.yAxis), false);
+    assert.equal(option.legend.show, false);
+    const market = option.series.find(line => line.id === 'market');
+    assert.ok(market);
+    assert.notEqual(market.name, '官方指标');
+    assert.equal(market.connectNulls, false);
+    assert.deepEqual(plain(market.data.filter(p => Number.isFinite(p[1]))),
+      rows.filter(row => Number.isFinite(row[metric])).map(row => [row.date, row[metric]]));
+    assert.equal(option.series.length, metric === 'holderNetReductionAmount' ? 4 : 1);
+    const sourceRow = rows.findLast(row => Number.isFinite(row[metric]));
+    const tooltip = option.tooltip.formatter([{ marker: '', seriesName: market.name, seriesId: 'market',
+      value: [sourceRow.date, sourceRow[metric]] }]);
+    assert.ok(tooltip.includes(expectedUnit));
+    assert.ok(tooltip.includes(market.name));
+    const absent = option.tooltip.formatter([{ marker: '', seriesName: market.name, value: [sourceRow.date, null] }]);
+    assert.ok(absent.includes('--' + expectedUnit));
+    assert.doesNotMatch(ui.nodes.get('officialMethodology').innerHTML, /基准为100|右轴|收盘价/);
+  }
+});
+
+test('official: shared selection survives every tab; inapplicable breakdown cannot be toggled; zoom persists', () => {
+  const ui = mount(officialDef);
+  ui.click('SeriesControls', 'data-series', 'market');
+  for (const metric of officialFields) {
+    ui.metric(metric);
+    assert.ok(!ui.chart.option.series.some(line => line.id === 'market'));
+    assert.equal(ui.buttons('SeriesControls')[0].getAttribute('aria-pressed'), 'false');
+    assert.equal(ui.buttons('SeriesControls')[1].disabled, metric !== 'holderNetReductionAmount');
+    if (metric !== 'holderNetReductionAmount') {
+      assert.equal(ui.nodes.get('officialEmptyState').hidden, false);
+      const renders = ui.chart.renders;
+      ui.click('SeriesControls', 'data-series', 'sh');
+      assert.equal(ui.chart.renders, renders);
+    }
+  }
+  ui.metric('holderNetReductionAmount');
+  ui.chart.option.dataZoom[0] = { start: 35, end: 73 };
+  ui.click('SeriesControls', 'data-series', 'sh');
+  assert.equal(ui.chart.option.dataZoom[0].start, 35);
+  assert.equal(ui.chart.option.dataZoom[0].end, 73);
+  ui.metric('ipoFund');
+  ui.metric('holderNetReductionAmount');
+  assert.ok(!ui.chart.option.series.some(line => line.id === 'sh'));
+  ui.click('SeriesControls', 'data-series', 'market');
+  for (const metric of officialFields) {
+    ui.metric(metric);
+    assert.ok(ui.chart.option.series.some(line => line.id === 'market'));
+  }
+});
+
+test('official: constituent series are disclosed monthly money; missing points and current-month labels survive', () => {
+  const ui = mount(officialDef);
+  const data = jsonConstant(scripts[officialDef.script], 'officialData');
+  ui.metric('holderNetReductionAmount');
+  for (const key of ['sh', 'k50', 'sz']) {
+    const line = ui.chart.option.series.find(item => item.id === key);
+    const expected = data.series.filter(row => Number.isFinite(row.holderIndices?.[key]));
+    assert.ok(expected.length > 0);
+    assert.deepEqual(plain(line.data.filter(point => Number.isFinite(point[1]))),
+      expected.map(row => [row.date, row.holderIndices[key]]));
+  }
+  assert.match(ui.nodes.get('officialLatestReading').textContent, /可计价/);
+  if (data.series.at(-1).partialMonth) {
+    for (const metric of ['ipoFund', 'holderNetReductionAmount']) {
+      ui.metric(metric);
+      assert.match(ui.nodes.get('officialLatestReading').textContent, /非完整月/);
+    }
+  }
+  ui.metric('lpr1y');
+  assert.match(ui.nodes.get('officialLatestReading').textContent, /报价日期 \d{4}-\d{2}-\d{2}/);
+  const section = html.match(/<section class="module-shell" id="official-sentiment">([\s\S]*?)<\/section>/)[1];
+  assert.ok(section.indexOf('id="officialSeriesControls"') < section.indexOf('id="officialMetricTabs"'));
+  assert.match(section, /<details class="metric-method">/);
+  assert.doesNotMatch(section, /<details[^>]*\bopen\b/);
+});

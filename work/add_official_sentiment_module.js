@@ -19,6 +19,15 @@ const css = `
   <style id="official-sentiment-style">
     ${guideCss("official-sentiment")}
     #refinanceSourceLink { color: #f6c85f; }
+    #officialSeriesControls { display: flex; flex-wrap: wrap; gap: 8px 18px; padding: 12px 16px 4px; }
+    #officialSeriesControls button { display: inline-flex; align-items: center; gap: 7px; border: 0;
+      background: transparent; color: #b8c8db; font-size: 12px; padding: 6px 0; cursor: pointer; }
+    #officialSeriesControls button[aria-pressed="false"] { opacity: .4; }
+    #officialSeriesControls button:disabled { opacity: .35; cursor: not-allowed; }
+    #officialSeriesControls button:focus-visible { outline: 2px solid #f6c85f; outline-offset: 3px; }
+    .official-series-mark { width: 22px; border-top: 3px solid var(--series-color); }
+    #officialEmptyState { padding: 16px; color: #c6d3e3; text-align: center; }
+    #officialEmptyState[hidden] { display: none; }
     #officialSentimentChart { height: 560px; width: 100%; }
     @media (max-width: 980px) {
       #officialSentimentChart { height: 490px; }
@@ -40,8 +49,8 @@ const moduleHtml = `
     <article class="valuation-panel">
       <div class="panel-head">
         <div>
-          <div class="panel-title">官方指标与三个指数</div>
-          <div class="panel-subtitle" id="officialMetricSubtitle">IPO月度融资额与指数走势</div>
+          <div class="panel-title">融资与货币环境</div>
+          <div class="panel-subtitle" id="officialMetricSubtitle">全市场IPO融资额 · 亿元 / 月</div>
         </div>
         <div class="range-tabs" id="officialRangeTabs">
           <button class="range-tab" data-years="3">3年</button>
@@ -52,10 +61,16 @@ const moduleHtml = `
           <button class="range-tab active" data-years="0">全部</button>
         </div>
       </div>
+      <div id="officialSeriesControls" role="group" aria-label="显示范围，选择对七个页签生效">
+        <button type="button" data-series="market" aria-pressed="true" style="--series-color:#f6c85f"><span class="official-series-mark"></span><span id="officialMarketLabel">全市场IPO融资额</span></button>
+        <button type="button" data-series="sh" aria-pressed="true" style="--series-color:#ff5d73"><span class="official-series-mark"></span>创业板指成分股</button>
+        <button type="button" data-series="k50" aria-pressed="true" style="--series-color:#7ddc82"><span class="official-series-mark"></span>科创50成分股</button>
+        <button type="button" data-series="sz" aria-pressed="true" style="--series-color:#36c2ff"><span class="official-series-mark"></span>科创综指成分股</button>
+      </div>
       <div class="metric-tabs" id="officialMetricTabs">
         <button class="metric-tab active" data-metric="ipoFund">IPO融资额</button>
         <button class="metric-tab" data-metric="refinanceFund">再融资额</button>
-        <button class="metric-tab" data-metric="holderNetReductionAmount">产业资本净减持额</button>
+        <button class="metric-tab" data-metric="holderNetReductionAmount">重要股东净减持额</button>
         <button class="metric-tab" data-metric="stampDutyRate">印花税率</button>
         <button class="metric-tab" data-metric="lpr1y">1年期LPR</button>
         <button class="metric-tab" data-metric="socialFinancing">社融增量</button>
@@ -65,6 +80,7 @@ const moduleHtml = `
         <a id="refinanceSourceLink" href="https://data.10jqka.com.cn/macro/finance/" target="_blank" rel="noopener" hidden>查看再融资数据来源</a>
         <span class="metric-reading" id="officialLatestReading"></span>
       </div>
+      <div id="officialEmptyState" role="status" hidden></div>
       <div id="officialSentimentChart"></div>
     </article>
 
@@ -87,118 +103,132 @@ const script = `
       ? Number(value).toLocaleString("zh-CN", { minimumFractionDigits: digits, maximumFractionDigits: digits })
       : "--";
     const metrics = {
-      refinanceFund: {
-        title: "再融资额（股票筹资口径）", unit: "亿元", digits: 2,
-        subtitle: "月度股票再融资额（不含可转债）与三个指数走势",
-      },
-      ipoFund: {
-        title: "IPO融资额", unit: "亿元", digits: 1,
-        subtitle: "新股发行月度募集资金与三个指数走势",
-      },
-      holderNetReductionAmount: {
-        title: "产业资本净减持额", unit: "亿元", digits: 1,
-        subtitle: "重要股东公告口径月度净减持金额与三个指数走势",
-      },
-      stampDutyRate: {
-        title: "印花税率", unit: "%", digits: 2,
-        subtitle: "证券交易印花税卖出端税率与三个指数走势",
-      },
-      lpr1y: {
-        title: "1年期LPR", unit: "%", digits: 2,
-        subtitle: "1年期贷款市场报价利率与三个指数走势",
-      },
-      socialFinancing: {
-        title: "社融增量", unit: "亿元", digits: 0,
-        subtitle: "社会融资规模月度增量与三个指数走势",
-      },
-      m2Yoy: {
-        title: "M2同比增速", unit: "%", digits: 1,
-        subtitle: "广义货币M2同比增速与三个指数走势",
-      }
+      ipoFund: { title: "IPO融资额", market: "全市场IPO融资额", unit: "亿元", digits: 2,
+        subtitle: "新股发行募集资金 · 月度合计", partial: true },
+      refinanceFund: { title: "股票再融资额", market: "全市场股票再融资额", unit: "亿元", digits: 2,
+        subtitle: "增发、配股募集资金 · 月度合计 · 不含可转债" },
+      holderNetReductionAmount: { title: "重要股东净减持额", market: "全市场重要股东净减持额", unit: "亿元", digits: 2,
+        subtitle: "减持金额 − 增持金额 · 月度公告合计 · 仅含可按披露均价计算的记录", partial: true },
+      stampDutyRate: { title: "证券交易印花税卖出端税率", market: "证券交易印花税卖出端税率", unit: "%", digits: 2,
+        subtitle: "统一税率 · 月末有效值", step: "end" },
+      lpr1y: { title: "1年期LPR", market: "全国1年期LPR", unit: "%", digits: 2,
+        subtitle: "贷款市场报价利率 · 月末有效报价", step: "end" },
+      socialFinancing: { title: "社融增量", market: "全国社融增量", unit: "亿元", digits: 0,
+        subtitle: "实体经济获得的新增融资 · 月度合计" },
+      m2Yoy: { title: "M2同比增速", market: "全国M2同比增速", unit: "%", digits: 1,
+        subtitle: "广义货币余额与上年同月相比的增幅" }
     };
     ${explanationScript(["ipoFund", "refinanceFund", "holderNetReductionAmount", "stampDutyRate", "lpr1y", "socialFinancing", "m2Yoy"], "official", explanationMethods)}
-    const baselineDate = "2020-01-07";
-    const indices = [
-      { name: "创业板指", rows: DATA.sh, color: COLORS.sh },
-      { name: "科创50", rows: DATA.k50, color: COLORS.k50 },
-      { name: "科创综指", rows: DATA.sz, color: COLORS.sz }
+    const scopes = [
+      { key: "market", color: "#f6c85f" },
+      { key: "sh", name: "创业板指成分股", color: "#ff5d73" },
+      { key: "k50", name: "科创50成分股", color: "#7ddc82" },
+      { key: "sz", name: "科创综指成分股", color: "#36c2ff" }
     ];
+    // Scope identity, rather than a metric's changing label, persists across all seven tabs.
+    const selected = new Set(scopes.map(scope => scope.key));
     let activeMetric = "ipoFund";
     let activeYears = 0;
     const chart = echarts.init(document.getElementById("officialSentimentChart"), null, { renderer: "canvas" });
-    document.getElementById("officialDataStatus").textContent =
-      "官方月度数据 " + officialData.series[0].date + " 起";
+    document.getElementById("officialDataStatus").textContent = "数据核对至 " + officialData.meta.updated;
 
-    function renderChart() {
+    function renderChart(preserveZoom = false) {
       const cfg = metrics[activeMetric];
+      const holderMetric = activeMetric === "holderNetReductionAmount";
+      const oldZoom = preserveZoom ? chart.getOption().dataZoom?.[0] : null;
+      const zoom = oldZoom ? Object.fromEntries(["start", "end", "startValue", "endValue"]
+        .filter(key => oldZoom[key] != null).map(key => [key, oldZoom[key]])) : { start: 0, end: 100 };
       document.getElementById("refinanceSourceLink").hidden = activeMetric !== "refinanceFund";
-      const metricRows = activeMetric === "refinanceFund" ? refinancingData.series : officialData.series;
-      const end = new Date(metricRows[metricRows.length - 1].date + "T00:00:00Z");
-      const cutoff = new Date(end);
+      const rows = activeMetric === "refinanceFund" ? refinancingData.series : officialData.series;
+      const availableRows = rows.filter(row => Number.isFinite(row[activeMetric]));
+      const last = availableRows[availableRows.length - 1];
+      const first = availableRows[0];
+      const cutoff = new Date((last?.date || officialData.meta.end) + "T00:00:00Z");
       if (activeYears) cutoff.setUTCFullYear(cutoff.getUTCFullYear() - activeYears);
-      let minDate = activeYears ? cutoff.toISOString().slice(0, 10) : "";
-      if (activeMetric === "refinanceFund" && minDate < metricRows[0].date) minDate = metricRows[0].date;
-      const policyPoints = metricRows
-        .filter(row => row.date >= minDate && Number.isFinite(row[activeMetric]))
-        .map(row => [row.date, row[activeMetric]]);
-      const indexSeries = indices.map(index => {
-        const baseline = index.rows.find(row => row.date >= baselineDate && Number.isFinite(row.close));
-        const baseClose = baseline?.close;
-        return {
-          name: index.name, type: "line", yAxisIndex: 1,
-          data: index.rows.filter(row => row.date >= minDate && Number.isFinite(row.close) && baseClose)
-            .map(row => [row.date, row.close / baseClose * 100]),
-          showSymbol: false, sampling: "lttb",
-          lineStyle: { width: 2, color: index.color }, itemStyle: { color: index.color }
-        };
-      });
+      const minDate = activeYears ? cutoff.toISOString().slice(0, 10) : "";
+      // Keep missing months as nulls so a line cannot bridge unpublished observations.
+      const visibleRows = rows.filter(row => row.date >= minDate && (!first || row.date >= first.date));
+      const byDate = new Map(rows.map(row => [row.date, row]));
+      document.getElementById("officialMarketLabel").textContent = cfg.market;
       document.getElementById("officialMetricSubtitle").textContent = cfg.subtitle;
+      const reason = officialData.meta.constituentAvailability[activeMetric];
+      document.querySelectorAll("#officialSeriesControls [data-series]").forEach(button => {
+        const enabled = button.dataset.series === "market" || holderMetric;
+        button.disabled = !enabled;
+        button.setAttribute("aria-pressed", String(selected.has(button.dataset.series)));
+        button.title = enabled ? "切换显示；选择对所有页签生效" : reason;
+      });
       renderExplanation("official", activeMetric);
-      document.getElementById("officialLatestReading").textContent = policyPoints.length
-        ? "官方指标 " + policyPoints[0][0] + " 至 " + policyPoints[policyPoints.length - 1][0] +
-          " · 最新 " + fmt(policyPoints[policyPoints.length - 1][1], cfg.digits) + cfg.unit
-        : "当前范围暂无官方指标数据";
+      const latestRows = visibleRows.filter(row => Number.isFinite(row[activeMetric]));
+      const latest = latestRows[latestRows.length - 1];
+      let reading = latest ? cfg.market + " · " + latest.date + " · " + fmt(latest[activeMetric], cfg.digits) + cfg.unit
+        : cfg.market + " · 当前范围暂无数据";
+      if (latest && cfg.partial && latest.partialMonth) reading += "（本月截至当日累计，非完整月）";
+      if (latest && activeMetric === "lpr1y" && latest.lprSourceDate) reading += " · 报价日期 " + [latest.lprSourceDate.slice(0, 4), latest.lprSourceDate.slice(4, 6), latest.lprSourceDate.slice(6, 8)].join("-");
+      if (latest && holderMetric) {
+        const coverage = latest.holderCoverage?.market;
+        if (coverage) reading += " · 可计价 " + coverage.pricedRecords + "/" + coverage.records + " 条公告记录";
+      }
+      document.getElementById("officialLatestReading").textContent = reading;
+      const series = scopes.filter(scope => selected.has(scope.key) && (scope.key === "market" || holderMetric)).map(scope => ({
+        id: scope.key, name: scope.key === "market" ? cfg.market : scope.name + " · " + cfg.title,
+        type: "line", step: cfg.step || false, connectNulls: false,
+        data: visibleRows.map(row => [row.date, (scope.key === "market" ? row[activeMetric] : row.holderIndices?.[scope.key]) ?? null]),
+        showSymbol: false,
+        lineStyle: { width: 2, color: scope.color }, itemStyle: { color: scope.color }
+      }));
+      const hasData = series.some(line => line.data.some(point => Number.isFinite(point[1])));
+      const empty = document.getElementById("officialEmptyState");
+      empty.hidden = hasData;
+      empty.textContent = series.length ? "当前范围暂无所选曲线的可核实数据" : "曲线已关闭，点击上方开关显示";
       chart.setOption({
         animation: false, backgroundColor: "transparent",
-        grid: { left: 80, right: 66, top: 68, bottom: 66 },
-        legend: { type: "scroll", top: 12, textStyle: { color: "#8fa5bf", fontSize: 11 } },
+        grid: { left: 92, right: 30, top: 28, bottom: 66 },
+        legend: { show: false },
         tooltip: {
           trigger: "axis", axisPointer: { type: "cross" },
-          backgroundColor: "rgba(7,17,31,.96)", borderColor: "#36506f",
-          textStyle: { color: "#edf4ff" },
+          backgroundColor: "rgba(7,17,31,.96)", borderColor: "#36506f", textStyle: { color: "#edf4ff" },
           formatter(params) {
-            const lines = params.map(item => item.marker + item.seriesName + "：<b>" +
-              fmt(Number(item.value[1]), item.seriesName === "官方指标" ? cfg.digits : 1) +
-              (item.seriesName === "官方指标" ? cfg.unit : "") + "</b>");
-            return "<b>" + (params[0]?.axisValueLabel || "") + "</b><br>" + lines.join("<br>");
+            const date = params[0]?.value?.[0];
+            const row = byDate.get(date);
+            const lines = params.map(item => {
+              let text = item.marker + item.seriesName + "：<b>" + fmt(item.value[1], cfg.digits) + cfg.unit + "</b>";
+              if (holderMetric) {
+                const scope = scopes.find(s => s.key === item.seriesId || (s.key === "market" ? cfg.market : s.name + " · " + cfg.title) === item.seriesName);
+                const count = row?.holderCoverage?.[scope?.key];
+                if (count && count.records != null) text += "（可计价 " + count.pricedRecords + "/" + count.records + " 条）";
+              }
+              return text;
+            });
+            const partial = cfg.partial && row?.partialMonth ? " · 截至当日累计，非完整月" : "";
+            return "<b>" + (date || "") + partial + "</b><br>" + lines.join("<br>");
           }
         },
         xAxis: { type: "time", axisLine: { lineStyle: { color: "#344760" } },
           axisLabel: { color: "#7890aa", hideOverlap: true }, splitLine: { show: false } },
-        yAxis: [
-          { type: "value", scale: true, axisLabel: { color: "#f6c85f", formatter(value) {
+        yAxis: { type: "value", scale: true, name: cfg.unit, nameTextStyle: { color: "#8fa5bf" },
+          axisLabel: { color: "#8fa5bf", formatter(value) {
             return cfg.unit === "亿元" && Math.abs(value) >= 10000
-              ? fmt(value / 10000, 1) + "万亿元"
-              : fmt(value, activeMetric === "refinanceFund" ? 0 : cfg.digits) + cfg.unit;
+              ? fmt(value / 10000, 1) + "万亿元" : fmt(value, cfg.unit === "%" ? cfg.digits : 0) + cfg.unit;
           } }, splitLine: { lineStyle: { color: "#17283d" } } },
-          { type: "value", scale: true, axisLabel: { color: "#8fa5bf", formatter: "{value}" },
-            splitLine: { show: false } }
-        ],
         dataZoom: [
-          { type: "inside", filterMode: "none", start: 0, end: 100 },
-          { type: "slider", bottom: 12, height: 22, start: 0, end: 100,
-            borderColor: "#263b58", backgroundColor: "#0d1929",
-            fillerColor: "rgba(255,93,115,.15)", handleStyle: { color: "#ff5d73" },
-            textStyle: { color: "#8fa5bf" } }
+          { type: "inside", filterMode: "none", ...zoom },
+          { type: "slider", bottom: 12, height: 22, ...zoom,
+            borderColor: "#263b58", backgroundColor: "#0d1929", fillerColor: "rgba(255,93,115,.15)",
+            handleStyle: { color: "#ff5d73" }, textStyle: { color: "#8fa5bf" } }
         ],
-        series: [
-          { name: "官方指标", type: "line", yAxisIndex: 0, data: policyPoints,
-            showSymbol: false, sampling: "lttb",
-            lineStyle: { width: 2, color: "#f6c85f" }, itemStyle: { color: "#f6c85f" } },
-          ...indexSeries
-        ]
+        series
       }, true);
     }
+
+    document.querySelectorAll("#officialSeriesControls [data-series]").forEach(button => {
+      button.addEventListener("click", () => {
+        if (button.disabled) return;
+        const key = button.dataset.series;
+        if (selected.has(key)) selected.delete(key); else selected.add(key);
+        renderChart(true);
+      });
+    });
 
     document.querySelectorAll("#officialMetricTabs [data-metric]").forEach(button => {
       button.addEventListener("click", () => {
