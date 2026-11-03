@@ -103,29 +103,11 @@ function htmlTemplate(data, echartsSource) {
       font-family: "Segoe UI", "Microsoft YaHei", sans-serif;
     }
     .wrap { max-width: 1540px; margin: 0 auto; padding: 28px 30px 34px; }
-    header { display: flex; justify-content: space-between; gap: 24px; align-items: flex-end; }
+    header { display: flex; justify-content: space-between; gap: 24px; align-items: flex-end; margin-bottom: 24px; }
     .eyebrow { color: var(--accent); font-size: 12px; letter-spacing: .18em; font-weight: 700; }
     h1 { margin: 7px 0 6px; font-size: 30px; line-height: 1.3; }
     .subtitle { color: var(--muted); font-size: 14px; }
     .asof { color: var(--muted); text-align: right; font-size: 13px; line-height: 1.7; }
-    .cards { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin: 24px 0 16px; }
-    .card {
-      background: linear-gradient(145deg, rgba(16,31,50,.98), rgba(10,22,37,.98));
-      border: 1px solid var(--line);
-      border-radius: 14px;
-      padding: 15px 16px;
-      min-height: 92px;
-    }
-    .card .label { color: var(--muted); font-size: 12px; margin-bottom: 9px; }
-    .card .value { font-size: 24px; font-weight: 750; letter-spacing: 0; }
-    .card .meta { color: var(--muted); font-size: 11px; margin-top: 5px; }
-    .sh { color: var(--sh); } .sz { color: var(--sz); }
-    .k50 { color: var(--k50); }
-    .source-summary { color: var(--muted); font-size: 12px; line-height: 1.8; margin: 0 0 16px; overflow-wrap: anywhere; }
-    .timeline-summary { color: var(--muted); font-size: 12px; line-height: 1.8; margin: 0 0 12px; }
-    .timeline-summary strong { color: var(--text); }
-    .timeline-summary a { color: var(--sz); }
-    .source-summary a { color: var(--sz); }
     .toolbar {
       display: flex; align-items: center; justify-content: space-between; gap: 16px;
       background: rgba(13,25,41,.86); border: 1px solid var(--line);
@@ -155,14 +137,12 @@ function htmlTemplate(data, echartsSource) {
     .note { border: 1px solid var(--line); background: rgba(13,25,41,.75); border-radius: 12px; padding: 13px 15px; }
     .note strong { color: var(--text); }
     @media (max-width: 1000px) {
-      .cards { grid-template-columns: repeat(3, 1fr); }
       header { align-items: flex-start; flex-direction: column; }
       .asof { text-align: left; }
       .volume-charts { grid-template-columns: 1fr; }
     }
     @media (max-width: 620px) {
       .wrap { padding: 20px 12px 26px; }
-      .cards { grid-template-columns: repeat(2, 1fr); }
       .toolbar { align-items: flex-start; flex-direction: column; }
       .notes { grid-template-columns: 1fr; }
       h1 { font-size: 25px; }
@@ -179,16 +159,6 @@ function htmlTemplate(data, echartsSource) {
     </div>
     <div class="asof">截至 ${END}<br>周频展示，底层数据为交易日数据</div>
   </header>
-  <section class="cards" id="cards"></section>
-  <div class="source-summary">
-    科创50估值：<a href="https://tushare.pro/document/2?doc_id=128" target="_blank" rel="noopener">Tushare</a> · ${data.stats.k50.date}。
-    科创综指估值：<a href="${data.officialHistory.meta.sourceUrl}" target="_blank" rel="noopener">中证指数官方历史行情</a> · ${data.officialHistory.rows[0].date} 起有 PE(TTM)，最新 ${data.officialHistory.rows.at(-1).date}；与 Tushare 估值口径不同，不直接横向比较。<a href="${data.official.meta.sourceUrl}" target="_blank" rel="noopener">官方单张</a>用于交叉核对。
-  </div>
-  <div class="timeline-summary">
-    <strong>板块起点与指数起点：</strong>
-    <a href="https://www.szse.cn/aboutus/trends/news/t20091102_517893.html" target="_blank" rel="noopener">创业板开市</a> ${BOARD_START.sh}，创业板指行情始于 ${data.sh[0].date}；
-    <a href="https://www.sse.com.cn/aboutus/mediacenter/hotandd/c/c_20190705_4858654.shtml" target="_blank" rel="noopener">科创板开市</a> ${BOARD_START.k50}，科创50、科创综指行情始于 ${data.k50[0].date}。开市日至指数基日期间没有这三个指数的价格数据。
-  </div>
   <section>
     <div class="toolbar">
       <div class="ranges" aria-label="三个指数共同时间范围">
@@ -228,22 +198,6 @@ function htmlTemplate(data, echartsSource) {
 const DATA = ${dataJson};
 const COLORS = { sh: "#ff5d73", sz: "#36c2ff", k50: "#7ddc82", volume: "#f6c85f", amount: "#7ddc82" };
 const fmt = (n, digits = 2) => n != null && Number.isFinite(Number(n)) ? Number(n).toLocaleString("zh-CN", { minimumFractionDigits: digits, maximumFractionDigits: digits }) : "--";
-const signed = (n) => Number.isFinite(Number(n)) ? (n >= 0 ? "+" : "") + fmt(n, 1) + "%" : "--";
-const cards = [
-  ["创业板指", fmt(DATA.stats.sh.close), "近1年 " + signed(DATA.stats.sh.yearChange), "sh"],
-  ["创业板PE(TTM)", fmt(DATA.stats.sh.pe), "样本分位 " + fmt(DATA.stats.sh.pePercentile, 0) + "%", "sh"],
-  ["创业板真实利润", fmt(DATA.stats.sh.profitYi), "归母净利润TTM，亿元", "sh"],
-  ["科创50", fmt(DATA.stats.k50.close), "Tushare · " + DATA.stats.k50.date, "k50"],
-  ["科创50 PE(TTM)", fmt(DATA.stats.k50.pe), "Tushare · " + DATA.stats.k50.date, "k50"],
-  ["科创综指", fmt(DATA.stats.sz.close), "近1年 " + signed(DATA.stats.sz.yearChange), "sz"],
-  ["科创综指PE(TTM)", fmt(DATA.officialHistory.rows.at(-1).pe), "中证指数 · " + DATA.officialHistory.rows.at(-1).date, "sz"],
-  ["科创综指真实利润", fmt(DATA.stats.sz.profitYi), "归母净利润TTM，亿元", "sz"],
-];
-document.getElementById("cards").innerHTML = cards.map(([label, value, meta, cls]) =>
-  '<article class="card"><div class="label">' + label + '</div><div class="value ' + cls + '">' + value +
-  '</div><div class="meta">' + meta + '</div></article>'
-).join("");
-
 const topDates = [
   { xAxis: "2007-10-16", name: "2007顶" },
   { xAxis: "2009-08-04", name: "2009顶" },
