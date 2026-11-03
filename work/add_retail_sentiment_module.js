@@ -1,6 +1,7 @@
 const fs = require("fs");
 const path = require("path");
 const { guideCss, explanationScript } = require("./sentiment_explanations");
+const { movingAverageScript, movingAverageControls, movingAverageCss } = require("./point_moving_average");
 const explanationMethods = require("./sentiment_methodology.json");
 
 const ROOT = path.resolve(__dirname, "..");
@@ -19,6 +20,7 @@ function stripExisting(html) {
 const css = `
   <style id="retail-sentiment-style">
     ${guideCss("retail-sentiment")}
+    ${movingAverageCss("retail-sentiment")}
     #retailSentimentChart { height: 540px; width: 100%; }
     #retailSeriesControls { display: flex; flex-wrap: wrap; gap: 8px 18px; padding: 10px 16px 0; }
     #retailSeriesControls button { display: inline-flex; align-items: center; gap: 6px; padding: 4px 0;
@@ -74,6 +76,7 @@ const moduleHtml = `
         <button class="metric-tab" data-metric="marginBalance">融资余额</button>
         <button class="metric-tab" data-metric="marginFloatRatio">融资余额/流通市值</button>
       </div>
+      ${movingAverageControls("retail")}
       <div class="metric-note">
         <span class="metric-reading" id="retailLatestReading"></span>
       </div>
@@ -138,16 +141,32 @@ const script = `
       }
     };
     ${explanationScript(["amount", "volume", "turnover", "marginBalance", "marginFloatRatio"], "retail", explanationMethods)}
+    ${movingAverageScript()}
 
     let activeMetric = "amount";
     let activeYears = 0;
+    let activeAverage = 1;
+    const averageMetrics = new Set(["amount", "volume", "turnover"]);
     const selectedSeries = new Set(["沪深两市", "创业板指", "科创50", "科创综指"]);
     const chart = echarts.init(document.getElementById("retailSentimentChart"), null, { renderer: "canvas" });
     document.getElementById("retailDataStatus").textContent =
       "市场数据 " + retailData.series[0].date + " 起 / 指数按实际起点显示";
 
-    function renderChart() {
+    function renderChart({ resetZoom = false } = {}) {
       const cfg = metrics[activeMetric];
+      const supportsAverage = averageMetrics.has(activeMetric);
+      const effectiveAverage = supportsAverage ? activeAverage : 1;
+      const averageLabel = effectiveAverage === 1 ? "原数据" : effectiveAverage + "点均线";
+      const averageControls = document.getElementById("retailAverageModes");
+      averageControls.hidden = !supportsAverage;
+      averageControls.querySelectorAll("[data-average]").forEach(button => {
+        const selected = Number(button.dataset.average) === activeAverage;
+        button.classList.toggle("active", selected);
+        button.setAttribute("aria-pressed", String(selected));
+      });
+      const previousZoom = resetZoom ? null : chart.getOption()?.dataZoom?.[0];
+      const zoomStart = previousZoom?.start ?? 0;
+      const zoomEnd = previousZoom?.end ?? 100;
       const end = new Date(retailData.series[retailData.series.length - 1].date + "T00:00:00Z");
       const cutoff = new Date(end);
       if (activeYears) cutoff.setUTCFullYear(cutoff.getUTCFullYear() - activeYears);
@@ -156,14 +175,14 @@ const script = `
       const series = cfg.sources.filter(source => selectedSeries.has(source.name)).map(source => ({
         name: source.name,
         type: "line",
-        data: source.rows.filter(row => row.date >= minDate && Number.isFinite(row[source.field]))
-          .map(row => [row.date, row[source.field]]),
+        data: pointMovingAverage(source.rows.map(row => [row.date, row[source.field]]), effectiveAverage)
+          .filter(point => point[0] >= minDate),
         showSymbol: false,
         sampling: "lttb",
         lineStyle: { width: 2, color: source.color },
         itemStyle: { color: source.color }
       }));
-      const dates = series.flatMap(item => item.data.map(point => point[0]));
+      const dates = series.flatMap(item => item.data.filter(point => Number.isFinite(point[1])).map(point => point[0]));
       dates.sort();
       document.getElementById("retailMetricSubtitle").textContent = cfg.subtitle;
       renderExplanation("retail", activeMetric);
@@ -180,8 +199,8 @@ const script = `
           textStyle: { color: "#edf4ff" },
           formatter(params) {
             const lines = params.map(item => item.marker + item.seriesName + "：<b>" +
-              fmt(Number(item.value[1]), cfg.digits) + cfg.unit + "</b>");
-            return "<b>" + (params[0]?.axisValueLabel || "") + "</b><br>" + lines.join("<br>");
+              fmt(item.value[1], cfg.digits) + (Number.isFinite(item.value[1]) ? cfg.unit : "") + "</b>");
+            return "<b>" + (params[0]?.axisValueLabel || "") + "</b> · " + averageLabel + "<br>" + lines.join("<br>");
           }
         },
         xAxis: {
@@ -199,8 +218,8 @@ const script = `
           splitLine: { lineStyle: { color: "#17283d" } }
         },
         dataZoom: [
-          { type: "inside", filterMode: "none", start: 0, end: 100 },
-          { type: "slider", bottom: 12, height: 22, start: 0, end: 100,
+          { type: "inside", filterMode: "none", start: zoomStart, end: zoomEnd },
+          { type: "slider", bottom: 12, height: 22, start: zoomStart, end: zoomEnd,
             borderColor: "#263b58", backgroundColor: "#0d1929",
             fillerColor: "rgba(246,200,95,.18)", handleStyle: { color: "#f6c85f" },
             textStyle: { color: "#8fa5bf" } }
@@ -209,6 +228,12 @@ const script = `
       }, true);
     }
 
+    document.querySelectorAll("#retailAverageModes [data-average]").forEach(button => {
+      button.addEventListener("click", () => {
+        activeAverage = Number(button.dataset.average);
+        renderChart();
+      });
+    });
     document.querySelectorAll("#retailMetricTabs [data-metric]").forEach(button => {
       button.addEventListener("click", () => {
         activeMetric = button.dataset.metric;
@@ -235,7 +260,7 @@ const script = `
         activeYears = Number(button.dataset.years);
         document.querySelectorAll("#retailRangeTabs [data-years]").forEach(item => item.classList.remove("active"));
         button.classList.add("active");
-        renderChart();
+        renderChart({ resetZoom: true });
       });
     });
 

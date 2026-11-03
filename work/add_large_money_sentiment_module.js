@@ -1,6 +1,7 @@
 const fs = require("fs");
 const path = require("path");
 const { guideCss, explanationScript } = require("./sentiment_explanations");
+const { movingAverageScript, movingAverageControls, movingAverageCss } = require("./point_moving_average");
 const explanationMethods = require("./sentiment_methodology.json");
 
 const ROOT = path.resolve(__dirname, "..");
@@ -22,6 +23,7 @@ function stripExisting(html) {
 const css = `
   <style id="large-money-sentiment-style">
     ${guideCss("large-money-sentiment")}
+    ${movingAverageCss("large-money-sentiment")}
     #largeMoneyChart { height: 560px; width: 100%; }
     #largeMoneySeriesControls { display: flex; flex-wrap: wrap; gap: 8px 18px; padding: 10px 16px 0; }
     #largeMoneySeriesControls button { display: inline-flex; align-items: center; gap: 6px; padding: 4px 0;
@@ -81,6 +83,7 @@ const moduleHtml = `
         <button class="metric-tab" data-metric="institutionConcentration">机构持仓集中度</button>
         <button class="metric-tab" data-metric="etfShares">ETF份额</button>
       </div>
+      ${movingAverageControls("largeMoney")}
       <div class="metric-tabs" id="largeMoneyHoldingModes" role="group" aria-label="北向持仓统计口径">
         <button class="metric-tab active" type="button" data-holding-mode="value">持仓市值</button>
         <button class="metric-tab" type="button" data-holding-mode="ratio">占指数总市值</button>
@@ -109,6 +112,7 @@ const script = `
     const fundReports = __FUND_REPORTS__;
     const etfShares = __ETF_SHARES__;
     const northHoldings = __NORTH_HOLDINGS__;
+    ${movingAverageScript()}
     const fmt = (value, digits = 1) => Number.isFinite(value)
       ? Number(value).toLocaleString("zh-CN", { minimumFractionDigits: digits, maximumFractionDigits: digits })
       : "--";
@@ -161,6 +165,7 @@ const script = `
       return day.toISOString().slice(0, 10);
     }
     let activeMetric = "blockAmount";
+    let averageWindow = 1;
     let holdingMode = "value";
     let activeYears = 0;
     const selectedSeries = new Set(["全市场资金", "创业板指", "科创50", "科创综指"]);
@@ -169,8 +174,14 @@ const script = `
       "大宗与增减持 " + largeMoneyData.series[0].date + " 起 / 北向持仓至 " +
       northHoldings.series[northHoldings.series.length - 1].date;
 
-    function renderChart() {
+    function renderChart({ resetZoom = false } = {}) {
       const cfg = metrics[activeMetric];
+      const previousZoom = resetZoom ? null : chart.getOption()?.dataZoom?.[0];
+      const zoomStart = previousZoom?.start ?? 0;
+      const zoomEnd = previousZoom?.end ?? 100;
+      const supportsAverage = ["blockAmount", "institutionBlockNet", "holderNetShares"].includes(activeMetric);
+      const effectiveAverageWindow = supportsAverage ? averageWindow : 1;
+      const averageLabel = effectiveAverageWindow === 1 ? "原数据" : effectiveAverageWindow + "点均线";
       const northFlowMode = activeMetric === "northMoney";
       const maxDate = northFlowMode ? weekEnd(largeMoneyData.meta.northEnd) : largeMoneyData.series[largeMoneyData.series.length - 1].date;
       const end = new Date(maxDate + "T00:00:00Z");
@@ -194,12 +205,15 @@ const script = `
         : etfMode ? row[key === "total" ? "total" : key] : row[cfg.field];
       const latestIncomplete = sourceRows[sourceRows.length - 1]?.incompleteWeek;
       const available = row => !fundMode || row.coverage >= 40;
-      const moneyPoints = holdingView ? [] : sourceRows
-        .filter(row => row.date >= minDate && row.date <= maxDate && available(row) && Number.isFinite(valueOf(row, "total")))
-        .map(row => [row.date, valueOf(row, "total")]);
+      // Average the complete sampling history before clipping the visible range.
+      // Keep missing values in the window so gaps cannot silently be bridged.
+      const allMoneyPoints = holdingView ? [] : sourceRows.map(row => [row.date,
+        available(row) && Number.isFinite(valueOf(row, "total")) ? valueOf(row, "total") : null]);
+      const moneyPoints = pointMovingAverage(allMoneyPoints, effectiveAverageWindow)
+        .filter(point => point[0] >= minDate && point[0] <= maxDate && (supportsAverage || point[1] != null));
       const latestReport = fundMode && moneyPoints.length
         ? sourceRows.find(row => row.date === moneyPoints[moneyPoints.length - 1][0]) : null;
-      const weekDates = largeMoneyData.series.filter(row => row.date >= minDate && row.date <= maxDate).map(row => row.date);
+      const weekDates = largeMoneyData.series.map(row => row.date);
       const indexSeries = northFlowMode ? [] : indices.filter(index => selectedSeries.has(index.name)).map(index => {
         let values;
         if (fundMode || etfMode || holdingView) {
@@ -208,12 +222,14 @@ const script = `
               ? valueOf(row, index.key) : null]);
         } else {
           const amounts = new Map(indexMoneyData[index.key].map(row => [row.date, row[cfg.field]]));
-          values = weekDates.map(date => [date, amounts.has(date) ? amounts.get(date) : null]);
+          values = pointMovingAverage(weekDates.map(date => [date,
+            Number.isFinite(amounts.get(date)) ? amounts.get(date) : null]), effectiveAverageWindow)
+            .filter(point => point[0] >= minDate && point[0] <= maxDate);
         }
         return {
           name: index.name, type: "line", yAxisIndex: 0,
           data: values,
-          showSymbol: fundMode || holdingView, symbolSize: 5, sampling: "lttb",
+          showSymbol: fundMode || holdingView, symbolSize: 5, sampling: "lttb", connectNulls: false,
           lineStyle: { width: 2, color: index.color }, itemStyle: { color: index.color }
         };
       });
@@ -225,6 +241,12 @@ const script = `
       document.getElementById("largeMoneySeriesControls").style.display = northFlowMode ? "none" : "";
       totalButton.style.display = holdingView ? "none" : "";
       document.getElementById("largeMoneyHoldingModes").classList.toggle("is-visible", holdingView);
+      document.getElementById("largeMoneyAverageModes").hidden = !supportsAverage;
+      document.querySelectorAll("#largeMoneyAverageModes [data-average]").forEach(button => {
+        const active = Number(button.dataset.average) === averageWindow;
+        button.classList.toggle("active", active);
+        button.setAttribute("aria-pressed", String(active));
+      });
       totalButton.lastChild.textContent = moneyName;
       totalButton.setAttribute("aria-label", moneyName);
       const holdingRows = holdingView ? sourceRows.filter(row => row.date >= minDate) : [];
@@ -232,7 +254,9 @@ const script = `
         ? (holdingRows.length ? "季度末 " + holdingRows[0].date + " 至 " + holdingRows[holdingRows.length - 1].date : "当前范围暂无持仓数据")
         : moneyPoints.length
         ? (fundMode ? "报告期 " : "周标签 ") + moneyPoints[0][0] + " 至 " + moneyPoints[moneyPoints.length - 1][0] +
-          " · 最新 " + fmt(moneyPoints[moneyPoints.length - 1][1], cfg.digits) + displayUnit +
+          " · 最新" + (supportsAverage ? averageLabel : "") + " " + fmt(moneyPoints[moneyPoints.length - 1][1], cfg.digits) + displayUnit +
+          (supportsAverage && moneyPoints[moneyPoints.length - 1][1] == null
+            ? "（" + (effectiveAverageWindow > 1 ? "窗口点数不足或含缺失值" : "暂无数据") + "）" : "") +
           (latestIncomplete ? " · 本周未结束" + (etfMode ? "，份额取最近披露值" : "，仅含截至刷新日记录") : "") +
           (latestReport ? " · 样本 " + latestReport.funds + " 只 / 覆盖 " + latestReport.coverage + "%" : "")
         : "当前范围暂无资金数据";
@@ -245,9 +269,10 @@ const script = `
           backgroundColor: "rgba(7,17,31,.96)", borderColor: "#36506f",
           textStyle: { color: "#edf4ff" },
           formatter(params) {
-            const lines = params.filter(item => item.value?.[1] != null).map(item => item.marker + item.seriesName + "：<b>" +
+            const lines = params.filter(item => Number.isFinite(item.value?.[1])).map(item => item.marker + item.seriesName + "：<b>" +
               fmt(Number(item.value[1]), holdingView && holdingMode === "ratio" ? 3 : cfg.digits) +
               displayUnit + "</b>");
+            if (!lines.length) lines.push(effectiveAverageWindow > 1 ? "窗口点数不足或含缺失值" : "暂无数据");
             const pointDate = params.find(item => item.value?.[0])?.value[0];
             if (sourceRows.find(row => row.date === pointDate)?.incompleteWeek) {
               lines.push("本周未结束" + (etfMode ? "，份额取最近披露值" : "，仅含截至刷新日记录"));
@@ -257,7 +282,7 @@ const script = `
               const report = sourceRows.find(row => row.date === reportDate);
               if (report) lines.push("样本 " + report.funds + " 只 / 覆盖 " + report.coverage + "%");
             }
-            return "<b>" + (params[0]?.axisValueLabel || "") + "</b><br>" + lines.join("<br>");
+            return "<b>" + (params[0]?.axisValueLabel || "") + (supportsAverage ? " · " + averageLabel : "") + "</b><br>" + lines.join("<br>");
           }
         },
         xAxis: { type: "time", axisLine: { lineStyle: { color: "#344760" } },
@@ -267,15 +292,15 @@ const script = `
             splitLine: { lineStyle: { color: "#17283d" } } },
         ],
         dataZoom: [
-          { type: "inside", filterMode: "none", start: 0, end: 100 },
-          { type: "slider", bottom: 12, height: 22, start: 0, end: 100,
+          { type: "inside", filterMode: "none", start: zoomStart, end: zoomEnd },
+          { type: "slider", bottom: 12, height: 22, start: zoomStart, end: zoomEnd,
             borderColor: "#263b58", backgroundColor: "#0d1929",
             fillerColor: "rgba(54,194,255,.17)", handleStyle: { color: "#36c2ff" },
             textStyle: { color: "#8fa5bf" } }
         ],
         series: [
           ...(!holdingView && (northFlowMode || selectedSeries.has("全市场资金")) ? [{ name: moneyName, type: "line", yAxisIndex: 0, data: moneyPoints,
-            showSymbol: fundMode, symbolSize: 5, sampling: "lttb",
+            showSymbol: fundMode, symbolSize: 5, sampling: "lttb", connectNulls: false,
             lineStyle: { width: 2, color: "#f6c85f" }, itemStyle: { color: "#f6c85f" } }] : []),
           ...indexSeries
         ]
@@ -304,6 +329,12 @@ const script = `
         renderChart();
       });
     });
+    document.querySelectorAll("#largeMoneyAverageModes [data-average]").forEach(button => {
+      button.addEventListener("click", () => {
+        averageWindow = Number(button.dataset.average);
+        renderChart();
+      });
+    });
     document.querySelectorAll("#largeMoneySeriesControls [data-series]").forEach(button => {
       button.addEventListener("click", () => {
         const name = button.dataset.series;
@@ -324,7 +355,7 @@ const script = `
         activeYears = Number(button.dataset.years);
         document.querySelectorAll("#largeMoneyRangeTabs [data-years]").forEach(item => item.classList.remove("active"));
         button.classList.add("active");
-        renderChart();
+        renderChart({ resetZoom: true });
       });
     });
 

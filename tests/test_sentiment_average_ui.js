@@ -1,0 +1,267 @@
+const { test } = require("node:test");
+const assert = require("node:assert/strict");
+const fs = require("node:fs");
+const path = require("node:path");
+const vm = require("node:vm");
+
+// Exercise the deployed scripts and their real HTML controls without a browser.
+// This checks interactions and chart options, not canvas rendering or CSS layout.
+const html = fs.readFileSync(path.join(__dirname, "..", "index.html"), "utf8");
+const plain = value => JSON.parse(JSON.stringify(value));
+const scripts = Object.fromEntries(Array.from(html.matchAll(/<script id="([^"]+)">([\s\S]*?)<\/script>/g),
+  match => [match[1], match[2]]));
+function jsonConstant(source, name) {
+  const match = source.match(new RegExp("^\\s*const " + name + " = (.+);$", "m"));
+  assert.ok(match, "Missing embedded data: " + name);
+  return JSON.parse(match[1]);
+}
+const marketData = jsonConstant(html, "DATA");
+const dataKeys = ["sh", "k50", "sz"];
+const indexNames = ["创业板指", "科创50", "科创综指"];
+const definitions = [
+  { prefix: "retail", script: "retail-sentiment-script", chart: "retailSentimentChart",
+    metrics: ["amount", "volume", "turnover"], unsupported: ["marginBalance", "marginFloatRatio"] },
+  { prefix: "largeMoney", script: "large-money-sentiment-script", chart: "largeMoneyChart",
+    metrics: ["blockAmount", "institutionBlockNet", "holderNetShares"],
+    unsupported: ["northHoldings", "fundPosition", "institutionConcentration", "etfShares"] }
+];
+
+function attributes(text) {
+  return Object.fromEntries(Array.from(text.matchAll(/([\w-]+)="([^"]*)"/g), m => [m[1], m[2]]));
+}
+function element(attrs = {}) {
+  const classes = new Set((attrs.class || "").split(/\s+/).filter(Boolean));
+  const listeners = new Map();
+  return {
+    id: attrs.id, attrs, style: {}, hidden: false, innerHTML: "", textContent: "", children: [],
+    lastChild: { textContent: "" },
+    dataset: Object.fromEntries(Object.entries(attrs).filter(([key]) => key.startsWith("data-"))
+      .map(([key, value]) => [key.slice(5).replace(/-([a-z])/g, (_, ch) => ch.toUpperCase()), value])),
+    classList: {
+      add: value => classes.add(value), remove: value => classes.delete(value),
+      contains: value => classes.has(value),
+      toggle(value, enabled = !classes.has(value)) { enabled ? classes.add(value) : classes.delete(value); }
+    },
+    setAttribute(key, value) { this.attrs[key] = String(value); },
+    getAttribute(key) { return this.attrs[key] ?? null; },
+    addEventListener(name, fn) { listeners.set(name, fn); },
+    click() { assert.ok(listeners.has("click"), "Control has no click handler"); listeners.get("click")(); },
+    querySelectorAll(selector) {
+      const match = selector.match(/^\[([^=\]]+)(?:="([^"]*)")?\]$/);
+      assert.ok(match, "Unexpected selector: " + selector);
+      return this.children.filter(child => Object.hasOwn(child.attrs, match[1]) &&
+        (match[2] === undefined || child.attrs[match[1]] === match[2]));
+    }
+  };
+}
+function mount(def) {
+  const nodes = new Map();
+  for (const match of html.matchAll(/<[a-z][\w-]*\b([^>]*\bid="[^"]+"[^>]*)>/g)) {
+    const attrs = attributes(match[1]);
+    nodes.set(attrs.id, element(attrs));
+  }
+  for (const suffix of ["AverageModes", "MetricTabs", "SeriesControls", "RangeTabs", "HoldingModes"]) {
+    const id = def.prefix + suffix;
+    if (!nodes.has(id)) continue;
+    const body = html.match(new RegExp('<div[^>]*id="' + id + '"[^>]*>([\\s\\S]*?)<\\/div>'));
+    assert.ok(body, "Missing controls: " + id);
+    nodes.get(id).children = Array.from(body[1].matchAll(/<button\b([^>]*)>([\s\S]*?)<\/button>/g), match => {
+      const button = element(attributes(match[1]));
+      button.textContent = match[2].replace(/<[^>]*>/g, "");
+      return button;
+    });
+  }
+  const document = {
+    getElementById(id) { assert.ok(nodes.has(id), "Missing element: " + id); return nodes.get(id); },
+    querySelectorAll(selector) {
+      const match = selector.match(/^#([^ ]+) (.+)$/);
+      assert.ok(match, "Unexpected document selector: " + selector);
+      return this.getElementById(match[1]).querySelectorAll(match[2]);
+    },
+    querySelector(selector) { return this.querySelectorAll(selector)[0] || null; }
+  };
+  const chart = {
+    option: {}, renders: 0, resize() {},
+    getOption() { return this.option; },
+    setOption(option) { this.option = option; this.renders++; }
+  };
+  const sandbox = {
+    DATA: marketData,
+    COLORS: { sh: "#ff5d73", k50: "#7ddc82", sz: "#36c2ff" },
+    document, window: { addEventListener() {} },
+    echarts: { init(node) { assert.equal(node.id, def.chart); return chart; } }
+  };
+  assert.ok(scripts[def.script], "Build the dashboard before running this test");
+  vm.runInNewContext(scripts[def.script], sandbox, { filename: def.script, timeout: 10000 });
+  return {
+    chart, nodes,
+    controls: nodes.get(def.prefix + "AverageModes"),
+    buttons(suffix) { return nodes.get(def.prefix + suffix).children; },
+    click(suffix, attribute, value) {
+      const button = this.buttons(suffix).find(item => item.attrs[attribute] === String(value));
+      assert.ok(button, "Missing button: " + suffix + " " + value);
+      button.click();
+    },
+    average(value) { this.click("AverageModes", "data-average", value); },
+    metric(value) { this.click("MetricTabs", "data-metric", value); },
+    series() { return plain(chart.option.series.map(({ name, data }) => ({ name, data }))); }
+  };
+}
+function expectedRaw(def, metric) {
+  const source = scripts[def.script];
+  if (def.prefix === "retail") {
+    const market = jsonConstant(source, "retailData").series;
+    const index = jsonConstant(source, "indexData");
+    const marketField = metric === "volume" ? "volumeProxy" : metric;
+    const field = { amount: "amountYi", volume: "volumeYiShou", turnover: "turnover" }[metric];
+    return [{ name: "沪深两市", data: market.map(row => [row.date, row[marketField]]) },
+      ...dataKeys.map((key, i) => ({ name: indexNames[i],
+        data: (metric === "turnover" ? index : marketData)[key].map(row => [row.date, row[field]]) }))];
+  }
+  const market = jsonConstant(source, "largeMoneyData").series;
+  const index = jsonConstant(source, "indexMoneyData");
+  const field = metric === "holderNetShares" ? "holderNetAmount" : metric;
+  return [{ name: "全市场资金", data: market.map(row => [row.date, row[field]]) },
+    ...dataKeys.map((key, i) => {
+      const values = new Map(index[key].map(row => [row.date, row[field]]));
+      return { name: indexNames[i], data: market.map(row => [row.date, values.get(row.date)]) };
+    })];
+}
+function selectedMode(ui, value) {
+  for (const button of ui.buttons("AverageModes")) {
+    const selected = button.dataset.average === String(value);
+    assert.equal(button.classList.contains("active"), selected);
+    assert.equal(button.getAttribute("aria-pressed"), String(selected));
+  }
+}
+function close(actual, expected, label) {
+  assert.ok(Number.isFinite(actual), label + " is missing");
+  assert.ok(Math.abs(actual - expected) <= 1e-9 * Math.max(1, Math.abs(expected)), label + " differs");
+}
+function checkSample(raw, rendered, windowSize, position) {
+  const points = raw.data.slice(position - windowSize + 1, position + 1);
+  assert.equal(points.length, windowSize);
+  assert.ok(points.every(point => Number.isFinite(point[1])));
+  // Independently sum one actual disclosed window; do not call the production helper.
+  const average = points.reduce((sum, point) => sum + point[1], 0) / windowSize;
+  const actual = rendered.data.find(point => point[0] === raw.data[position][0]);
+  assert.ok(actual, "Missing expected date " + raw.data[position][0]);
+  close(actual[1], average, raw.name + " " + actual[0] + " MA" + windowSize);
+}
+
+for (const def of definitions) {
+  test(def.prefix + ": defaults, 3 metrics × 3 modes, raw values and disclosed moving-average windows", () => {
+    const ui = mount(def);
+    selectedMode(ui, 1);
+    assert.equal(ui.controls.hidden, false);
+    for (const metric of def.metrics) {
+      ui.metric(metric);
+      const raw = expectedRaw(def, metric);
+      for (const windowSize of [1, 7, 30]) {
+        ui.average(windowSize);
+        selectedMode(ui, windowSize);
+        const rendered = ui.series();
+        assert.equal(rendered.length, 4);
+        for (const expected of raw) {
+          const line = rendered.find(item => item.name === expected.name);
+          assert.ok(line);
+          assert.deepEqual(line.data.map(point => point[0]), expected.data.map(point => point[0]));
+          if (windowSize === 1) {
+            assert.deepEqual(line.data.filter(point => Number.isFinite(point[1])),
+              expected.data.filter(point => Number.isFinite(point[1])));
+          } else {
+            assert.ok(line.data.slice(0, windowSize - 1).every(point => point[1] === null));
+            let lastComplete = -1;
+            for (let i = windowSize - 1; i < expected.data.length; i++) {
+              if (expected.data.slice(i - windowSize + 1, i + 1).every(point => Number.isFinite(point[1]))) {
+                lastComplete = i;
+              } else {
+                assert.equal(line.data[i][1], null, expected.name + " must not bridge a missing sample");
+              }
+            }
+            assert.ok(lastComplete >= 0, "No complete disclosed window");
+            checkSample(expected, line, windowSize, lastComplete);
+          }
+        }
+        const tooltip = ui.chart.option.tooltip.formatter([{ marker: "", seriesName: "测试曲线",
+          value: ["2026-01-01", null], axisValueLabel: "2026-01-01" }]);
+        assert.ok(tooltip.includes(windowSize === 1 ? "原数据" : windowSize + "点均线"));
+        assert.doesNotMatch(tooltip, /测试曲线：<b>0(?:[.,]0+)?/);
+        assert.match(tooltip, /--|暂无数据|缺失值/);
+      }
+    }
+  });
+
+  test(def.prefix + ": unrelated tabs remain raw, hide controls, and restore the selected average", () => {
+    const ui = mount(def);
+    const unrelated = new Map();
+    for (const metric of def.unsupported) {
+      ui.metric(metric);
+      unrelated.set(metric, ui.series());
+    }
+    ui.metric(def.metrics[0]);
+    ui.average(30);
+    for (const metric of def.unsupported) {
+      ui.metric(metric);
+      assert.equal(ui.controls.hidden, true);
+      assert.deepEqual(ui.series(), unrelated.get(metric));
+    }
+    ui.metric(def.metrics[0]);
+    assert.equal(ui.controls.hidden, false);
+    selectedMode(ui, 30);
+    const raw = expectedRaw(def, def.metrics[0])[0];
+    checkSample(raw, ui.series()[0], 30, raw.data.length - 1);
+  });
+
+  test(def.prefix + ": time-range boundary averages use earlier history; selecting one curve retains averages", () => {
+    const ui = mount(def);
+    for (const metric of def.metrics) {
+      ui.metric(metric);
+      const raw = expectedRaw(def, metric);
+      for (const windowSize of [7, 30]) {
+        ui.click("RangeTabs", "data-years", 0);
+        ui.average(windowSize);
+        ui.click("RangeTabs", "data-years", 3);
+        const rendered = ui.series();
+        let checkedBoundaries = 0;
+        for (const line of rendered) {
+          const source = raw.find(item => item.name === line.name);
+          const position = source.data.findIndex(point => point[0] === line.data[0][0]);
+          if (position < windowSize - 1) continue; // Newly launched index has no prior history.
+          if (!source.data.slice(position - windowSize + 1, position + 1).every(point => Number.isFinite(point[1]))) continue;
+          assert.ok(source.data[position - 1][0] < line.data[0][0]);
+          checkSample(source, line, windowSize, position);
+          checkedBoundaries++;
+        }
+        assert.ok(checkedBoundaries > 0, "Must test a range boundary with earlier history");
+      }
+    }
+    const before = ui.series();
+    for (const button of ui.buttons("SeriesControls").slice(0, 3)) button.click();
+    assert.equal(ui.series().length, 1);
+    const remaining = ui.series()[0];
+    assert.deepEqual(remaining, before.find(line => line.name === remaining.name));
+    selectedMode(ui, 30);
+    const last = ui.buttons("SeriesControls").at(-1);
+    last.click();
+    assert.equal(ui.series().length, 1, "Must keep at least one visible curve");
+    assert.equal(last.getAttribute("aria-pressed"), "true");
+    assert.equal(ui.chart.option.dataZoom.length, 2);
+  });
+}
+
+for (const def of definitions) {
+  test(def.prefix + ": changing average and visible curves preserves zoom; choosing a range resets zoom", () => {
+    const ui = mount(def);
+    ui.chart.option.dataZoom.forEach(zoom => { zoom.start = 35; zoom.end = 80; });
+    ui.average(7);
+    assert.equal(ui.chart.option.dataZoom[0].start, 35);
+    assert.equal(ui.chart.option.dataZoom[0].end, 80);
+    ui.buttons("SeriesControls")[0].click();
+    assert.equal(ui.chart.option.dataZoom[0].start, 35);
+    assert.equal(ui.chart.option.dataZoom[0].end, 80);
+    ui.click("RangeTabs", "data-years", 3);
+    assert.equal(ui.chart.option.dataZoom[0].start, 0);
+    assert.equal(ui.chart.option.dataZoom[0].end, 100);
+  });
+}
