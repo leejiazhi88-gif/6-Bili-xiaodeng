@@ -1,5 +1,7 @@
 const fs = require("fs");
 const path = require("path");
+const { guideCss, explanationScript } = require("./sentiment_explanations");
+const explanationMethods = require("./sentiment_methodology.json");
 
 const ROOT = path.resolve(__dirname, "..");
 const OUTPUT = path.join(ROOT, "outputs", "growth_indices_dashboard.html");
@@ -15,6 +17,7 @@ function stripExisting(html) {
 
 const css = `
   <style id="official-sentiment-style">
+    ${guideCss("official-sentiment")}
     #refinanceSourceLink { color: #f6c85f; }
     #officialSentimentChart { height: 560px; width: 100%; }
     @media (max-width: 980px) {
@@ -54,12 +57,12 @@ const moduleHtml = `
         <button class="metric-tab" data-metric="refinanceFund">再融资额</button>
         <button class="metric-tab" data-metric="holderNetReductionAmount">产业资本净减持额</button>
         <button class="metric-tab" data-metric="stampDutyRate">印花税率</button>
-        <button class="metric-tab" data-metric="lpr1y">政策利率</button>
+        <button class="metric-tab" data-metric="lpr1y">1年期LPR</button>
         <button class="metric-tab" data-metric="socialFinancing">社融增量</button>
         <button class="metric-tab" data-metric="m2Yoy">M2增速</button>
       </div>
+      <div class="metric-guide" id="officialMetricGuide" aria-live="polite"></div>
       <div class="metric-note">
-        <span id="officialMetricNote"></span>
         <a id="refinanceSourceLink" href="https://data.10jqka.com.cn/macro/finance/" target="_blank" rel="noopener" hidden>查看再融资数据来源</a>
         <span class="metric-reading" id="officialLatestReading"></span>
       </div>
@@ -67,7 +70,7 @@ const moduleHtml = `
     </article>
 
     <div class="valuation-foot">
-      <div class="note"><strong>统计口径：</strong><span id="officialMethodology"></span></div>
+      <details class="metric-method"><summary>统计口径与数据来源</summary><div id="officialMethodology"></div></details>
     </div>
   </section>
 `;
@@ -84,48 +87,33 @@ const script = `
       refinanceFund: {
         title: "再融资额（股票筹资口径）", unit: "亿元", digits: 2,
         subtitle: "月度股票再融资额（不含可转债）与三个指数走势",
-        note: "同花顺股票筹资月表：募集资金减首发募集资金；只展示已结束月份，最近月份仍可能修订。"
       },
       ipoFund: {
         title: "IPO融资额", unit: "亿元", digits: 1,
-        subtitle: "新股上市月度募集资金与三个指数走势",
-        note: "IPO融资额反映一级市场供给压力，阶段性收紧通常对应官方稳定市场取向。"
+        subtitle: "新股发行月度募集资金与三个指数走势",
       },
       holderNetReductionAmount: {
         title: "产业资本净减持额", unit: "亿元", digits: 1,
         subtitle: "重要股东公告口径月度净减持金额与三个指数走势",
-        note: "正值为净减持，负值为净增持；仅统计有成交均价的记录。"
       },
       stampDutyRate: {
         title: "印花税率", unit: "%", digits: 2,
         subtitle: "证券交易印花税卖出端税率与三个指数走势",
-        note: "印花税率下降降低交易成本，但不是指数专属政策。"
       },
       lpr1y: {
         title: "1年期LPR", unit: "%", digits: 2,
         subtitle: "1年期贷款市场报价利率与三个指数走势",
-        note: "利率下行降低折现率，需结合其他政策和盈利预期观察。"
       },
       socialFinancing: {
         title: "社融增量", unit: "亿元", digits: 0,
         subtitle: "社会融资规模月度增量与三个指数走势",
-        note: "社融增量反映信用扩张力度，需结合融资结构和季节性观察。"
       },
       m2Yoy: {
         title: "M2同比增速", unit: "%", digits: 1,
         subtitle: "广义货币M2同比增速与三个指数走势",
-        note: "M2增速体现广义流动性环境，需与社融和利率结合观察。"
       }
     };
-    const methodology = {
-      refinanceFund: "采样：月频，取来源表的已结束月份金额，不取月末单日、不做周采样；日期为月末标签，最近月份仍可能被来源修订。 来源：同花顺数据中心股票筹资月表。再融资额 = 同表股票募集资金 − 首发募集资金，涵盖增发、配股口径，不含可转债；未逐笔核验或剔除非现金资产认购，不等同于纯现金融资或二级市场净流出。该来源首发口径与本页 Tushare IPO 曲线不同，不应直接相加。当前可得历史自 2024-06 起，缺失月份留空；未结束月份不纳入。",
-      ipoFund: "采样：月频，按所属月份汇总整月募集资金，不取月末单日或每周值；日期标签为月末，未结束月份为抓取截止日且金额可能不完整。 按新股上市月份汇总实际募集资金（亿元），代表全市场 IPO 融资供给，不按指数拆分。三个指数为右轴价格相对走势。",
-      holderNetReductionAmount: "采样：月频，按公告月份合计净减持金额，非月末单日值或周取样；日期标月末，未结束月仅汇总到抓取截止日。公告月不一定等于实际交易月。 按公告月份汇总重要股东增减持股数 × 披露均价（亿元）；正值为净减持，缺少均价的不计入。三个指数为右轴价格相对走势。",
-      stampDutyRate: "采样：月频税率状态值，当前脚本以每月28日查询手工政策表并放在月末标签上，不是月平均或周采样；月内调整会压缩到一个月度点，不能据此定位日级生效时点。 证券交易印花税卖出端适用税率（%），按政策生效日变化；是全市场共同税率，不按指数拆分。三个指数为右轴价格相对走势。",
-      lpr1y: "采样：月频，取当月最后一条可用LPR记录；无新记录时沿用上一期。日期标月末（未结束月标抓取截止日），不是实际公布日，也不是月平均或周采样。 1 年期贷款市场报价利率（LPR，%），按公布月份取值；并非股票市场专属利率。三个指数为右轴价格相对走势。",
-      socialFinancing: "采样：月频，取官方所属月份的当月增量，不是年内累计或月末单日额；横轴标统计月末，不是公布日，不做周采样；尚未披露月份留空。 当月社会融资规模增量（亿元），表示全社会新增融资，不等于流入股市的资金。三个指数为右轴价格相对走势。",
-      m2Yoy: "采样：月频，取所属月份M2余额同比增速，不是月内增速平均或周采样；横轴标统计月末，不是公布日，尚未披露月份留空。 广义货币 M2 余额相对上年同月的增速（%），反映货币环境，不等于股市资金流入。三个指数为右轴价格相对走势。"
-    };
+    ${explanationScript(["ipoFund", "refinanceFund", "holderNetReductionAmount", "stampDutyRate", "lpr1y", "socialFinancing", "m2Yoy"], "official", explanationMethods)}
     const baselineDate = "2020-01-07";
     const indices = [
       { name: "创业板指", rows: DATA.sh, color: COLORS.sh },
@@ -162,9 +150,7 @@ const script = `
         };
       });
       document.getElementById("officialMetricSubtitle").textContent = cfg.subtitle;
-      document.getElementById("officialMetricNote").textContent = cfg.note;
-      document.getElementById("officialMethodology").textContent = methodology[activeMetric] +
-        " 指数线另按年内每7天分组取最后有效交易日价格，保留历史起点；并非按政策月末同步采样。指数以 2020-01-07 或其后首个可用点为 100，左右轴不能直接比较数值。";
+      renderExplanation("official", activeMetric);
       document.getElementById("officialLatestReading").textContent = policyPoints.length
         ? "官方指标 " + policyPoints[0][0] + " 至 " + policyPoints[policyPoints.length - 1][0] +
           " · 最新 " + fmt(policyPoints[policyPoints.length - 1][1], cfg.digits) + cfg.unit

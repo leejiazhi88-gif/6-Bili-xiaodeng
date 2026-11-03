@@ -1,0 +1,153 @@
+// Plain-language guides, shared by the three sentiment modules.
+const guides = {
+  "amount": [
+    "成交额是一天内买卖股票成交了多少钱，单位亿元。一笔100万元的成交只计100万元，买卖双方不重复计算。",
+    "金额越大，交易越活跃。放量上涨和放量下跌含义不同；成交额不是流入股市的新增资金。两市范围大，金额通常高于单个指数。",
+    "这里包含各类投资者的交易，并非只统计散户。两市与指数取点日期可能不同；纵轴从零开始，指数线因规模较小会靠近底部。"
+  ],
+  "volume": [
+    "成交量是一天成交了多少股票，单位亿手；股票通常每手100股。它看交易数量，成交额看交易金额。",
+    "数量增加表示交易更活跃，但上涨和下跌都可能放量，不能只凭成交量判断买卖方向。",
+    "两市线用上证综指与深证综指成交量之和近似反映市场交易量；三个指数线为各自指数成交量。这里也包含机构等其他投资者。"
+  ],
+  "turnover": [
+    "换手率衡量股票交易得有多频繁。单只股票通常用成交股数除以可流通股数；例如5%表示成交股数相当于可流通股数的5%。",
+    "数值越高，交易越频繁。高换手可能来自追涨，也可能来自集中卖出，并不等于股价一定上涨或有同样比例的股东离场。",
+    "两市及科创综指按流通市值加权，创业板指、科创50采用接口公布的指数换手率；都不是只统计散户的换手。"
+  ],
+  "marginBalance": [
+    "融资是投资者向证券公司借钱买股票；融资余额是还没有归还的借款金额，单位亿元。",
+    "余额上升表示未偿还的融资借款增加，下降表示减少。三个指数线分别汇总各自成分股的融资余额，可观察这些股票的融资参与规模。",
+    "这是借款存量，不是当天或本周买入额，也不包括所有场外借款。两市数据披露滞后时可能沿用最近记录。"
+  ],
+  "marginFloatRatio": [
+    "融资余额除以流通市值，表示借钱买股的规模相对可流通股票有多大。流通市值是可流通股数乘以股价。",
+    "例如2%表示每100元流通市值对应约2元未偿还融资借款。比例较高，说明融资规模相对这组股票的市值较大。",
+    "比例上升也可能来自股价下跌、分母变小，不一定是新增借款；它不是全部投资者的负债率。"
+  ],
+  "blockAmount": [
+    "大宗交易是通过交易所专门机制完成的大额股票买卖；大宗交易额就是这些交易成交了多少钱，单位亿元。",
+    "金额越大，大额股票转手越活跃。可能是股东减持、机构接盘，也可能是其他持有人之间的交易。",
+    "每笔交易都有买方和卖方，放量本身不表示资金净流入。全市场线统计A股股票大宗交易；三个指数线只统计各自成分股。"
+  ],
+  "institutionBlockNet": [
+    "大宗交易中标为“机构专用”的席位买入金额减去卖出金额，单位亿元。席位是交易记录中标识参与方的账户通道。",
+    "正数表示净买入，负数表示净卖出。例如买入10亿元、卖出6亿元，净买入为4亿元。",
+    "只覆盖大宗交易中的机构专用席位，不代表所有机构的全部交易。指数线按各自成分股归集，同一股票可能出现在不同指数中。"
+  ],
+  "holderNetShares": [
+    "产业资本通常指控股股东、实控人等与公司经营相关的股东；本图实际按重要股东公告，估算增持金额减去减持金额，单位亿元。",
+    "正数表示净增持，负数表示净减持。例如增持3亿元、减持5亿元，结果是－2亿元；与官方模块“净减持额”的正负方向相反。",
+    "只纳入披露成交均价的记录，按公告日期归集，未逐条限定股东身份。因此不能当作全部产业资本的完整资金流。"
+  ],
+  "northHoldings_value": [
+    "北向资金指通过香港沪股通、深股通投资内地A股的资金。本图看它持有各指数成分股的市值，单位亿元。",
+    "持仓市值等于持股数量乘以季度末股价。切换“占指数总市值”，可比较北向持仓相对各指数范围的大小。",
+    "股价上涨也会让持仓市值增加，所以增加不等于净买入。北向资金不代表全部外资；指数成分重叠，三条线不能相加当成全市场。"
+  ],
+  "northHoldings_ratio": [
+    "北向持仓市值除以该指数全部成分股的总市值，表示这组股票有多大比例由北向投资者持有。",
+    "例如5%表示该指数成分股每100元总市值中，约5元对应北向持仓。分母含限售股，不是流通市值，也不是北向全部持仓。",
+    "比例变化还会受到股价涨跌和指数成分变化影响，不等于净加仓。不同指数范围重叠，比例不能相加。"
+  ],
+  "fundPosition": [
+    "主动权益基金由基金经理主动选股。本图看主动股票型、混合型基金样本的股票持仓市值，占这些基金净资产的比例。",
+    "全样本仓位80%，表示每100元样本基金净资产中约80元投向股票；某指数线为10%，则表示约10元投向该指数成分股。",
+    "仓位上升也可能来自股价上涨或样本变化，不一定是主动买入。未投向股票的部分不能全部视为现金；三个指数仓位因成分重叠不能相加。"
+  ],
+  "institutionConcentration": [
+    "这里的机构指主动股票型、混合型基金样本。先合并样本持仓，再看市值最高的10只股票占该股票范围全部持仓的比例。",
+    "比例越高，持仓越集中。例如30%表示前10只股票占该范围持仓市值的三成；各指数线只在其成分股中选前10名。",
+    "不是全部机构的集中度，也不是每只基金前十大持仓占比的平均值。不同范围各自排名，比例不能相加。"
+  ],
+  "etfShares": [
+    "ETF是可以在交易所买卖的基金。份额是基金发行在外的单位数量，本图统计跟踪这三个指数的ETF，单位亿份。",
+    "基金名单和份额折算不变时，份额增加通常表示申购多于赎回，减少通常表示相反。投资者在交易所买卖已有份额，不会直接改变总份额。",
+    "合计线仅包括这三组ETF，不是全市场ETF。份额不是资金金额；不同ETF每份价值不同，新基金上市和份额拆分也会改变总量。"
+  ],
+  "ipoFund": [
+    "IPO是公司首次公开发行股票；IPO融资额就是公司通过发行新股募集了多少钱，单位亿元。",
+    "金额越大，新股发行募集的资金越多，可用来观察新股供给节奏；它与上市后股票反复交易的成交额不同。",
+    "融资增加不必然导致股市下跌，还取决于市场承接能力。本图主要按新股发行月份汇总，发行日期缺失时使用上市日期，不包含上市公司后续再融资。"
+  ],
+  "refinanceFund": [
+    "再融资是已上市公司再次筹集资金。本图采用增发、配股等股票筹资口径，单位亿元，不含可转债。",
+    "金额越大，表示该月这类股票融资规模越大；它反映融资供给，不等于同等金额从二级市场净流出。",
+    "数据为同花顺同表股票募集总额减去首发募集额，未逐笔剔除非现金资产认购，不能称为纯现金融资；与本页IPO口径不同，不能直接相加。"
+  ],
+  "holderNetReductionAmount": [
+    "按重要股东公告估算减持金额减去增持金额，单位亿元。产业资本通常指与公司经营相关的股东，本图未逐条限定这类身份。",
+    "正数表示净减持，负数表示净增持。例如减持5亿元、增持3亿元，结果为2亿元；与大资金模块“净增减持”的正负方向相反。",
+    "仅统计披露成交均价的记录，不是全部股东的完整净卖出金额。放在官方模块用于观察供给环境，并不表示这些股东代表官方。"
+  ],
+  "stampDutyRate": [
+    "证券交易印花税是股票交易时按成交金额征收的一项税。本图展示卖出端税率，0.05%意味着卖出1万元股票对应5元印花税。",
+    "税率降低会降低卖出成本；在下一次政策调整前税率保持不变。",
+    "图上是税率，不是实际缴税总额，也不包含佣金等其他费用。月度图不能用于精确判断政策在哪一天生效。"
+  ],
+  "lpr1y": [
+    "本页实际展示1年期LPR，即贷款市场报价利率，是银行给贷款定价的重要参考。它不是央行直接设定的政策利率本身。",
+    "数值下降表示贷款定价参考降低，上升表示提高；实际贷款利率还取决于加减点及合同调整时间。",
+    "LPR不是股票收益率，也不是每个人实际拿到的贷款利率。利率变化对股市的影响还要结合盈利预期和经济状况。"
+  ],
+  "socialFinancing": [
+    "社融是社会融资规模，衡量实体经济从金融体系获得的资金，包含贷款、债券、股票融资等。本图看当月新增了多少，单位亿元。",
+    "增量越大，当月融资越多。春节、季末等季节因素影响明显，适合结合上年同月和连续几个月的变化观察。",
+    "它不是流入股市的钱，也不是融资总余额或同比增速；融资增多不一定意味着资金马上用于投资和消费。"
+  ],
+  "m2Yoy": [
+    "M2是广义货币，包括流通中的现金和纳入统计的各类存款。M2增速是这笔货币余额比上年同月增长了多少。",
+    "例如同比增长8%，表示本月M2余额比去年同月多8%。增速回落但仍为正时，M2余额仍高于去年同月，只是同比增幅缩小；不代表比上个月也增加。",
+    "M2不是股市资金，也不是当月新印的钱；货币总量增长不能直接解释为同样规模的资金买入股票。"
+  ]
+};
+const scopeText = {
+  "retail": "这里的指数线展示对应股票范围的交易或融资指标；两市线范围更大，包含各种投资者，不只是散户。",
+  "largeMoney": "这里的指数线展示资金交易或持仓在相应成分股中的情况；各范围可能重叠，不能把三条线相加当作全市场。",
+  "official": "左轴是所选政策或融资指标，右轴是三个指数的相对价格：以各自基准为100，120表示比基准上涨20%。左右轴单位不同，曲线相交没有数值相等的含义。"
+};
+const indices = "创业板指：创业板100只代表性股票；科创50：科创板50只代表性证券；科创综指：覆盖符合条件的科创板证券，范围更广。";
+function guideCss(scope) {
+  return `
+    #${scope} .metric-guide { padding: 0 20px 12px; color: #c6d3e3; font-size: 14px; line-height: 1.8; }
+    #${scope} .metric-guide ol { margin: 0; padding-left: 1.5em; }
+    #${scope} .metric-guide li { padding-left: 4px; margin: 8px 0; overflow-wrap: anywhere; }
+    #${scope} .metric-guide li::marker { color: #f6c85f; font-weight: 600; }
+    #${scope} .metric-guide strong, #${scope} .metric-method strong { color: #edf4ff; }
+    #${scope} .metric-guide p { margin: 4px 0; }
+    #${scope} .valuation-foot { grid-template-columns: 1fr; }
+    #${scope} .metric-method { width: 100%; color: #a7b9cf; font-size: 13px; line-height: 1.8; }
+    #${scope} .metric-method summary { cursor: pointer; padding: 10px 0; color: #c6d3e3; }
+    #${scope} .metric-method summary:focus-visible { outline: 2px solid #f6c85f; outline-offset: 3px; }
+    #${scope} .metric-method ol { margin: 0; padding-left: 1.5em; }
+    #${scope} .metric-method li { margin-bottom: 12px; overflow-wrap: anywhere; }
+    @media (max-width: 600px) { #${scope} .metric-guide { padding: 0 14px 10px; } }
+  `.trim();
+}
+function explanationScript(keys, scope, methods) {
+  const selected = Object.fromEntries(keys.map(key => {
+    if (!guides[key] || !methods[key]) throw new Error("Missing explanation: " + key);
+    return [key, { guide: guides[key], details: methods[key] }];
+  }));
+  return `
+    const metricExplanations = ${JSON.stringify(selected)};
+    const curveScope = ${JSON.stringify(scopeText[scope])};
+    const indexDefinitions = ${JSON.stringify(indices)};
+    function explanationEscape(text) {
+      return String(text).replace(/[&<>"']/g, char => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[char]);
+    }
+    function renderExplanation(prefix, metric) {
+      const content = metricExplanations[metric];
+      const scope = metric === "etfShares"
+        ? "三条指数线分别统计跟踪相应指数的ETF份额；黄色线是这三组ETF的份额合计，不是全市场ETF。"
+        : curveScope;
+      const lines = [["是什么", content.guide[0]], ["怎么看", content.guide[1]],
+        ["图中曲线", indexDefinitions + " " + scope], ["注意什么", content.guide[2]]];
+      document.getElementById(prefix + "MetricGuide").innerHTML = "<ol>" + lines.map(([label, text]) =>
+        "<li><strong>" + label + "：</strong>" + explanationEscape(text) + "</li>").join("") + "</ol>";
+      document.getElementById(prefix + "Methodology").innerHTML = "<ol>" + content.details.map(([label, text]) =>
+        "<li><strong>" + explanationEscape(label) + "：</strong>" + explanationEscape(text) + "</li>").join("") + "</ol>";
+    }
+  `.trim();
+}
+module.exports = { guideCss, explanationScript };

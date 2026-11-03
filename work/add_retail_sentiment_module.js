@@ -1,5 +1,7 @@
 const fs = require("fs");
 const path = require("path");
+const { guideCss, explanationScript } = require("./sentiment_explanations");
+const explanationMethods = require("./sentiment_methodology.json");
 
 const ROOT = path.resolve(__dirname, "..");
 const OUTPUT = path.join(ROOT, "outputs", "growth_indices_dashboard.html");
@@ -16,6 +18,7 @@ function stripExisting(html) {
 
 const css = `
   <style id="retail-sentiment-style">
+    ${guideCss("retail-sentiment")}
     #retailSentimentChart { height: 540px; width: 100%; }
     #retailSeriesControls { display: flex; flex-wrap: wrap; gap: 8px 18px; padding: 10px 16px 0; }
     #retailSeriesControls button { display: inline-flex; align-items: center; gap: 6px; padding: 4px 0;
@@ -39,7 +42,7 @@ const moduleHtml = `
       <div>
         <div class="module-kicker">Module 02 / Retail Sentiment</div>
         <h2>情绪-散户</h2>
-        <p>沪深两市与三个指数的交易、换手和融资数据。</p>
+        <p>观察交易热度与融资参与程度；数据包含各类投资者，并非只统计散户。</p>
       </div>
       <div class="module-status" id="retailDataStatus"></div>
     </div>
@@ -71,15 +74,15 @@ const moduleHtml = `
         <button class="metric-tab" data-metric="marginBalance">融资余额</button>
         <button class="metric-tab" data-metric="marginFloatRatio">融资余额/流通市值</button>
       </div>
+      <div class="metric-guide" id="retailMetricGuide" aria-live="polite"></div>
       <div class="metric-note">
-        <span id="retailMetricNote"></span>
         <span class="metric-reading" id="retailLatestReading"></span>
       </div>
       <div id="retailSentimentChart"></div>
     </article>
 
     <div class="valuation-foot">
-      <div class="note"><strong>统计口径：</strong><span id="retailMethodology"></span></div>
+      <details class="metric-method"><summary>统计口径与数据来源</summary><div id="retailMethodology"></div></details>
     </div>
   </section>
 `;
@@ -107,42 +110,31 @@ const script = `
       amount: {
         unit: "亿元", digits: 0,
         subtitle: "沪深两市与三个指数成交额，周频展示",
-        note: "四条线共用从零开始的亿元等距纵轴；指数成交额因量级较小会靠近底部。",
         sources: [{ ...market, field: "amount" }, ...indices.map(item => ({ ...item, field: "amountYi" }))]
       },
       volume: {
         unit: "亿手", digits: 2,
         subtitle: "两市宽基代理与三个指数成交量，周频展示",
-        note: "两市成交量为上证综指与深证综指之和，属于宽基代理。",
         sources: [{ ...market, field: "volumeProxy" },
           ...indices.map(item => ({ ...item, field: "volumeYiShou" }))]
       },
       turnover: {
         unit: "%", digits: 2,
         subtitle: "沪深两市与三个指数的实际换手率",
-        note: "均为周频：创业板指、科创50取指数换手率原值；科创综指按成分股流通市值加权。",
         sources: [{ ...market, field: "turnover" }, ...indexMetrics.map(item => ({ ...item, field: "turnover" }))]
       },
       marginBalance: {
         unit: "亿元", digits: 0,
         subtitle: "沪深两市与三个指数成分股融资余额",
-        note: "三个指数为当期成分股融资余额之和，未列入融资标的的成分股按零计；均为周频。",
         sources: [{ ...market, field: "marginBalance" }, ...indexMetrics.map(item => ({ ...item, field: "marginBalance" }))]
       },
       marginFloatRatio: {
         unit: "%", digits: 2,
         subtitle: "沪深两市与三个指数的融资余额/流通市值",
-        note: "三个指数的融资余额除以当期成分股流通市值合计；均为周频。",
         sources: [{ ...market, field: "marginFloatRatio" }, ...indexMetrics.map(item => ({ ...item, field: "marginFloatRatio" }))]
       }
     };
-    const methodology = {
-      amount: "采样：沪深两市按自然周取最后有效交易日的单日成交额；三个指数按年内每7天分组取组内最后有效交易日，另保留历史起点。均非整周合计或周均值，两类曲线日期可能不同。 沪深两市与三个指数均为实际成交额（亿元），纵轴从零开始、等距显示，不是对数刻度。",
-      volume: "采样：两市线按自然周取最后有效交易日的单日成交量；指数线按年内每7天分组取组内最后有效交易日，另保留历史起点。均非周成交量合计。 三个指数为实际成交量（亿手）；两市线以上证综指与深证综指成交量之和作宽基代理。不将单日量累加为周量。",
-      turnover: "采样：按自然周取最后有效交易日当天的换手率；不求周和、不取周平均。两市按流通市值加权。 创业板指、科创50采用指数换手率原值；科创综指按当期成分股流通市值加权。均取每周最后一个交易日的百分比，不是周累计。",
-      marginBalance: "采样：按自然周取最后有效交易日的余额快照（存量），不是周内融资买入额或余额增量。两市各交易所若当日未返回融资记录，沿用此前最近一次记录，因此可能不是严格同日快照。指数线查询采样日成分股数据。 三个指数分别汇总当期成分股融资余额，两市线为沪深市场余额（亿元）；未列入融资标的的成分股按零计。取每周最后一个交易日。",
-      marginFloatRatio: "采样：按自然周取最后有效交易日计算余额/市值比值，不求周和、不取周平均。两市融资余额可能沿用此前最近记录，分母为采样日流通市值；指数线使用采样日成分股口径。 指数成分股融资余额合计 ÷ 同期成分股流通市值合计；两市线按沪深市场整体口径计算。取每周最后一个交易日的百分比。"
-    };
+    ${explanationScript(["amount", "volume", "turnover", "marginBalance", "marginFloatRatio"], "retail", explanationMethods)}
 
     let activeMetric = "amount";
     let activeYears = 0;
@@ -171,8 +163,7 @@ const script = `
       const dates = series.flatMap(item => item.data.map(point => point[0]));
       dates.sort();
       document.getElementById("retailMetricSubtitle").textContent = cfg.subtitle;
-      document.getElementById("retailMetricNote").textContent = cfg.note;
-      document.getElementById("retailMethodology").textContent = methodology[activeMetric];
+      renderExplanation("retail", activeMetric);
       document.getElementById("retailLatestReading").textContent =
         dates.length ? "时间轴 " + axisStart + " 起；可用数据 " + dates[0] + " 至 " + dates[dates.length - 1] : "暂无数据";
       chart.setOption({

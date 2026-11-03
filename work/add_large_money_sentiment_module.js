@@ -1,5 +1,7 @@
 const fs = require("fs");
 const path = require("path");
+const { guideCss, explanationScript } = require("./sentiment_explanations");
+const explanationMethods = require("./sentiment_methodology.json");
 
 const ROOT = path.resolve(__dirname, "..");
 const OUTPUT = path.join(ROOT, "outputs", "growth_indices_dashboard.html");
@@ -19,6 +21,7 @@ function stripExisting(html) {
 
 const css = `
   <style id="large-money-sentiment-style">
+    ${guideCss("large-money-sentiment")}
     #largeMoneyChart { height: 560px; width: 100%; }
     #largeMoneySeriesControls { display: flex; flex-wrap: wrap; gap: 8px 18px; padding: 10px 16px 0; }
     #largeMoneySeriesControls button { display: inline-flex; align-items: center; gap: 6px; padding: 4px 0;
@@ -82,15 +85,15 @@ const moduleHtml = `
         <button class="metric-tab active" type="button" data-holding-mode="value">持仓市值</button>
         <button class="metric-tab" type="button" data-holding-mode="ratio">占指数总市值</button>
       </div>
+      <div class="metric-guide" id="largeMoneyMetricGuide" aria-live="polite"></div>
       <div class="metric-note">
-        <span id="largeMoneyMetricNote"></span>
         <span class="metric-reading" id="largeMoneyLatestReading"></span>
       </div>
       <div id="largeMoneyChart"></div>
     </article>
 
     <div class="valuation-foot">
-      <div class="note"><strong>统计口径：</strong><span id="largeMoneyMethodology"></span></div>
+      <details class="metric-method"><summary>统计口径与数据来源</summary><div id="largeMoneyMethodology"></div></details>
     </div>
   </section>
 `;
@@ -110,56 +113,40 @@ const script = `
       blockAmount: {
         title: "大宗交易额", field: "blockAmount", unit: "亿元", digits: 1,
         subtitle: "全市场与三个指数成分股的周大宗交易额",
-        note: "大宗交易放量代表大额筹码交换活跃，需要结合机构席位净方向判断。"
       },
       institutionBlockNet: {
         title: "机构大宗净买入", field: "institutionBlockNet", unit: "亿元", digits: 1,
         subtitle: "全市场与三个指数成分股的机构席位周净买入额",
-        note: "正值表示机构席位净买入，负值表示净卖出。"
       },
       holderNetShares: {
         title: "产业资本净增减持", field: "holderNetAmount", unit: "亿元", digits: 2,
         subtitle: "全市场与三个指数成分股的周净增减持金额",
-        note: "按公告日汇总股数×披露均价；正值为净增持，负值为净减持。"
       },
       northMoney: {
         title: "北向资金净流入", field: "northMoney", unit: "亿元", digits: 1, totalLabel: "北向周净流入",
         subtitle: "全市场北向每周净流入合计（亿元）· 历史截至2024-08-16",
-        note: "正值为净流入、负值为净流出；仅展示全市场实际北向净流入。暂无可靠的三个指数净流入拆分数据。"
       },
       northHoldings: {
         title: "北向持仓分布", field: "value", unit: "亿元", digits: 1,
         subtitle: "北向资金持有三个指数成分股的季度末市值",
-        note: "按季度末持股数量与股价计算；切换后可看其占该指数全部成分股总市值的比例。"
       },
       fundPosition: {
         title: "主动权益基金仓位", field: "position", unit: "%", digits: 2,
         subtitle: "主动股票/混合基金半年报样本股票仓位与指数成分配置",
-        note: "半年报/年报实际披露点；指数线是样本净资产投向该指数成分股的比例，并非指数本身的仓位。",
         totalLabel: "主动基金样本"
       },
       institutionConcentration: {
         title: "机构持仓集中度", field: "concentration", unit: "%", digits: 2,
         subtitle: "主动基金样本在各股票范围内的前10名持仓集中度",
-        note: "半年报/年报实际披露点；前10名股票持仓额/该范围全部样本持仓额。",
         totalLabel: "主动基金样本"
       },
       etfShares: {
         title: "ETF份额", field: "total", unit: "亿份", digits: 2,
         subtitle: "跟踪三个指数的ETF期末存量份额",
-        note: "周度实际份额存量；首条线仅为三组跟踪ETF合计，不等同于全市场ETF。",
         totalLabel: "三指数ETF合计"
       }
     };
-    const methodology = {
-      blockAmount: "采样：自然周内所有交易日成交额求和，已结束周用周六标签，未结束周用实际刷新截止日，不是该日单日值；当前未结束周仅含已获取记录。 按周汇总 A 股大宗交易成交额（亿元），不含债券；指数线按当期成分股归集，同一股票可能属于多个指数。",
-      institutionBlockNet: "采样：自然周内机构席位买入额减卖出额后合计，已结束周用周六标签，未结束周用实际刷新截止日，不是最后交易日单日净额；当前周可能尚未完整。 按周汇总大宗交易中标记为“机构专用”的买入额减卖出额（亿元）；正值为净买入。指数线按当期成分股归集。",
-      holderNetShares: "采样：按公告日期归入自然周，汇总该周全部有效公告金额；已结束周用周六标签，未结束周用实际刷新截止日，不代表实际增减持均发生于当周，也不是周末单日值。 按公告周汇总股东增减持股数乘披露均价（亿元）；正值为净增持，未披露均价的记录不计入。指数线按当期成分股归集。",
-      northMoney: "Tushare moneyflow_hsgt 的每日 north_money（百万元）按自然周求和后除以100，换算为亿元；不取周末单日值。周标签统一为周六，最后标签2024-08-17对应截至2024-08-16的交易。缺失值不当作零。仅展示全市场北向净流入，不以指数价格代替指数资金流。旧口径披露止于2024-08-16，此后不补零、不拼接成交额。",
-      fundPosition: "采样：半年频，仅取6月30日、12月31日报告期末持仓与净资产；不是每周采样。横轴是报告期末，不是公告日；连线不表示期间存在新披露值，也不适合作为当时已知数据回测。 取主动股票/混合基金半年报、年报样本：股票持仓市值 ÷ 基金净资产；指数线只统计投向其成分股的比例。持仓披露不足 90% 的基金剔除，样本覆盖不足 40% 的报告期不展示。",
-      institutionConcentration: "采样：半年频，取6月30日、12月31日报告期末的完整持仓样本计算集中度，不取周末值。横轴是报告期末而非公告日，点间连线仅辅助阅读。 取主动股票/混合基金半年报、年报样本：各股票范围内持仓前 10 名的金额 ÷ 该范围全部持仓金额。样本覆盖不足 40% 的报告期不展示。",
-      etfShares: "采样：已结束周用周六标签；未结束周用实际刷新截止日并标注“本周未结束”。逐只ETF取截止日或之前最近披露的份额记录，最多允许滞后15个自然日后汇总；不是全周份额之和，也不保证全部ETF为同日快照。有效披露覆盖不足90%时该序列留空。 按周统计跟踪三个指数的 ETF 存量份额（亿份）；首条线是这三组 ETF 合计，不是全市场 ETF。份额变化不等于资金净流入。"
-    };
+    ${explanationScript(["blockAmount", "institutionBlockNet", "holderNetShares", "northHoldings_value", "northHoldings_ratio", "fundPosition", "institutionConcentration", "etfShares"], "largeMoney", explanationMethods)}
     const indices = [
       { key: "sh", name: "创业板指", rows: DATA.sh, color: COLORS.sh },
       { key: "k50", name: "科创50", rows: DATA.k50, color: COLORS.k50 },
@@ -230,12 +217,7 @@ const script = `
       document.getElementById("largeMoneyMetricSubtitle").textContent = holdingView
         ? (holdingMode === "value" ? cfg.subtitle : "北向持仓市值占各指数成分股总市值的季度末比例")
         : cfg.subtitle;
-      document.getElementById("largeMoneyMetricNote").textContent = cfg.note;
-      document.getElementById("largeMoneyMethodology").textContent = holdingView
-        ? (holdingMode === "value"
-          ? "采样：季度频，每季度最后一个A股交易日的持仓与价格快照；不做周采样或季度累计。横轴为实际交易日，连线不代表中间日期有披露。季度末北向持股数量 × 当日收盘价，按各指数当期成分股汇总（亿元）。指数成分可能重叠；市值变化包含股价波动，不等于净流入。"
-          : "采样：季度频，在每季度最后一个A股交易日计算比值；分子、分母取同日口径，不是季度均值或周采样。季度末北向持有指数成分股的市值 ÷ 同日该指数全部成分股总市值（%）。分母不是全市场北向持仓；指数成分可能重叠，占比不能相加。")
-        : methodology[activeMetric];
+      renderExplanation("largeMoney", holdingView ? "northHoldings_" + holdingMode : activeMetric);
       const totalButton = document.querySelector('#largeMoneySeriesControls [data-series="全市场资金"]');
       document.getElementById("largeMoneySeriesControls").style.display = northFlowMode ? "none" : "";
       totalButton.style.display = holdingView ? "none" : "";
