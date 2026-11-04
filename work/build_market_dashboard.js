@@ -81,24 +81,24 @@ function htmlTemplate(data, echartsSource) {
   <title>XiaoDeng</title>
   <style>
     :root {
-      --bg: #07111f;
-      --panel: #0d1929;
-      --panel-2: #101f32;
-      --line: #203149;
-      --text: #edf4ff;
-      --muted: #8fa5bf;
-      --sh: #ff5d73;
-      --sz: #36c2ff;
-      --k50: #7ddc82;
-      --accent: #f6c85f;
+      --bg: #081416;
+      --panel: #0e2022;
+      --panel-2: #13282a;
+      --line: #274247;
+      --text: #eaf4f2;
+      --muted: #91aaa8;
+      --sh: #ef7180;
+      --sz: #43d6cf;
+      --k50: #8bd6a3;
+      --accent: #f5c96a;
     }
     * { box-sizing: border-box; }
     body {
       margin: 0;
       color: var(--text);
       background:
-        radial-gradient(circle at 15% 0%, rgba(54,194,255,.11), transparent 34%),
-        radial-gradient(circle at 90% 8%, rgba(255,93,115,.10), transparent 31%),
+        radial-gradient(circle at 15% 0%, rgba(67,214,207,.10), transparent 34%),
+        radial-gradient(circle at 90% 8%, rgba(239,113,128,.09), transparent 31%),
         var(--bg);
       font-family: "Segoe UI", "Microsoft YaHei", sans-serif;
     }
@@ -110,19 +110,19 @@ function htmlTemplate(data, echartsSource) {
     .asof { color: var(--muted); text-align: right; font-size: 13px; line-height: 1.7; }
     .toolbar {
       display: flex; align-items: center; justify-content: space-between; gap: 16px;
-      background: rgba(13,25,41,.86); border: 1px solid var(--line);
+      background: rgba(14,32,34,.88); border: 1px solid var(--line);
       border-radius: 14px 14px 0 0; padding: 12px 15px;
     }
     .ranges { display: flex; gap: 7px; flex-wrap: wrap; }
     button {
-      color: var(--muted); background: #132239; border: 1px solid #263b58;
+      color: var(--muted); background: #183033; border: 1px solid #35545a;
       border-radius: 8px; padding: 7px 12px; cursor: pointer; font-weight: 650;
     }
-    button:hover, button.active { color: #07111f; background: var(--accent); border-color: var(--accent); }
+    button:hover, button.active { color: #081416; background: var(--accent); border-color: var(--accent); }
     .legend { display: flex; flex-wrap: wrap; gap: 17px; color: var(--muted); font-size: 12px; }
     .dot { display: inline-block; width: 9px; height: 9px; border-radius: 50%; margin-right: 6px; }
     .index-charts {
-      background: rgba(9,20,34,.94);
+      background: rgba(9,25,27,.95);
       border: 1px solid var(--line); border-top: 0; border-radius: 0 0 14px 14px;
       padding: 0 0 10px;
     }
@@ -134,7 +134,7 @@ function htmlTemplate(data, echartsSource) {
       display: grid; grid-template-columns: 1.3fr 1fr; gap: 16px; margin-top: 15px;
       color: var(--muted); font-size: 12px; line-height: 1.7;
     }
-    .note { border: 1px solid var(--line); background: rgba(13,25,41,.75); border-radius: 12px; padding: 13px 15px; }
+    .note { border: 1px solid var(--line); background: rgba(14,32,34,.78); border-radius: 12px; padding: 13px 15px; }
     .note strong { color: var(--text); }
     @media (max-width: 1000px) {
       header { align-items: flex-start; flex-direction: column; }
@@ -196,7 +196,7 @@ function htmlTemplate(data, echartsSource) {
 <script>${echartsSource}</script>
 <script>
 const DATA = ${dataJson};
-const COLORS = { sh: "#ff5d73", sz: "#36c2ff", k50: "#7ddc82", volume: "#f6c85f", amount: "#7ddc82" };
+const COLORS = { sh: "#ef7180", sz: "#43d6cf", k50: "#8bd6a3", volume: "#f5c96a", amount: "#8bd6a3" };
 const fmt = (n, digits = 2) => n != null && Number.isFinite(Number(n)) ? Number(n).toLocaleString("zh-CN", { minimumFractionDigits: digits, maximumFractionDigits: digits }) : "--";
 const topDates = [
   { xAxis: "2007-10-16", name: "2007顶" },
@@ -214,7 +214,7 @@ function series(name, rows, field, xAxisIndex, yAxisIndex, color, withMarks = fa
     emphasis: { focus: "series", lineStyle: { width: 3 } },
     markLine: withMarks ? {
       symbol: ["none", "none"], silent: true,
-      label: { color: "#8fa5bf", fontSize: 10, formatter: p => p.name },
+      label: { color: "#91aaa8", fontSize: 10, formatter: p => p.name },
       lineStyle: { color: "#53657d", type: "dashed", width: 1 },
       data: topDates
     } : undefined
@@ -238,18 +238,18 @@ function chartOption(lines, { volume = false, title = "", unit = "" } = {}) {
     animation: false,
     backgroundColor: "transparent",
     grid: { left: volume ? 54 : 72, right: volume ? 58 : 32, top: volume ? 50 : 55, bottom: 58 },
-    title: title ? { text: title, left: 20, top: 12, textStyle: { color: "#edf4ff", fontSize: 13 } } : undefined,
+    title: title ? { text: title, left: 20, top: 12, textStyle: { color: "#eaf4f2", fontSize: 13 } } : undefined,
     tooltip: {
       trigger: "axis", axisPointer: { type: "cross" },
-      backgroundColor: "rgba(7,17,31,.96)", borderColor: "#36506f", textStyle: { color: "#edf4ff" },
+      backgroundColor: "rgba(7,17,31,.96)", borderColor: "#36506f", textStyle: { color: "#eaf4f2" },
       formatter(params) {
         const date = params[0]?.axisValueLabel || "";
         return "<b>" + date + "</b><br>" + params.filter(p => p.value?.[1] != null)
           .map(p => p.marker + p.seriesName + "：<b>" + fmt(p.value[1]) + "</b>").join("<br>");
       }
     },
-    legend: volume ? { top: 13, right: 12, textStyle: { color: "#8fa5bf" }, data: lines.map(line => line.name) }
-      : { top: 12, left: 20, type: "scroll", textStyle: { color: "#8fa5bf" }, data: lines.map(line => line.name) },
+    legend: volume ? { top: 13, right: 12, textStyle: { color: "#91aaa8" }, data: lines.map(line => line.name) }
+      : { top: 12, left: 20, type: "scroll", textStyle: { color: "#91aaa8" }, data: lines.map(line => line.name) },
     xAxis: { ...commonAxis, min: "${BOARD_START.sh}" },
     yAxis: volume ? [
       { type: "value", scale: true, name: "亿手", axisLabel: { color: "#7890aa" }, splitLine: { lineStyle: { color: "#17283d" } } },
@@ -257,9 +257,9 @@ function chartOption(lines, { volume = false, title = "", unit = "" } = {}) {
     ] : { type: "value", scale: true, name: unit, axisLabel: { color: "#7890aa" }, splitLine: { lineStyle: { color: "#17283d" } } },
     dataZoom: [
       { type: "inside", filterMode: "none", start: 0, end: 100 },
-      { type: "slider", bottom: 8, height: 20, borderColor: "#263b58", backgroundColor: "#0d1929",
-        fillerColor: "rgba(246,200,95,.18)", handleStyle: { color: "#f6c85f" },
-        textStyle: { color: "#8fa5bf" }, start: 0, end: 100 }
+      { type: "slider", bottom: 8, height: 20, borderColor: "#35545a", backgroundColor: "#0e2022",
+        fillerColor: "rgba(246,200,95,.18)", handleStyle: { color: "#f5c96a" },
+        textStyle: { color: "#91aaa8" }, start: 0, end: 100 }
     ],
     series: lines.map(line => ({ ...series(line.name, line.rows, line.field, 0, line.axis || 0, line.color),
       markLine: line.marks ? series(line.name, line.rows, line.field, 0, 0, line.color, true).markLine : undefined }))
