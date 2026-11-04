@@ -43,7 +43,7 @@ const moduleHtml = `
       <div>
         <div class="module-kicker">Module 04 / Official Sentiment</div>
         <h2>情绪-官方</h2>
-        <p>观察政策层面的融资供给、交易成本、货币环境和监管信号，识别官方对市场温度的调节。</p>
+        <p>观察IPO、再融资与重要股东增减持，了解市场融资供给与股东交易情况。</p>
       </div>
       <div class="module-status" id="officialDataStatus"></div>
     </div>
@@ -51,7 +51,7 @@ const moduleHtml = `
     <article class="valuation-panel">
       <div class="panel-head">
         <div>
-          <div class="panel-title">融资与货币环境</div>
+          <div class="panel-title">融资与股东变动</div>
           <div class="panel-subtitle" id="officialMetricSubtitle">全市场IPO发行金额 · 亿元 / 月</div>
         </div>
         <div class="range-tabs" id="officialRangeTabs">
@@ -75,10 +75,6 @@ const moduleHtml = `
         <button class="metric-tab active" data-metric="ipoFund">IPO融资额</button>
         <button class="metric-tab" data-metric="refinanceFund">再融资额</button>
         <button class="metric-tab" data-metric="holderNetReductionAmount">重要股东净减持额</button>
-        <button class="metric-tab" data-metric="stampDutyRate">印花税率</button>
-        <button class="metric-tab" data-metric="lpr1y">1年期LPR</button>
-        <button class="metric-tab" data-metric="socialFinancing">社融增量</button>
-        <button class="metric-tab" data-metric="m2Yoy">M2增速</button>
       </div>
       <div class="metric-note">
         <a id="refinanceSourceLink" href="https://data.eastmoney.com/other/qbzf.html" target="_blank" rel="noopener" hidden>查看再融资数据来源</a>
@@ -113,16 +109,9 @@ const script = `
         subtitle: "已实施增发、配股发行金额 · 含非现金认购 · 不含可转债" },
       holderNetReductionAmount: { title: "重要股东净减持额", market: "全市场重要股东净减持额", unit: "亿元", digits: 2,
         subtitle: "减持金额 − 增持金额 · 月度公告合计 · 仅含可按披露均价计算的记录", partial: true },
-      stampDutyRate: { title: "证券交易印花税卖出端税率", market: "证券交易印花税卖出端税率", unit: "%", digits: 2,
-        subtitle: "统一税率 · 月末有效值", step: "end" },
-      lpr1y: { title: "1年期LPR", market: "全国1年期LPR", unit: "%", digits: 2,
-        subtitle: "贷款市场报价利率 · 月末有效报价", step: "end" },
-      socialFinancing: { title: "社融增量", market: "全国社融增量", unit: "亿元", digits: 0,
-        subtitle: "实体经济获得的新增融资 · 月度合计" },
-      m2Yoy: { title: "M2同比增速", market: "全国M2同比增速", unit: "%", digits: 1,
-        subtitle: "广义货币余额与上年同月相比的增幅" }
+
     };
-    ${explanationScript(["ipoFund", "refinanceFund", "holderNetReductionAmount", "stampDutyRate", "lpr1y", "socialFinancing", "m2Yoy"], "official", explanationMethods)}
+    ${explanationScript(["ipoFund", "refinanceFund", "holderNetReductionAmount"], "official", explanationMethods)}
     const scopes = [
       { key: "market", color: "#f6c85f" },
       { key: "chinext", name: "创业板", color: "#ff5d73", board: true },
@@ -180,7 +169,6 @@ const script = `
       let reading = latest ? cfg.market + " · " + latest.date + " · " + fmt(latest[activeMetric], cfg.digits) + cfg.unit
         : cfg.market + " · 当前范围暂无数据";
       if (latest && cfg.partial && latest.partialMonth) reading += "（本月截至当日累计，非完整月）";
-      if (latest && activeMetric === "lpr1y" && latest.lprSourceDate) reading += " · 报价日期 " + [latest.lprSourceDate.slice(0, 4), latest.lprSourceDate.slice(4, 6), latest.lprSourceDate.slice(6, 8)].join("-");
       if (latest && holderMetric) {
         const coverage = latest.holderCoverage?.market;
         if (coverage) reading += " · 可计价 " + coverage.pricedRecords + "/" + coverage.records + " 条公告记录";

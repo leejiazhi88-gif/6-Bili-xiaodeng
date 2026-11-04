@@ -267,9 +267,9 @@ for (const def of definitions) {
 }
 
 const officialDef = { prefix: 'official', script: 'official-sentiment-script', chart: 'officialSentimentChart' };
-const officialFields = ['ipoFund', 'refinanceFund', 'holderNetReductionAmount', 'stampDutyRate', 'lpr1y', 'socialFinancing', 'm2Yoy'];
+const officialFields = ['ipoFund', 'refinanceFund', 'holderNetReductionAmount'];
 
-test('official: seven tabs use named source amounts or percentages on one axis, with no market-price dependency', () => {
+test('official: three financing tabs use named source amounts on one axis, with no market-price dependency', () => {
   const ui = mount(officialDef);
   const data = jsonConstant(scripts[officialDef.script], 'officialData');
   const refinance = jsonConstant(scripts[officialDef.script], 'refinancingData');
@@ -278,7 +278,7 @@ test('official: seven tabs use named source amounts or percentages on one axis, 
     ui.metric(metric);
     const rows = metric === 'refinanceFund' ? refinance.series : data.series;
     const option = ui.chart.option;
-    const expectedUnit = ['stampDutyRate', 'lpr1y', 'm2Yoy'].includes(metric) ? '%' : '亿元';
+    const expectedUnit = '亿元';
     assert.equal(option.yAxis.name, expectedUnit);
     assert.equal(Array.isArray(option.yAxis), false);
     assert.equal(option.legend.show, false);
@@ -308,12 +308,7 @@ test('official: shared selection survives every tab; inapplicable breakdown cann
     assert.ok(!ui.chart.option.series.some(line => line.id === 'market'));
     assert.equal(ui.buttons('SeriesControls')[0].getAttribute('aria-pressed'), 'false');
     assert.equal(ui.buttons('SeriesControls').find(b => b.dataset.series === 'sh').disabled, metric !== 'holderNetReductionAmount');
-    if (!['ipoFund', 'refinanceFund', 'holderNetReductionAmount'].includes(metric)) {
-      assert.equal(ui.nodes.get('officialEmptyState').hidden, false);
-      const renders = ui.chart.renders;
-      ui.click('SeriesControls', 'data-series', 'sh');
-      assert.equal(ui.chart.renders, renders);
-    }
+
   }
   ui.metric('holderNetReductionAmount');
   ui.chart.option.dataZoom[0] = { start: 35, end: 73 };
@@ -348,9 +343,8 @@ test('official: constituent series are disclosed monthly money; missing points a
       assert.match(ui.nodes.get('officialLatestReading').textContent, /非完整月/);
     }
   }
-  ui.metric('lpr1y');
-  assert.match(ui.nodes.get('officialLatestReading').textContent, /报价日期 \d{4}-\d{2}-\d{2}/);
   const section = html.match(/<section class="module-shell" id="official-sentiment">([\s\S]*?)<\/section>/)[1];
+  assert.deepEqual(ui.buttons('MetricTabs').map(button => button.dataset.metric), officialFields);
   assert.ok(section.indexOf('id="officialSeriesControls"') < section.indexOf('id="officialMetricTabs"'));
   assert.match(section, /<details class="metric-method">/);
   assert.doesNotMatch(section, /<details[^>]*\bopen\b/);
