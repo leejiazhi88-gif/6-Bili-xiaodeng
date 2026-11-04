@@ -116,8 +116,6 @@ const moduleHtml = `
           <button class="metric-tab active" data-metric="pe">PE(TTM)</button>
           <button class="metric-tab" data-metric="pePercentile">PE历史分位</button>
           <button class="metric-tab" data-metric="pbPercentile">PB历史分位</button>
-          <button class="metric-tab" data-metric="equityBondSpread">股债收益差</button>
-          <button class="metric-tab" disabled title="需要全市场个股与行业截面数据">行业分位 / 高估值占比</button>
         </div>
         <div class="metric-note">
           <span id="valuationMetricNote">PE越高，市场对未来盈利增长的要求越高。</span>
@@ -127,7 +125,7 @@ const moduleHtml = `
     </article>
 
     <div class="valuation-foot">
-      <div class="note"><strong>连续数据口径：</strong><span id="valuationMethodology"></span><br>未接入页签：股债收益差缺少可靠国债序列；行业分位 / 高估值占比缺少全市场行业截面，均无实际采样和曲线。</div>
+      <div class="note"><strong>连续数据口径：</strong><span id="valuationMethodology"></span></div>
     </div>
   </section>
 ${END_MARKER}
@@ -144,12 +142,6 @@ const js = `
     const valuationData = { sh: DATA.sh, sz: DATA.officialHistory.rows, k50: DATA.k50 };
     valuationExtra.k50 = DATA.k50;
     valuationExtra.sz = DATA.official.snapshots;
-    const spreadTab = document.querySelector('#valuationMetricTabs [data-metric="equityBondSpread"]');
-    if (!valuationExtra.sh.some(row => Number.isFinite(row.equityBondSpread))) {
-      spreadTab.disabled = true;
-      spreadTab.title = "当前缺少可用的10年期国债收益率历史数据";
-    }
-
     const metricConfig = {
       pe: {
         title: "PE(TTM)", unit: "倍", subtitle: "创业板、科创50：Tushare周频；科创综指：中证指数日频",
@@ -163,17 +155,13 @@ const js = `
         title: "PB历史分位", unit: "%", subtitle: "指数市净率相对当前所选时间跨度的位置",
         note: "PB更适合观察金融、周期及资产密集型指数的估值位置。", fixedRange: true, extra: true
       },
-      equityBondSpread: {
-        title: "股债收益差", unit: "%", subtitle: "盈利收益率减10年期国债收益率",
-        note: "数值越低，股票相对债券的估值补偿越薄。", extra: true, inverseRisk: true
-      }
+
     };
 
     const methodology = {
       "pe": "采样：创业板指、科创50按每年1月1日起每7个自然日分组，取组内最后有效交易日的PE，另保留历史起点；不是固定周五、不是周均值。科创综指取中证指数实际可用的每日PE，自2024-10-23起，不降为周频。两来源口径不同，不宜直接比较绝对倍数。",
       "pePercentile": "采样：创业板指、科创50按年内7天分组取最后有效交易日PE并保留起点；科创综指用可用日频PE。分位=当前所选跨度内不高于该值的样本数/有效样本数，各指数分别计算；不是逐时点只用此前历史的滚动分位，也不是周均值。",
       "pbPercentile": "采样：创业板指按自然周取最后有效交易日PB；科创50按年内7天分组取最后有效交易日PB并保留起点，日期可能不同。分位按当前所选跨度内各自有效PB样本计算，不是周均值或仅用当时已知历史。科创综指暂无连续PB，不绘制。",
-      "equityBondSpread": "采样：若数据可用，创业板指按自然周末有效交易日PE与该日或之前最近国债收益率计算100/PE－10年期国债收益率，不是周平均。目前缺少可靠国债序列，页签禁用，无实际曲线。"
 };
 
     function metricRows(market, field) {
