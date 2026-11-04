@@ -1,6 +1,7 @@
 """Amounts from disclosed records; never infer funds from market prices."""
 import calendar
 import math
+import re
 from bisect import bisect_right
 from datetime import datetime, timedelta
 from decimal import Decimal, ROUND_HALF_UP
@@ -53,45 +54,29 @@ def aggregate_ipo(rows, months):
                 'ipoCount': r['count'], 'ipoMissingFunds': r['missing']} for m, r in result.items()}
 
 
-def aggregate_current_ipo(rows, months, memberships, end_date, overrides):
-    """Retrospective IPO amounts for one explicitly dated constituent snapshot.
+def listing_board(code):
+    """Use the exchange/code on the issuance record, never today's index members."""
+    if re.fullmatch(r"(?:300|301|302)\d{3}\.SZ", code or ""):
+        return 'chinext'
+    if re.fullmatch(r"(?:688|689)\d{3}\.SH", code or ""):
+        return 'star'
+    return 'other'
 
-    These are today's companies' past offerings, not historical index membership.
-    Unmatched members are disclosed; their missing amounts are never invented.
-    """
-    aliases = {value['previousCode']: code for code, value in overrides['aliases'].items()}
-    eligible = []
-    for row in rows:
-        date = row.get('ipo_date') or row.get('issue_date') or ''
-        if not date or date > end_date or date[:6] not in months:
-            continue
-        eligible.append({**row, 'sourceCode': row['ts_code'],
-                         'ts_code': aliases.get(row['ts_code'], row['ts_code'])})
+
+def aggregate_board_ipo(rows, months, end_date):
+    eligible = [row for row in rows if (row.get('ipo_date') or row.get('issue_date') or '')
+                and (row.get('ipo_date') or row.get('issue_date')) <= end_date]
     output, coverage = {}, {}
-    for key, membership in memberships.items():
-        dates, _ = membership
-        known_dates = [date for date in dates if date <= end_date]
-        snapshot_date = known_dates[-1] if known_dates else None
-        members = snapshot(membership, end_date)
-        if members is None or not members:
-            output[key] = {month: None for month in months}
-            coverage[key] = {'available': False, 'snapshotDate': snapshot_date, 'reason': '缺少近期成分股名单'}
-            continue
-        exclusions = {code: entry for code, entry in overrides['nonCashListings'].items() if code in members}
-        selected = [row for row in eligible if row['ts_code'] in members and row['ts_code'] not in exclusions]
-        matched = {row['ts_code'] for row in selected}
-        missing = sorted(members - matched - set(exclusions))
+    for key, name in [('chinext', '创业板'), ('star', '科创板')]:
+        selected = [row for row in eligible if listing_board(row.get('ts_code')) == key]
+        first = min(((row.get('ipo_date') or row['issue_date'])[:6] for row in selected), default=None)
         sums = aggregate_ipo(selected, months)
-        output[key] = {month: row['ipoFund'] if selected else None for month, row in sums.items()}
-        priced = {row['ts_code'] for row in selected
-                  if number(row.get('amount'), positive=True) is not None and number(row.get('price'), positive=True) is not None}
-        coverage[key] = {
-            'available': bool(selected), 'snapshotDate': snapshot_date,
-            'totalMembers': len(members), 'matchedMembers': len(matched), 'pricedMembers': len(priced),
-            'missingMembers': missing, 'nonCashListings': exclusions, 'members': sorted(members),
-            'aliases': {code: entry for code, entry in overrides['aliases'].items() if code in members},
-            'records': selected,
-        }
+        output[key] = {month: row if first and month >= first else
+                       {'ipoFund': None, 'ipoCount': None, 'ipoMissingFunds': None}
+                       for month, row in sums.items()}
+        coverage[key] = {'name': name, 'startMonth': first,
+                         'records': sum(row['ipoCount'] for row in sums.values()),
+                         'missingAmountRecords': sum(row['ipoMissingFunds'] for row in sums.values())}
     return output, coverage
 
 

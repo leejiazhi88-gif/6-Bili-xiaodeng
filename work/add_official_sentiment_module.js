@@ -24,6 +24,7 @@ const css = `
     #officialSeriesControls button { display: inline-flex; align-items: center; gap: 7px; border: 0;
       background: transparent; color: #b8c8db; font-size: 12px; padding: 6px 0; cursor: pointer; }
     #officialSeriesControls button[aria-pressed="false"] { opacity: .4; }
+    #officialSeriesControls button[hidden] { display: none; }
     #officialSeriesControls button:disabled { opacity: .35; cursor: not-allowed; }
     #officialSeriesControls button:focus-visible { outline: 2px solid #f6c85f; outline-offset: 3px; }
     ${seriesMarkerCss(".official-series-mark")}
@@ -62,11 +63,13 @@ const moduleHtml = `
           <button class="range-tab active" data-years="0">全部</button>
         </div>
       </div>
-      <div id="officialSeriesControls" role="group" aria-label="显示范围，选择对七个页签生效">
+      <div id="officialSeriesControls" role="group" aria-label="选择显示范围，同类页签保留选择">
         <button type="button" data-series="market" aria-pressed="true" style="--series-color:#f6c85f"><span class="official-series-mark"></span><span id="officialMarketLabel">全市场IPO发行金额</span></button>
-        <button type="button" data-series="sh" aria-pressed="true" style="--series-color:#ff5d73"><span class="official-series-mark"></span><span id="officialScopeLabel-sh">创业板指成分股</span></button>
-        <button type="button" data-series="k50" aria-pressed="true" style="--series-color:#7ddc82"><span class="official-series-mark"></span><span id="officialScopeLabel-k50">科创50成分股</span></button>
-        <button type="button" data-series="sz" aria-pressed="true" style="--series-color:#36c2ff"><span class="official-series-mark"></span><span id="officialScopeLabel-sz">科创综指成分股</span></button>
+        <button type="button" data-series="chinext" aria-pressed="true" style="--series-color:#ff5d73"><span class="official-series-mark"></span>创业板</button>
+        <button type="button" data-series="star" aria-pressed="true" style="--series-color:#36c2ff"><span class="official-series-mark"></span>科创板</button>
+        <button type="button" data-series="sh" hidden aria-pressed="true" style="--series-color:#ff5d73"><span class="official-series-mark"></span><span id="officialScopeLabel-sh">创业板指成分股</span></button>
+        <button type="button" data-series="k50" hidden aria-pressed="true" style="--series-color:#7ddc82"><span class="official-series-mark"></span><span id="officialScopeLabel-k50">科创50成分股</span></button>
+        <button type="button" data-series="sz" hidden aria-pressed="true" style="--series-color:#36c2ff"><span class="official-series-mark"></span><span id="officialScopeLabel-sz">科创综指成分股</span></button>
       </div>
       <div class="metric-tabs" id="officialMetricTabs">
         <button class="metric-tab active" data-metric="ipoFund">IPO融资额</button>
@@ -78,7 +81,7 @@ const moduleHtml = `
         <button class="metric-tab" data-metric="m2Yoy">M2增速</button>
       </div>
       <div class="metric-note">
-        <a id="refinanceSourceLink" href="https://data.10jqka.com.cn/macro/finance/" target="_blank" rel="noopener" hidden>查看再融资数据来源</a>
+        <a id="refinanceSourceLink" href="https://data.eastmoney.com/other/qbzf.html" target="_blank" rel="noopener" hidden>查看再融资数据来源</a>
         <span class="metric-reading" id="officialLatestReading"></span>
       </div>
       <div id="officialEmptyState" role="status" hidden></div>
@@ -90,7 +93,6 @@ const moduleHtml = `
         <summary>指标含义、统计口径与数据来源</summary>
         <div class="metric-guide" id="officialMetricGuide" aria-live="polite"></div>
         <div id="officialMethodology"></div>
-        <div id="officialIpoCoverage" hidden></div>
       </details>
     </div>
   </section>
@@ -106,9 +108,9 @@ const script = `
       : "--";
     const metrics = {
       ipoFund: { title: "IPO发行金额", market: "全市场IPO发行金额", unit: "亿元", digits: 2,
-        subtitle: "IPO发行总额 · 月度合计 · 成分股按最新可得名单回溯", partial: true },
-      refinanceFund: { title: "股票再融资额", market: "全市场股票再融资额", unit: "亿元", digits: 2,
-        subtitle: "增发、配股募集资金 · 月度合计 · 不含可转债" },
+        subtitle: "全市场、创业板、科创板 · IPO发行金额月度合计", partial: true },
+      refinanceFund: { title: "再融资发行金额", market: "全市场再融资发行金额", unit: "亿元", digits: 2,
+        subtitle: "已实施增发、配股发行金额 · 含非现金认购 · 不含可转债" },
       holderNetReductionAmount: { title: "重要股东净减持额", market: "全市场重要股东净减持额", unit: "亿元", digits: 2,
         subtitle: "减持金额 − 增持金额 · 月度公告合计 · 仅含可按披露均价计算的记录", partial: true },
       stampDutyRate: { title: "证券交易印花税卖出端税率", market: "证券交易印花税卖出端税率", unit: "%", digits: 2,
@@ -123,11 +125,13 @@ const script = `
     ${explanationScript(["ipoFund", "refinanceFund", "holderNetReductionAmount", "stampDutyRate", "lpr1y", "socialFinancing", "m2Yoy"], "official", explanationMethods)}
     const scopes = [
       { key: "market", color: "#f6c85f" },
+      { key: "chinext", name: "创业板", color: "#ff5d73", board: true },
+      { key: "star", name: "科创板", color: "#36c2ff", board: true },
       { key: "sh", name: "创业板指成分股", color: "#ff5d73" },
       { key: "k50", name: "科创50成分股", color: "#7ddc82" },
       { key: "sz", name: "科创综指成分股", color: "#36c2ff" }
     ];
-    // Scope identity, rather than a metric's changing label, persists across all seven tabs.
+    // IPO/refinancing share board selections; index selections keep their own identity.
     const selected = new Set(scopes.map(scope => scope.key));
     let activeMetric = "ipoFund";
     let activeYears = 0;
@@ -136,15 +140,15 @@ const script = `
 
     function renderChart(preserveZoom = false) {
       const cfg = metrics[activeMetric];
+      document.getElementById("officialDataStatus").textContent = "数据核对至 " +
+        (activeMetric === "refinanceFund" ? refinancingData.meta.updated.slice(0, 10) : officialData.meta.updated);
       const holderMetric = activeMetric === "holderNetReductionAmount";
       const ipoMetric = activeMetric === "ipoFund";
-      const breakdownField = ipoMetric ? "ipoIndices" : "holderIndices";
-      const canSelect = key => key === "market" || holderMetric ||
-        (ipoMetric && officialData.meta.ipoConstituents[key]?.available);
-      const lineName = scope => scope.key === "market" ? cfg.market :
-        scope.name + (ipoMetric ? "（现有成分股回溯）" : "") + " · " + cfg.title +
-        (ipoMetric && scope.key !== "market" && (officialData.meta.ipoConstituents[scope.key]?.missingMembers?.length ||
-          officialData.meta.ipoConstituents[scope.key]?.pricedMembers < officialData.meta.ipoConstituents[scope.key]?.matchedMembers) ? "（仅可核实记录）" : "");
+      const boardMetric = ipoMetric || activeMetric === "refinanceFund";
+      const breakdownField = ipoMetric ? "ipoBoards" : "refinanceBoards";
+      const canSelect = key => key === "market" || (boardMetric ? ["chinext", "star"].includes(key) :
+        holderMetric && ["sh", "k50", "sz"].includes(key));
+      const lineName = scope => scope.key === "market" ? cfg.market : scope.name + " · " + cfg.title;
       const oldZoom = preserveZoom ? chart.getOption().dataZoom?.[0] : null;
       const zoom = oldZoom ? Object.fromEntries(["start", "end", "startValue", "endValue"]
         .filter(key => oldZoom[key] != null).map(key => [key, oldZoom[key]])) : { start: 0, end: 100 };
@@ -163,28 +167,14 @@ const script = `
       document.getElementById("officialMetricSubtitle").textContent = cfg.subtitle;
       const reason = officialData.meta.constituentAvailability[activeMetric];
       document.querySelectorAll("#officialSeriesControls [data-series]").forEach(button => {
-        const enabled = canSelect(button.dataset.series);
+        const key = button.dataset.series;
+        button.hidden = key !== "market" && (boardMetric ? !["chinext", "star"].includes(key) : ["chinext", "star"].includes(key));
+        const enabled = canSelect(key);
         button.disabled = !enabled;
         button.setAttribute("aria-pressed", String(selected.has(button.dataset.series)));
-        button.title = enabled ? "切换显示；选择对所有页签生效" : reason;
-      });
-      scopes.filter(scope => scope.key !== "market").forEach(scope => {
-        document.getElementById("officialScopeLabel-" + scope.key).textContent = scope.name + (ipoMetric ? "（IPO回溯）" : "");
+        button.title = enabled ? "切换显示；同类页签保留选择" : reason;
       });
       renderExplanation("official", activeMetric);
-      const coverageBox = document.getElementById("officialIpoCoverage");
-      coverageBox.hidden = !ipoMetric;
-      if (ipoMetric) {
-        coverageBox.innerHTML = '<ol start="8">' + scopes.filter(scope => scope.key !== "market").map(scope => {
-          const cover = officialData.meta.ipoConstituents[scope.key];
-          const detail = cover?.available
-            ? "名单日期 " + cover.snapshotDate + "；共 " + cover.totalMembers + " 家，匹配IPO记录 " + cover.matchedMembers +
-              " 家，其中有发行股数和发行价 " + cover.pricedMembers + " 家；经公告核对的换股上市 " + Object.keys(cover.nonCashListings).length +
-              " 家不计作现金IPO；尚未匹配 " + cover.missingMembers.length + " 家。名单调整会改变回溯结果。"
-            : "暂无可核实的成分股IPO数据。";
-          return "<li><strong>" + scope.name + "回溯范围：</strong>" + explanationEscape(detail) + "</li>";
-        }).join("") + "</ol>";
-      }
       const latestRows = visibleRows.filter(row => Number.isFinite(row[activeMetric]));
       const latest = latestRows[latestRows.length - 1];
       let reading = latest ? cfg.market + " · " + latest.date + " · " + fmt(latest[activeMetric], cfg.digits) + cfg.unit
@@ -199,7 +189,7 @@ const script = `
       const series = scopes.filter(scope => selected.has(scope.key) && canSelect(scope.key)).map(scope => ({
         id: scope.key, name: lineName(scope),
         type: "line", step: cfg.step || false, connectNulls: false,
-        data: visibleRows.map(row => [row.date, (scope.key === "market" ? row[activeMetric] : row[breakdownField]?.[scope.key]) ?? null]),
+        data: visibleRows.map(row => [row.date, (scope.key === "market" ? row[activeMetric] : (boardMetric ? row[breakdownField]?.[scope.key]?.[activeMetric] : row.holderIndices?.[scope.key])) ?? null]),
         showSymbol: false,
         lineStyle: { width: 2, color: scope.color }, itemStyle: { color: scope.color }
       }));
@@ -223,10 +213,6 @@ const script = `
               if (holderMetric) {
                 const count = row?.holderCoverage?.[scope?.key];
                 if (count && count.records != null) text += "（可计价 " + count.pricedRecords + "/" + count.records + " 条）";
-              }
-              if (ipoMetric && scope && scope.key !== "market") {
-                const cover = officialData.meta.ipoConstituents[scope.key];
-                text += "（按 " + cover.snapshotDate + " 成分名单回溯，已匹配IPO " + cover.matchedMembers + "/" + cover.totalMembers + " 家）";
               }
               return text;
             });

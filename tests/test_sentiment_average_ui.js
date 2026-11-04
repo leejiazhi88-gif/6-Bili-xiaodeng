@@ -288,7 +288,7 @@ test('official: seven tabs use named source amounts or percentages on one axis, 
     assert.equal(market.connectNulls, false);
     assert.deepEqual(plain(market.data.filter(p => Number.isFinite(p[1]))),
       rows.filter(row => Number.isFinite(row[metric])).map(row => [row.date, row[metric]]));
-    assert.equal(option.series.length, ['ipoFund', 'holderNetReductionAmount'].includes(metric) ? 4 : 1);
+    assert.equal(option.series.length, metric === 'holderNetReductionAmount' ? 4 : ['ipoFund', 'refinanceFund'].includes(metric) ? 3 : 1);
     const sourceRow = rows.findLast(row => Number.isFinite(row[metric]));
     const tooltip = option.tooltip.formatter([{ marker: '', seriesName: market.name, seriesId: 'market',
       value: [sourceRow.date, sourceRow[metric]] }]);
@@ -307,8 +307,8 @@ test('official: shared selection survives every tab; inapplicable breakdown cann
     ui.metric(metric);
     assert.ok(!ui.chart.option.series.some(line => line.id === 'market'));
     assert.equal(ui.buttons('SeriesControls')[0].getAttribute('aria-pressed'), 'false');
-    assert.equal(ui.buttons('SeriesControls')[1].disabled, !['ipoFund', 'holderNetReductionAmount'].includes(metric));
-    if (!['ipoFund', 'holderNetReductionAmount'].includes(metric)) {
+    assert.equal(ui.buttons('SeriesControls').find(b => b.dataset.series === 'sh').disabled, metric !== 'holderNetReductionAmount');
+    if (!['ipoFund', 'refinanceFund', 'holderNetReductionAmount'].includes(metric)) {
       assert.equal(ui.nodes.get('officialEmptyState').hidden, false);
       const renders = ui.chart.renders;
       ui.click('SeriesControls', 'data-series', 'sh');
@@ -357,43 +357,68 @@ test('official: constituent series are disclosed monthly money; missing points a
 });
 
 
-test('official IPO: all three scope switches work and every amount reconciles to disclosed issuance records', () => {
+test('official: IPO and refinancing use two listing boards, preserve selections, and leave index choices independent', () => {
   const ui = mount(officialDef);
-  const data = jsonConstant(scripts[officialDef.script], 'officialData');
-  ui.metric('ipoFund');
-  assert.equal(ui.nodes.get('officialIpoCoverage').hidden, false);
-  assert.match(ui.nodes.get('officialMetricSubtitle').textContent, /回溯/);
-  for (const key of ['sh', 'k50', 'sz']) {
-    const button = ui.buttons('SeriesControls').find(b => b.dataset.series === key);
-    assert.equal(button.disabled, false);
-    const cover = data.meta.ipoConstituents[key];
-    const line = ui.chart.option.series.find(item => item.id === key);
-    assert.match(line.name, /现有成分股回溯/);
-    assert.match(ui.nodes.get('officialScopeLabel-' + key).textContent, /IPO回溯/);
-    assert.equal(cover.missingMembers.length, 0);
-    assert.equal(cover.matchedMembers + Object.keys(cover.nonCashListings).length, cover.totalMembers);
-    const monthly = new Map();
-    const unique = new Set();
-    for (const row of cover.records) {
-      const date = row.ipo_date || row.issue_date;
-      const identity = row.ts_code + date;
-      if (unique.has(identity)) continue;
-      unique.add(identity);
-      const month = date.slice(0, 4) + '-' + date.slice(4, 6);
-      const yuan = row.amount * 10000 * row.price;
-      monthly.set(month, (monthly.get(month) || 0) + yuan);
+  for (const metric of ['ipoFund', 'refinanceFund']) {
+    ui.metric(metric);
+    const visible = ui.buttons('SeriesControls').filter(b => !b.hidden).map(b => b.dataset.series);
+    assert.deepEqual(visible, ['market', 'chinext', 'star']);
+    assert.deepEqual(plain(ui.chart.option.series.map(s => s.id)), visible);
+    assert.doesNotMatch(ui.nodes.get('officialMetricGuide').innerHTML, /现有成分股|回溯|名单日期/);
+    for (const line of ui.chart.option.series) {
+      assert.doesNotMatch(line.name, /成分股|科创50|回溯/);
+      const tooltip = ui.chart.option.tooltip.formatter([{ seriesId: line.id, seriesName: line.name,
+        value: line.data.find(p => Number.isFinite(p[1])), marker: '' }]);
+      assert.doesNotMatch(tooltip, /回溯|名单|已匹配/);
     }
-    assert.ok(monthly.size > 0);
-    for (const [month, yuan] of monthly) {
-      const point = line.data.find(([date]) => date.startsWith(month));
-      assert.ok(point, key + ' ' + month);
-      assert.ok(Math.abs(point[1] - yuan / 1e8) <= .005001, key + ' issuance amount differs: ' + month);
-    }
-    ui.click('SeriesControls', 'data-series', key);
-    assert.ok(!ui.chart.option.series.some(item => item.id === key));
-    ui.click('SeriesControls', 'data-series', key);
-    assert.ok(ui.chart.option.series.some(item => item.id === key));
   }
+  ui.click('SeriesControls', 'data-series', 'chinext');
+  ui.metric('ipoFund');
+  assert.ok(!ui.chart.option.series.some(s => s.id === 'chinext'));
+  ui.metric('holderNetReductionAmount');
+  assert.deepEqual(ui.buttons('SeriesControls').filter(b => !b.hidden).map(b => b.dataset.series), ['market', 'sh', 'k50', 'sz']);
+  assert.ok(ui.chart.option.series.some(s => s.id === 'sh'));
   ui.metric('refinanceFund');
-  assert.equal(ui.nodes.get('officialIpoCoverage').hidden, true);
+  assert.ok(!ui.chart.option.series.some(s => s.id === 'chinext'));
+  ui.click('SeriesControls', 'data-series', 'chinext');
+  assert.ok(ui.chart.option.series.some(s => s.id === 'chinext'));
+});
+
+test('official board amounts reconcile independently to issuance records, including companies absent from current indices', () => {
+  const ui = mount(officialDef);
+  const ipo = JSON.parse(fs.readFileSync(path.join(__dirname, '../work/ipo_issuance_records.json')));
+  const refinance = JSON.parse(fs.readFileSync(path.join(__dirname, '../work/refinancing_issuance_records.json')));
+  const board = code => /^(300|301|302)[0-9]{3}\.SZ$/.test(code) ? 'chinext' : /^(688|689)[0-9]{3}\.SH$/.test(code) ? 'star' : 'other';
+  for (const metric of ['ipoFund', 'refinanceFund']) {
+    ui.metric(metric);
+    for (const key of ['chinext', 'star']) {
+      const line = ui.chart.option.series.find(s => s.id === key);
+      const months = new Map(), identities = new Set();
+      for (const r of metric === 'ipoFund' ? ipo.records : refinance.records) {
+        const rawDate = metric === 'ipoFund' ? r.ipo_date || r.issue_date : r.date;
+        if (!rawDate) continue;
+        const date = rawDate.replaceAll('-', '');
+        if (metric === 'ipoFund' && date > ipo.meta.end) continue;
+        if (metric === 'refinanceFund' && r.date > refinance.meta.end) continue;
+        if (board(r.ts_code || r.code) !== key) continue;
+        const id = metric === 'ipoFund' ? r.ts_code + date : r.type + r.id;
+        if (identities.has(id)) continue;
+        identities.add(id);
+        const month = date.slice(0, 4) + '-' + date.slice(4, 6);
+        const entry = months.get(month) || { sum: 0, missing: false };
+        const yuan = metric === 'ipoFund' ? (r.amount > 0 && r.price > 0 ? r.amount * 10000 * r.price : null) : r.amountYuan;
+        if (yuan == null) entry.missing = true; else entry.sum += yuan;
+        months.set(month, entry);
+      }
+      assert.ok(months.size > 0);
+      for (const [month, entry] of months) {
+        const point = line.data.find(p => p[0].startsWith(month));
+        assert.ok(point, metric + ' missing month ' + month);
+        if (entry.missing) assert.equal(point[1], null);
+        else assert.ok(Math.abs(point[1] - entry.sum / 1e8) <= .005001, metric + ' ' + key + ' ' + month);
+      }
+    }
+  }
+  ui.metric('ipoFund');
+  assert.equal(ui.chart.option.series.find(s => s.id === 'chinext').data.find(p => p[0] === '2021-07-31')[1], 95.31);
 });

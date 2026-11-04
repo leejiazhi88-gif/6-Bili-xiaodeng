@@ -1,19 +1,4 @@
 {
-  "aliases": {
-    "302132.SZ": {
-      "previousCode": "300114.SZ",
-      "effectiveDate": "2025-02-17",
-      "source": "https://pdf.dfcfw.com/pdf/H2_AN202502141643087427_1.pdf",
-      "evidence": "中航成飞2025-028号公告：证券代码由300114变更为302132，公司法人主体存续，上市主体没有发生实质变化。"
-    }
-  },
-  "nonCashListings": {
-    "300498.SZ": {
-      "date": "2015-11-02",
-      "source": "https://pdf.dfcfw.com/pdf/H2_AN201510290011227979_1.pdf",
-      "evidence": "温氏股份通过换股吸收合并大华农在创业板上市，不作为现金IPO发行计入；不把被吸收公司的IPO自动归入温氏。"
-    }
-  },
   "amountEvidence": {
     "source": "https://pdf.dfcfw.com/pdf/H2_AN201907161338712768_1.pdf",
     "evidence": "睿创微纳上市公告书披露首次公开发行6000万股、发行价20元/股，对应发行总额12亿元。Tushare new_share的funds返回5.265亿元，与该发行总额不同，故统一使用amount乘price计算发行总额，不使用funds作为实际发行金额。"

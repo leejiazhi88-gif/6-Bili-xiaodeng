@@ -3,7 +3,7 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'work'))
-from official_metrics import complete_window, aggregate_ipo, aggregate_holders, aggregate_current_ipo
+from official_metrics import complete_window, aggregate_ipo, aggregate_holders, aggregate_board_ipo
 from fetch_large_money_sentiment_data import STOCK_CODE
 import fetch_official_sentiment_data as official
 
@@ -41,39 +41,28 @@ class OfficialMetricsTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, 'Conflicting IPO'):
             aggregate_ipo([row, dict(row, price=46)], ['202601'])
 
-    def test_ipo_current_members_are_explicit_retrospective_sample_with_code_changes(self):
-        rows = [dict(ts_code='OLD.SZ', ipo_date='20100102', amount=10000, price=12, funds=5.265),
-                dict(ts_code='OTHER.SZ', ipo_date='20100103', amount=20000, price=20, funds=40),
-                dict(ts_code='NEW.SZ', ipo_date='20270101', amount=20000, price=20, funds=40)]
-        member = (['20251031', '20261030', '20270101'], {
-            '20251031': {'OTHER.SZ'}, '20261030': {'NEW.SZ', 'SWAP.SZ'}, '20270101': {'OTHER.SZ'}})
-        overrides = {'aliases': {'NEW.SZ': {'previousCode': 'OLD.SZ'}},
-                     'nonCashListings': {'SWAP.SZ': {'source': 'verified listing announcement'}}}
-        values, coverage = aggregate_current_ipo(rows, ['201001', '202611'], {'sh': member}, '20261103', overrides)
-        self.assertEqual(values['sh']['201001'], 12)
-        self.assertEqual(values['sh']['202611'], 0)
-        self.assertEqual(coverage['sh']['snapshotDate'], '20261030')
-        self.assertEqual(coverage['sh']['matchedMembers'], 1)
-        self.assertEqual(coverage['sh']['missingMembers'], [])
-        self.assertEqual(coverage['sh']['records'][0]['sourceCode'], 'OLD.SZ')
-        self.assertEqual(len(coverage['sh']['records']), 1)  # excludes future IPO and former member
-        newer = (['20261101'], {'20261101': {'OTHER.SZ'}})
-        changed, _ = aggregate_current_ipo(rows, ['201001'], {'sh': newer}, '20261103', overrides)
-        self.assertEqual(changed['sh']['201001'], 40)  # changing sample must rebuild history
+    def test_ipo_board_includes_all_issuers_without_membership_filter(self):
+        rows = [dict(ts_code='300114.SZ', ipo_date='20100102', amount=10000, price=12),
+                dict(ts_code='301001.SZ', ipo_date='20210703', amount=10000, price=20),
+                dict(ts_code='688001.SH', ipo_date='20210704', amount=10000, price=30),
+                dict(ts_code='600001.SH', ipo_date='20210705', amount=10000, price=40),
+                dict(ts_code='300002.SZ', ipo_date='20270101', amount=10000, price=50)]
+        values, coverage = aggregate_board_ipo(rows, ['200912', '201001', '202107', '202611'], '20261103')
+        self.assertEqual(values['chinext']['201001']['ipoFund'], 12)
+        self.assertEqual(values['chinext']['202107']['ipoFund'], 20)
+        self.assertEqual(values['star']['202107']['ipoFund'], 30)
+        self.assertEqual(values['chinext']['202611']['ipoFund'], 0)
+        self.assertIsNone(values['star']['201001']['ipoFund'])
+        self.assertEqual(coverage['chinext']['records'], 2)
+        self.assertNotIn('k50', values)
 
-    def test_ipo_missing_members_and_stale_snapshots_are_disclosed(self):
-        overrides = {'aliases': {}, 'nonCashListings': {}}
-        rows = [dict(ts_code='KNOWN.SZ', ipo_date='20200102', amount=100, price=10)]
-        values, cover = aggregate_current_ipo(rows, ['202001'], {
-            'partial': (['20261030'], {'20261030': {'KNOWN.SZ', 'UNKNOWN.SZ'}}),
-            'empty': (['20261030'], {'20261030': {'UNKNOWN.SZ'}}),
-            'stale': (['20250101'], {'20250101': {'KNOWN.SZ'}}),
-        }, '20261103', overrides)
-        self.assertEqual(cover['partial']['missingMembers'], ['UNKNOWN.SZ'])
-        self.assertEqual(values['partial']['202001'], .1)
-        self.assertIsNone(values['empty']['202001'])
-        self.assertIsNone(values['stale']['202001'])
-        self.assertFalse(cover['stale']['available'])
+    def test_ipo_missing_amount_affects_its_board_not_other_boards(self):
+        rows = [dict(ts_code='300001.SZ', ipo_date='20200102', amount=100, price=None),
+                dict(ts_code='688001.SH', ipo_date='20200102', amount=100, price=10)]
+        values, cover = aggregate_board_ipo(rows, ['202001'], '20261103')
+        self.assertIsNone(values['chinext']['202001']['ipoFund'])
+        self.assertEqual(cover['chinext']['missingAmountRecords'], 1)
+        self.assertEqual(values['star']['202001']['ipoFund'], .1)
 
     def test_holders_same_records_sign_units_historical_membership_and_coverage(self):
         def row(code, day, direction, volume, price):

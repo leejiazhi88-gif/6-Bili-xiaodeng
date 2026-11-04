@@ -2,7 +2,7 @@ import sys
 import unittest
 from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'work'))
-from fetch_refinancing_data import HEADERS, parse
+from legacy_refinancing_ths import HEADERS, parse
 
 
 def table(rows):
