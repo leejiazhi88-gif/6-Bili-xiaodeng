@@ -66,10 +66,10 @@ const moduleHtml = `
         </div>
       </div>
       <div id="largeMoneySeriesControls" role="group" aria-label="选择对照曲线">
-        <button type="button" data-series="全市场资金" aria-pressed="true" style="--series-color:#f6c85f"><span class="large-money-series-mark"></span>全市场资金</button>
-        <button type="button" data-series="创业板指" aria-pressed="true" style="--series-color:#ff5d73"><span class="large-money-series-mark"></span>创业板指</button>
-        <button type="button" data-series="科创50" aria-pressed="true" style="--series-color:#7ddc82"><span class="large-money-series-mark"></span>科创50</button>
-        <button type="button" data-series="科创综指" aria-pressed="true" style="--series-color:#36c2ff"><span class="large-money-series-mark"></span>科创综指</button>
+        <button type="button" data-series="全市场资金" aria-pressed="true" style="--series-color:#f5c96a"><span class="large-money-series-mark"></span>全市场资金</button>
+        <button type="button" data-series="创业板指" aria-pressed="true" style="--series-color:#ef7180"><span class="large-money-series-mark"></span>创业板指</button>
+        <button type="button" data-series="科创50" aria-pressed="true" style="--series-color:#8bd6a3"><span class="large-money-series-mark"></span>科创50</button>
+        <button type="button" data-series="科创综指" aria-pressed="true" style="--series-color:#43d6cf"><span class="large-money-series-mark"></span>科创综指</button>
       </div>
       <div class="metric-tabs" id="largeMoneyMetricTabs">
         <button class="metric-tab active" data-metric="blockAmount">大宗交易额</button>
@@ -285,20 +285,20 @@ const script = `
         xAxis: { type: "time", axisLine: { lineStyle: { color: "#344760" } },
           axisLabel: { color: "#789b98", hideOverlap: true }, splitLine: { show: false } },
         yAxis: [
-          { type: "value", scale: true, axisLabel: { color: northFlowMode ? "#f6c85f" : "#8fa5bf", formatter: "{value}" + displayUnit },
+          { type: "value", scale: true, axisLabel: { color: northFlowMode ? "#f5c96a" : "#8fa5bf", formatter: "{value}" + displayUnit },
             splitLine: { lineStyle: { color: "#1b3737" } } },
         ],
         dataZoom: [
           { type: "inside", filterMode: "none", start: zoomStart, end: zoomEnd },
           { type: "slider", bottom: 12, height: 22, start: zoomStart, end: zoomEnd,
             borderColor: "#35545a", backgroundColor: "#0e2022",
-            fillerColor: "rgba(54,194,255,.17)", handleStyle: { color: "#36c2ff" },
+            fillerColor: "rgba(54,194,255,.17)", handleStyle: { color: "#43d6cf" },
             textStyle: { color: "#8fa5bf" } }
         ],
         series: [
           ...(!holdingView && (northFlowMode || selectedSeries.has("全市场资金")) ? [{ name: moneyName, type: "line", yAxisIndex: 0, data: moneyPoints,
             showSymbol: fundMode, symbolSize: 5, sampling: "lttb", connectNulls: false,
-            lineStyle: { width: 2, color: "#f6c85f" }, itemStyle: { color: "#f6c85f" } }] : []),
+            lineStyle: { width: 2, color: "#f5c96a" }, itemStyle: { color: "#f5c96a" } }] : []),
           ...indexSeries
         ]
       }, true);

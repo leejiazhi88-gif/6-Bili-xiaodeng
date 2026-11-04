@@ -19,14 +19,14 @@ function stripExisting(html) {
 const css = `
   <style id="official-sentiment-style">
     ${guideCss("official-sentiment")}
-    #refinanceSourceLink { color: #f6c85f; }
+    #refinanceSourceLink { color: #f5c96a; }
     #officialSeriesControls { display: flex; flex-wrap: wrap; gap: 8px 18px; padding: 12px 16px 4px; }
     #officialSeriesControls button { display: inline-flex; align-items: center; gap: 7px; border: 0;
       background: transparent; color: #b8c8db; font-size: 12px; padding: 6px 0; cursor: pointer; }
     #officialSeriesControls button[aria-pressed="false"] { opacity: .4; }
     #officialSeriesControls button[hidden] { display: none; }
     #officialSeriesControls button:disabled { opacity: .35; cursor: not-allowed; }
-    #officialSeriesControls button:focus-visible { outline: 2px solid #f6c85f; outline-offset: 3px; }
+    #officialSeriesControls button:focus-visible { outline: 2px solid #f5c96a; outline-offset: 3px; }
     ${seriesMarkerCss(".official-series-mark")}
     #officialEmptyState { padding: 16px; color: #c6d3e3; text-align: center; }
     #officialEmptyState[hidden] { display: none; }
@@ -49,9 +49,9 @@ const moduleHtml = `
     </div>
 
       <div id="officialSeriesControls" role="group" aria-label="官方模块全局范围筛选，对全部页签生效">
-        <button type="button" data-series="market" aria-pressed="true" style="--series-color:#f6c85f"><span class="official-series-mark"></span><span id="officialMarketLabel">全市场</span></button>
-        <button type="button" data-series="chinext" aria-pressed="true" style="--series-color:#ff5d73"><span class="official-series-mark"></span>创业板</button>
-        <button type="button" data-series="star" aria-pressed="true" style="--series-color:#36c2ff"><span class="official-series-mark"></span>科创板</button>
+        <button type="button" data-series="market" aria-pressed="true" style="--series-color:#f5c96a"><span class="official-series-mark"></span><span id="officialMarketLabel">全市场</span></button>
+        <button type="button" data-series="chinext" aria-pressed="true" style="--series-color:#ef7180"><span class="official-series-mark"></span>创业板</button>
+        <button type="button" data-series="star" aria-pressed="true" style="--series-color:#43d6cf"><span class="official-series-mark"></span>科创板</button>
       </div>
 
     <article class="valuation-panel">
@@ -111,9 +111,9 @@ const script = `
     };
     ${explanationScript(["ipoFund", "refinanceFund", "holderNetReductionAmount"], "official", explanationMethods)}
     const scopes = [
-      { key: "market", color: "#f6c85f" },
-      { key: "chinext", name: "创业板", color: "#ff5d73" },
-      { key: "star", name: "科创板", color: "#36c2ff" }
+      { key: "market", color: "#f5c96a" },
+      { key: "chinext", name: "创业板", color: "#ef7180" },
+      { key: "star", name: "科创板", color: "#43d6cf" }
     ];
     // One global board selection applies to every official metric.
     const selected = new Set(scopes.map(scope => scope.key));
@@ -212,7 +212,7 @@ const script = `
           { type: "inside", filterMode: "none", ...zoom },
           { type: "slider", bottom: 12, height: 22, ...zoom,
             borderColor: "#35545a", backgroundColor: "#0e2022", fillerColor: "rgba(255,93,115,.15)",
-            handleStyle: { color: "#ff5d73" }, textStyle: { color: "#8fa5bf" } }
+            handleStyle: { color: "#ef7180" }, textStyle: { color: "#8fa5bf" } }
         ],
         series
       }, true);

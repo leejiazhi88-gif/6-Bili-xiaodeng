@@ -61,10 +61,10 @@ const moduleHtml = `
         </div>
       </div>
       <div id="retailSeriesControls" role="group" aria-label="选择对照曲线">
-        <button type="button" data-series="沪深两市" aria-pressed="true" style="--series-color:#f6c85f"><span class="retail-series-mark"></span>沪深两市</button>
-        <button type="button" data-series="创业板指" aria-pressed="true" style="--series-color:#ff5d73"><span class="retail-series-mark"></span>创业板指</button>
-        <button type="button" data-series="科创50" aria-pressed="true" style="--series-color:#7ddc82"><span class="retail-series-mark"></span>科创50</button>
-        <button type="button" data-series="科创综指" aria-pressed="true" style="--series-color:#36c2ff"><span class="retail-series-mark"></span>科创综指</button>
+        <button type="button" data-series="沪深两市" aria-pressed="true" style="--series-color:#f5c96a"><span class="retail-series-mark"></span>沪深两市</button>
+        <button type="button" data-series="创业板指" aria-pressed="true" style="--series-color:#ef7180"><span class="retail-series-mark"></span>创业板指</button>
+        <button type="button" data-series="科创50" aria-pressed="true" style="--series-color:#8bd6a3"><span class="retail-series-mark"></span>科创50</button>
+        <button type="button" data-series="科创综指" aria-pressed="true" style="--series-color:#43d6cf"><span class="retail-series-mark"></span>科创综指</button>
       </div>
       <div class="metric-tabs" id="retailMetricTabs">
         <button class="metric-tab active" data-metric="amount">成交额</button>
@@ -95,7 +95,7 @@ const script = `
   (() => {
     const retailData = __RETAIL_DATA__;
     const indexData = __INDEX_DATA__;
-    const market = { name: "沪深两市", rows: retailData.series, color: "#f6c85f" };
+    const market = { name: "沪深两市", rows: retailData.series, color: "#f5c96a" };
     const indices = [
       { name: "创业板指", rows: DATA.sh, color: COLORS.sh },
       { name: "科创50", rows: DATA.k50, color: COLORS.k50 },
@@ -218,7 +218,7 @@ const script = `
           { type: "inside", filterMode: "none", start: zoomStart, end: zoomEnd },
           { type: "slider", bottom: 12, height: 22, start: zoomStart, end: zoomEnd,
             borderColor: "#35545a", backgroundColor: "#0e2022",
-            fillerColor: "rgba(246,200,95,.18)", handleStyle: { color: "#f6c85f" },
+            fillerColor: "rgba(246,200,95,.18)", handleStyle: { color: "#f5c96a" },
             textStyle: { color: "#8fa5bf" } }
         ],
         series

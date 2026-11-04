@@ -33,7 +33,7 @@ function movingAverageCss(scope) {
     #${scope} .average-controls[hidden] { display: none; }
     #${scope} .average-label { color: #8fa5bf; font-size: 12px; margin-right: 3px; }
     #${scope} .average-controls button { padding: 5px 9px; font-size: 12px; }
-    #${scope} .average-controls button:focus-visible { outline: 2px solid #f6c85f; outline-offset: 3px; }
+    #${scope} .average-controls button:focus-visible { outline: 2px solid #f5c96a; outline-offset: 3px; }
   `.trim();
 }
 

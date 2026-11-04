@@ -120,13 +120,13 @@ function guideCss(scope) {
     #${scope} .metric-guide { padding: 0; color: #c6d3e3; font-size: 14px; line-height: 1.8; }
     #${scope} .metric-guide ol { margin: 0; padding-left: 1.5em; }
     #${scope} .metric-guide li { padding-left: 4px; margin: 8px 0; overflow-wrap: anywhere; }
-    #${scope} .metric-guide li::marker { color: #f6c85f; font-weight: 600; }
+    #${scope} .metric-guide li::marker { color: #f5c96a; font-weight: 600; }
     #${scope} .metric-guide strong, #${scope} .metric-method strong { color: #eaf4f2; }
     #${scope} .metric-guide p { margin: 4px 0; }
     #${scope} .valuation-foot { grid-template-columns: 1fr; }
     #${scope} .metric-method { width: 100%; color: #a7b9cf; font-size: 13px; line-height: 1.8; }
     #${scope} .metric-method summary { cursor: pointer; padding: 10px 0; color: #c6d3e3; }
-    #${scope} .metric-method summary:focus-visible { outline: 2px solid #f6c85f; outline-offset: 3px; }
+    #${scope} .metric-method summary:focus-visible { outline: 2px solid #f5c96a; outline-offset: 3px; }
     #${scope} .metric-method ol { margin: 0; padding-left: 1.5em; }
     #${scope} .metric-method li { margin-bottom: 12px; overflow-wrap: anywhere; }
   `.trim();
