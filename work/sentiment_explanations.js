@@ -107,7 +107,7 @@ const scopeText = {
   "official": {
     ipoFund: "黄色线是全市场IPO发行金额，红色是创业板，蓝色是科创板，均为亿元。按发行记录所属板块统计，包含当年发行、后来未进入指数或已退市的公司；不看今天的指数名单。科创50是科创板的选样指数，不单列为上市板块。",
     refinanceFund: "黄色线是全市场股票再融资发行金额，红色是创业板，蓝色是科创板；三条线用同批已实施增发、配股记录，按板块归集，均为亿元。创业板、科创板属于全市场子集，不与全市场相加，不按当前指数名单筛选。",
-    holderNetReductionAmount: "黄色线是沪深京A股重要股东披露均价记录的净减持金额；其余线是同一批公告中相应历史成分股的金额。均为亿元，范围可能重叠，不能相加。",
+    holderNetReductionAmount: "黄色线是沪深京A股重要股东披露均价记录的净减持金额；其余线分别是同批公告中整个创业板、科创板的金额，包含非指数成分股。均为亿元；两板块是全市场的子集，不与全市场相加。",
     stampDutyRate: "黄色线是统一的证券交易印花税卖出端税率，单位%。各成分股适用同一税率，不另画重复分项。",
     lpr1y: "黄色线是全国统一公布的1年期LPR，单位%，不存在三个股票指数各自的LPR。",
     socialFinancing: "黄色线是全国社融当月增量，单位亿元，不能拆成三个股票指数的融资额。",
@@ -149,7 +149,7 @@ function explanationScript(keys, scope, methods) {
         ? "三条指数线分别统计跟踪相应指数的ETF份额；黄色线是这三组ETF的份额合计，不是全市场ETF。"
         : (typeof curveScope === "string" ? curveScope : curveScope[metric]);
       const lines = [["是什么", content.guide[0]], ["怎么看", content.guide[1]],
-        ["图中曲线", (prefix === "official" && metric !== "holderNetReductionAmount" ? "" : indexDefinitions + " ") + scope], ["注意什么", content.guide[2]]];
+        ["图中曲线", (prefix === "official" ? "" : indexDefinitions + " ") + scope], ["注意什么", content.guide[2]]];
       document.getElementById(prefix + "MetricGuide").innerHTML = "<ol>" + lines.map(([label, text]) =>
         "<li><strong>" + label + "：</strong>" + explanationEscape(text) + "</li>").join("") + "</ol>";
       document.getElementById(prefix + "Methodology").innerHTML = '<ol start="5">' + content.details.map(([label, text]) =>

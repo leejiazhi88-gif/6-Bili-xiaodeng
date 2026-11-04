@@ -288,7 +288,7 @@ test('official: three financing tabs use named source amounts on one axis, with 
     assert.equal(market.connectNulls, false);
     assert.deepEqual(plain(market.data.filter(p => Number.isFinite(p[1]))),
       rows.filter(row => Number.isFinite(row[metric])).map(row => [row.date, row[metric]]));
-    assert.equal(option.series.length, metric === 'holderNetReductionAmount' ? 4 : ['ipoFund', 'refinanceFund'].includes(metric) ? 3 : 1);
+    assert.equal(option.series.length, 3);
     const sourceRow = rows.findLast(row => Number.isFinite(row[metric]));
     const tooltip = option.tooltip.formatter([{ marker: '', seriesName: market.name, seriesId: 'market',
       value: [sourceRow.date, sourceRow[metric]] }]);
@@ -300,24 +300,25 @@ test('official: three financing tabs use named source amounts on one axis, with 
   }
 });
 
-test('official: shared selection survives every tab; inapplicable breakdown cannot be toggled; zoom persists', () => {
+test('official: shared board selection survives every tab and zoom persists', () => {
   const ui = mount(officialDef);
   ui.click('SeriesControls', 'data-series', 'market');
   for (const metric of officialFields) {
     ui.metric(metric);
     assert.ok(!ui.chart.option.series.some(line => line.id === 'market'));
     assert.equal(ui.buttons('SeriesControls')[0].getAttribute('aria-pressed'), 'false');
-    assert.equal(ui.buttons('SeriesControls').find(b => b.dataset.series === 'sh').disabled, metric !== 'holderNetReductionAmount');
+    assert.deepEqual(ui.buttons('SeriesControls').map(b => b.dataset.series), ['market', 'chinext', 'star']);
+    assert.ok(ui.buttons('SeriesControls').every(b => !b.disabled && !b.hidden));
 
   }
   ui.metric('holderNetReductionAmount');
   ui.chart.option.dataZoom[0] = { start: 35, end: 73 };
-  ui.click('SeriesControls', 'data-series', 'sh');
+  ui.click('SeriesControls', 'data-series', 'chinext');
   assert.equal(ui.chart.option.dataZoom[0].start, 35);
   assert.equal(ui.chart.option.dataZoom[0].end, 73);
   ui.metric('ipoFund');
   ui.metric('holderNetReductionAmount');
-  assert.ok(!ui.chart.option.series.some(line => line.id === 'sh'));
+  assert.ok(!ui.chart.option.series.some(line => line.id === 'chinext'));
   ui.click('SeriesControls', 'data-series', 'market');
   for (const metric of officialFields) {
     ui.metric(metric);
@@ -325,16 +326,16 @@ test('official: shared selection survives every tab; inapplicable breakdown cann
   }
 });
 
-test('official: constituent series are disclosed monthly money; missing points and current-month labels survive', () => {
+test('official: whole-board series are disclosed monthly money; missing points and current-month labels survive', () => {
   const ui = mount(officialDef);
   const data = jsonConstant(scripts[officialDef.script], 'officialData');
   ui.metric('holderNetReductionAmount');
-  for (const key of ['sh', 'k50', 'sz']) {
+  for (const key of ['chinext', 'star']) {
     const line = ui.chart.option.series.find(item => item.id === key);
-    const expected = data.series.filter(row => Number.isFinite(row.holderIndices?.[key]));
+    const expected = data.series.filter(row => Number.isFinite(row.holderBoards?.[key]?.holderNetReductionAmount));
     assert.ok(expected.length > 0);
     assert.deepEqual(plain(line.data.filter(point => Number.isFinite(point[1]))),
-      expected.map(row => [row.date, row.holderIndices[key]]));
+      expected.map(row => [row.date, row.holderBoards[key].holderNetReductionAmount]));
   }
   assert.match(ui.nodes.get('officialLatestReading').textContent, /可计价/);
   if (data.series.at(-1).partialMonth) {
@@ -345,15 +346,16 @@ test('official: constituent series are disclosed monthly money; missing points a
   }
   const section = html.match(/<section class="module-shell" id="official-sentiment">([\s\S]*?)<\/section>/)[1];
   assert.deepEqual(ui.buttons('MetricTabs').map(button => button.dataset.metric), officialFields);
-  assert.ok(section.indexOf('id="officialSeriesControls"') < section.indexOf('id="officialMetricTabs"'));
+  assert.ok(section.indexOf('id="officialSeriesControls"') < section.indexOf('<article class="valuation-panel">'));
+  assert.doesNotMatch(section, /科创50|data-series="(?:sh|k50|sz)"/);
   assert.match(section, /<details class="metric-method">/);
   assert.doesNotMatch(section, /<details[^>]*\bopen\b/);
 });
 
 
-test('official: IPO and refinancing use two listing boards, preserve selections, and leave index choices independent', () => {
+test('official: all three tabs share the outer listing-board controls', () => {
   const ui = mount(officialDef);
-  for (const metric of ['ipoFund', 'refinanceFund']) {
+  for (const metric of officialFields) {
     ui.metric(metric);
     const visible = ui.buttons('SeriesControls').filter(b => !b.hidden).map(b => b.dataset.series);
     assert.deepEqual(visible, ['market', 'chinext', 'star']);
@@ -370,8 +372,8 @@ test('official: IPO and refinancing use two listing boards, preserve selections,
   ui.metric('ipoFund');
   assert.ok(!ui.chart.option.series.some(s => s.id === 'chinext'));
   ui.metric('holderNetReductionAmount');
-  assert.deepEqual(ui.buttons('SeriesControls').filter(b => !b.hidden).map(b => b.dataset.series), ['market', 'sh', 'k50', 'sz']);
-  assert.ok(ui.chart.option.series.some(s => s.id === 'sh'));
+  assert.deepEqual(ui.buttons('SeriesControls').filter(b => !b.hidden).map(b => b.dataset.series), ['market', 'chinext', 'star']);
+  assert.ok(!ui.chart.option.series.some(s => s.id === 'chinext'));
   ui.metric('refinanceFund');
   assert.ok(!ui.chart.option.series.some(s => s.id === 'chinext'));
   ui.click('SeriesControls', 'data-series', 'chinext');

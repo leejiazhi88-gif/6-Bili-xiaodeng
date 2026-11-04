@@ -137,3 +137,21 @@ def aggregate_holders(rows, months, memberships, stock_code, end_date):
             }
         result[month] = month_result
     return result
+
+
+def aggregate_board_holders(rows, months, end_date):
+    """Aggregate the same disclosures by listing board, including non-index stocks."""
+    stock_code = re.compile(r"(?:(?:000|001|002|003|300|301|302)\d{3}\.SZ|(?:600|601|603|605|688|689)\d{3}\.SH|(?:43|83|87|88|92)\d{4}\.BJ)")
+    result = aggregate_holders(rows, months, {}, stock_code, end_date)
+    for key, first_month in [('chinext', '200910'), ('star', '201907')]:
+        selected = [row for row in rows if listing_board(row.get('ts_code')) == key]
+        grouped = aggregate_holders(selected, months, {}, stock_code, end_date)
+        for month in months:
+            values = grouped[month]['market']
+            values.pop('membershipAvailable', None)
+            if month < first_month:
+                values = {k: None for k in values}
+            result[month][key] = values
+    for groups in result.values():
+        groups['market'].pop('membershipAvailable', None)
+    return result

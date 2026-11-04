@@ -3,7 +3,7 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'work'))
-from official_metrics import complete_window, aggregate_ipo, aggregate_holders, aggregate_board_ipo
+from official_metrics import complete_window, aggregate_ipo, aggregate_holders, aggregate_board_ipo, aggregate_board_holders
 from fetch_large_money_sentiment_data import STOCK_CODE
 import fetch_official_sentiment_data as official
 
@@ -93,6 +93,27 @@ class OfficialMetricsTests(unittest.TestCase):
         result = aggregate_holders(rows, ['202611'], {}, STOCK_CODE, '20261103')['202611']['market']
         self.assertIsNone(result['holderNetReductionAmount'])
         self.assertEqual(result['records'], 1)
+
+    def test_holder_boards_include_non_index_stocks_and_keep_missing_coverage(self):
+        def row(code, direction, price):
+            return dict(ts_code=code, ann_date='20260105', holder_name=code,
+                        in_de=direction, change_vol=10000000, avg_price=price)
+        rows = [row('302001.SZ', 'DE', 20), row('301999.SZ', 'IN', 5),
+                row('688999.SH', 'DE', 30), row('689001.SH', 'DE', None),
+                row('600001.SH', 'IN', 10), row('920001.BJ', 'DE', 10),
+                row('000001.HK', 'DE', 100)]
+        result = aggregate_board_holders(rows + [rows[0]], ['201901', '202601', '202602'], '20260228')
+        january = result['202601']
+        self.assertEqual(set(january), {'market', 'chinext', 'star'})
+        self.assertEqual(january['market']['holderNetReductionAmount'], 4.5)
+        self.assertEqual(january['chinext']['holderNetReductionAmount'], 1.5)
+        self.assertEqual(january['star']['holderNetReductionAmount'], 3)
+        self.assertEqual(january['star']['missingRecords'], 1)
+        self.assertEqual(january['star']['records'], 2)
+        self.assertIsNone(result['201901']['star']['holderNetReductionAmount'])
+        self.assertEqual(result['202602']['star']['holderNetReductionAmount'], 0)
+        missing = aggregate_board_holders([rows[3]], ['202601'], '20260131')
+        self.assertIsNone(missing['202601']['star']['holderNetReductionAmount'])
 
     def test_policy_rate_uses_actual_cutoff_not_future_day_28(self):
         self.assertEqual(official.active_stamp_rate('200803'), .3)

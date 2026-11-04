@@ -1,7 +1,6 @@
 from refresh_cache import full_refresh
 from refresh_cache import historical_cache, atomic_json
-from official_metrics import complete_window, aggregate_ipo, aggregate_holders, aggregate_board_ipo, IPO_FIELDS, HOLDER_FIELDS
-from fetch_large_money_sentiment_data import index_memberships, STOCK_CODE
+from official_metrics import complete_window, aggregate_ipo, aggregate_board_holders, aggregate_board_ipo, IPO_FIELDS, HOLDER_FIELDS
 import calendar
 import json
 import re
@@ -99,7 +98,7 @@ def active_stamp_rate(month):
 def main():
     token = get_token()
     previous = json.loads(OUTPUT.read_text(encoding="utf-8")) if OUTPUT.exists() and not full_refresh() else None
-    refresh_year = int(previous["meta"]["end"][:4]) if previous and previous["meta"].get("schemaVersion") in (2, 3, 4) else 2008
+    refresh_year = int(previous["meta"]["end"][:4]) if previous and previous["meta"].get("schemaVersion") == 5 else 2008
     ipos = []
     holder_trades = []
     for year in range(refresh_year, END_YEAR + 1):
@@ -116,7 +115,6 @@ def main():
             raise ValueError("IPO source unexpectedly empty; retain existing data")
         if not holder_trades and any(r.get("holderNetReductionAmount") for r in prior_year):
             raise ValueError("Shareholder source unexpectedly empty; retain existing data")
-    memberships = index_memberships(token)
     money = call_api(
         token,
         "cn_m",
@@ -140,7 +138,7 @@ def main():
     ipo_boards, ipo_coverage = aggregate_board_ipo(ipos, ipo_months, END_DATE)
     holder_months = [start[:6] for start, _ in month_ranges(max(2018, refresh_year))]
     ipo_by_month = aggregate_ipo([r for r in ipos if (r.get("ipo_date") or r.get("issue_date") or "") <= END_DATE], ipo_months)
-    holder_by_month = aggregate_holders(holder_trades, holder_months, memberships, STOCK_CODE, END_DATE)
+    holder_by_month = aggregate_board_holders(holder_trades, holder_months, END_DATE)
     money_by_month = {row["month"]: row for row in money}
     social_by_month = {row["month"]: row for row in social}
     lpr_by_month = {}
@@ -173,7 +171,7 @@ def main():
                 "holderReductionAmount": holder.get("holderReductionAmount"),
                 "holderNetReductionAmount": holder.get("holderNetReductionAmount"),
                 "holderCoverage": {key: {k: v for k, v in r.items() if not k.startswith("holder")} for key, r in holder_groups.items()},
-                "holderIndices": {key: r["holderNetReductionAmount"] for key, r in holder_groups.items() if key != "market"},
+                "holderBoards": {key: {k: v for k, v in r.items() if k.startswith("holder")} for key, r in holder_groups.items() if key != "market"},
                 "stampDutyRate": active_stamp_rate(month),
                 "lprSourceDate": latest_lpr["date"] if latest_lpr else None,
                 "lpr1y": float(latest_lpr["1y"])
@@ -215,12 +213,12 @@ def main():
     result = {
         "meta": {
             "updated": datetime.now().strftime("%Y-%m-%d"),
-            "schemaVersion": 4,
+            "schemaVersion": 5,
             "ipoDefinition": "IPO发行总额：发行总量（万股）×发行价格（元/股）÷10000，单位亿元，未扣发行费用；若含老股转让不等于公司实际净募集资金。",
             "ipoBoardCoverage": ipo_coverage,
             "ipoAmountEvidence": overrides["amountEvidence"],
             "holderDefinition": "沪深京A股重要股东公告中可按变动股数×披露均价计算的金额，减持减增持；非完整市场净流出。",
-            "membershipDefinition": "公告当日或此前最近月度成分名单；不使用未来名单，超过62天无快照或月内覆盖不全留空。",
+            "boardDefinition": "同批公告按股票上市板块汇总：300/301/302.SZ属创业板、688/689.SH属科创板，不按指数成分筛选。",
             "start": series[0]["date"],
             "end": series[-1]["date"],
             "frequency": "monthly",
@@ -235,7 +233,7 @@ def main():
             "constituentAvailability": {
                 "ipoFund": "按发行记录的上市板块统计全市场、创业板和科创板IPO，不按指数成分筛选，不受指数调样影响。",
                 "refinanceFund": "按已实施增发、配股逐笔记录统计全市场、创业板、科创板发行金额，不按指数成分筛选。",
-                "holderNetReductionAmount": "按历史成分名单归集同一批重要股东公告金额。",
+                "holderNetReductionAmount": "按上市板块归集同批重要股东公告金额，包含非指数成分股。",
                 "stampDutyRate": "统一税率，不存在成分股税率分项。",
                 "lpr1y": "全国统一报价，不存在成分股LPR分项。",
                 "socialFinancing": "全国实体经济融资，无法按股票指数成分拆分。",

@@ -48,6 +48,12 @@ const moduleHtml = `
       <div class="module-status" id="officialDataStatus"></div>
     </div>
 
+      <div id="officialSeriesControls" role="group" aria-label="官方模块全局范围筛选，对全部页签生效">
+        <button type="button" data-series="market" aria-pressed="true" style="--series-color:#f6c85f"><span class="official-series-mark"></span><span id="officialMarketLabel">全市场</span></button>
+        <button type="button" data-series="chinext" aria-pressed="true" style="--series-color:#ff5d73"><span class="official-series-mark"></span>创业板</button>
+        <button type="button" data-series="star" aria-pressed="true" style="--series-color:#36c2ff"><span class="official-series-mark"></span>科创板</button>
+      </div>
+
     <article class="valuation-panel">
       <div class="panel-head">
         <div>
@@ -62,14 +68,6 @@ const moduleHtml = `
           <button class="range-tab" data-years="30">30年</button>
           <button class="range-tab active" data-years="0">全部</button>
         </div>
-      </div>
-      <div id="officialSeriesControls" role="group" aria-label="选择显示范围，同类页签保留选择">
-        <button type="button" data-series="market" aria-pressed="true" style="--series-color:#f6c85f"><span class="official-series-mark"></span><span id="officialMarketLabel">全市场IPO发行金额</span></button>
-        <button type="button" data-series="chinext" aria-pressed="true" style="--series-color:#ff5d73"><span class="official-series-mark"></span>创业板</button>
-        <button type="button" data-series="star" aria-pressed="true" style="--series-color:#36c2ff"><span class="official-series-mark"></span>科创板</button>
-        <button type="button" data-series="sh" hidden aria-pressed="true" style="--series-color:#ff5d73"><span class="official-series-mark"></span><span id="officialScopeLabel-sh">创业板指成分股</span></button>
-        <button type="button" data-series="k50" hidden aria-pressed="true" style="--series-color:#7ddc82"><span class="official-series-mark"></span><span id="officialScopeLabel-k50">科创50成分股</span></button>
-        <button type="button" data-series="sz" hidden aria-pressed="true" style="--series-color:#36c2ff"><span class="official-series-mark"></span><span id="officialScopeLabel-sz">科创综指成分股</span></button>
       </div>
       <div class="metric-tabs" id="officialMetricTabs">
         <button class="metric-tab active" data-metric="ipoFund">IPO融资额</button>
@@ -114,13 +112,10 @@ const script = `
     ${explanationScript(["ipoFund", "refinanceFund", "holderNetReductionAmount"], "official", explanationMethods)}
     const scopes = [
       { key: "market", color: "#f6c85f" },
-      { key: "chinext", name: "创业板", color: "#ff5d73", board: true },
-      { key: "star", name: "科创板", color: "#36c2ff", board: true },
-      { key: "sh", name: "创业板指成分股", color: "#ff5d73" },
-      { key: "k50", name: "科创50成分股", color: "#7ddc82" },
-      { key: "sz", name: "科创综指成分股", color: "#36c2ff" }
+      { key: "chinext", name: "创业板", color: "#ff5d73" },
+      { key: "star", name: "科创板", color: "#36c2ff" }
     ];
-    // IPO/refinancing share board selections; index selections keep their own identity.
+    // One global board selection applies to every official metric.
     const selected = new Set(scopes.map(scope => scope.key));
     let activeMetric = "ipoFund";
     let activeYears = 0;
@@ -133,10 +128,8 @@ const script = `
         (activeMetric === "refinanceFund" ? refinancingData.meta.updated.slice(0, 10) : officialData.meta.updated);
       const holderMetric = activeMetric === "holderNetReductionAmount";
       const ipoMetric = activeMetric === "ipoFund";
-      const boardMetric = ipoMetric || activeMetric === "refinanceFund";
-      const breakdownField = ipoMetric ? "ipoBoards" : "refinanceBoards";
-      const canSelect = key => key === "market" || (boardMetric ? ["chinext", "star"].includes(key) :
-        holderMetric && ["sh", "k50", "sz"].includes(key));
+      const breakdownField = ipoMetric ? "ipoBoards" : holderMetric ? "holderBoards" : "refinanceBoards";
+      const canSelect = key => scopes.some(scope => scope.key === key);
       const lineName = scope => scope.key === "market" ? cfg.market : scope.name + " · " + cfg.title;
       const oldZoom = preserveZoom ? chart.getOption().dataZoom?.[0] : null;
       const zoom = oldZoom ? Object.fromEntries(["start", "end", "startValue", "endValue"]
@@ -152,16 +145,16 @@ const script = `
       // Keep missing months as nulls so a line cannot bridge unpublished observations.
       const visibleRows = rows.filter(row => row.date >= minDate && (!first || row.date >= first.date));
       const byDate = new Map(rows.map(row => [row.date, row]));
-      document.getElementById("officialMarketLabel").textContent = cfg.market;
+      document.getElementById("officialMarketLabel").textContent = "全市场";
       document.getElementById("officialMetricSubtitle").textContent = cfg.subtitle;
       const reason = officialData.meta.constituentAvailability[activeMetric];
       document.querySelectorAll("#officialSeriesControls [data-series]").forEach(button => {
         const key = button.dataset.series;
-        button.hidden = key !== "market" && (boardMetric ? !["chinext", "star"].includes(key) : ["chinext", "star"].includes(key));
+        button.hidden = false;
         const enabled = canSelect(key);
         button.disabled = !enabled;
         button.setAttribute("aria-pressed", String(selected.has(button.dataset.series)));
-        button.title = enabled ? "切换显示；同类页签保留选择" : reason;
+        button.title = enabled ? "切换显示；对官方模块全部页签生效" : reason;
       });
       renderExplanation("official", activeMetric);
       const latestRows = visibleRows.filter(row => Number.isFinite(row[activeMetric]));
@@ -177,7 +170,7 @@ const script = `
       const series = scopes.filter(scope => selected.has(scope.key) && canSelect(scope.key)).map(scope => ({
         id: scope.key, name: lineName(scope),
         type: "line", step: cfg.step || false, connectNulls: false,
-        data: visibleRows.map(row => [row.date, (scope.key === "market" ? row[activeMetric] : (boardMetric ? row[breakdownField]?.[scope.key]?.[activeMetric] : row.holderIndices?.[scope.key])) ?? null]),
+        data: visibleRows.map(row => [row.date, (scope.key === "market" ? row[activeMetric] : row[breakdownField]?.[scope.key]?.[activeMetric]) ?? null]),
         showSymbol: false,
         lineStyle: { width: 2, color: scope.color }, itemStyle: { color: scope.color }
       }));
