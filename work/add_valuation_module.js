@@ -23,13 +23,13 @@ const css = `
       position: sticky; top: 0; z-index: 20; display: flex; gap: 8px;
       width: fit-content; margin: 0 0 20px; padding: 6px;
       border: 1px solid var(--line); border-radius: 12px;
-      background: rgba(7,17,31,.92); backdrop-filter: blur(12px);
+      background: rgba(8,20,22,.94); backdrop-filter: blur(12px);
     }
     .page-nav a {
       color: var(--muted); padding: 8px 14px; border-radius: 8px;
       text-decoration: none; font-size: 13px; font-weight: 700;
     }
-    .page-nav a:hover, .page-nav a.active { color: #07111f; background: var(--accent); }
+    .page-nav a:hover, .page-nav a.active { color: #081416; background: var(--accent); }
     .module-shell { margin-top: 54px; scroll-margin-top: 72px; }
     .module-head {
       display: flex; justify-content: space-between; align-items: flex-end;
@@ -47,12 +47,12 @@ const css = `
     }
     .valuation-panel {
       min-width: 0; overflow: hidden; border: 1px solid var(--line);
-      border-radius: 15px; background: rgba(9,20,34,.94);
+      border-radius: 15px; background: rgba(9,25,27,.95);
     }
     .panel-head {
       min-height: 70px; display: flex; justify-content: space-between;
       align-items: center; gap: 14px; padding: 14px 16px;
-      border-bottom: 1px solid var(--line); background: rgba(13,25,41,.9);
+      border-bottom: 1px solid var(--line); background: rgba(14,32,34,.92);
     }
     .panel-title { font-size: 15px; font-weight: 800; }
     .panel-subtitle { color: var(--muted); font-size: 11px; margin-top: 4px; }
@@ -62,7 +62,7 @@ const css = `
     .range-tab { padding: 5px 8px; }
     .metric-tab[disabled] {
       cursor: not-allowed; opacity: .42; color: var(--muted);
-      background: #101c2d; border-color: #203149;
+      background: #14282a; border-color: #274247;
     }
     .metric-note {
       display: flex; justify-content: space-between; gap: 12px; align-items: center;
@@ -246,8 +246,8 @@ const js = `
         grid: { left: 66, right: 28, top: 64, bottom: 64 },
         tooltip: {
           trigger: "axis", axisPointer: { type: "cross" },
-          backgroundColor: "rgba(7,17,31,.96)", borderColor: "#36506f",
-          textStyle: { color: "#edf4ff" },
+          backgroundColor: "rgba(8,20,22,.96)", borderColor: "#3c625f",
+          textStyle: { color: "#eaf4f2" },
           formatter(params) {
             const lines = params.map(item => item.marker + item.seriesName + "：<b>" +
               fmt(Number(item.value[1]), 2) + cfg.unit + "</b>");
@@ -257,19 +257,19 @@ const js = `
         legend: { type: "scroll", top: 12, textStyle: { color: "#8fa5bf", fontSize: 11 } },
         xAxis: {
           type: "time", axisLine: { lineStyle: { color: "#344760" } },
-          axisLabel: { color: "#7890aa", hideOverlap: true }, splitLine: { show: false }
+          axisLabel: { color: "#789b98", hideOverlap: true }, splitLine: { show: false }
         },
         yAxis: {
           type: "value", scale: !cfg.fixedRange,
           min: cfg.fixedRange ? 0 : undefined,
           max: cfg.fixedRange ? 100 : undefined,
-          axisLabel: { color: "#7890aa", formatter: "{value}" + cfg.unit },
-          splitLine: { lineStyle: { color: "#17283d" } }
+          axisLabel: { color: "#789b98", formatter: "{value}" + cfg.unit },
+          splitLine: { lineStyle: { color: "#1b3737" } }
         },
         dataZoom: [
           { type: "inside", filterMode: "none", start: 0, end: 100 },
-          { type: "slider", bottom: 12, height: 22, start: 0, end: 100, borderColor: "#263b58",
-            backgroundColor: "#0d1929", fillerColor: "rgba(246,200,95,.18)",
+          { type: "slider", bottom: 12, height: 22, start: 0, end: 100, borderColor: "#35545a",
+            backgroundColor: "#0e2022", fillerColor: "rgba(246,200,95,.18)",
             handleStyle: { color: "#f6c85f" }, textStyle: { color: "#8fa5bf" } }
         ],
       };

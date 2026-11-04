@@ -29,7 +29,7 @@ const css = `
     #largeMoneySeriesControls { display: flex; flex-wrap: wrap; gap: 8px 18px; padding: 10px 16px 0; }
     #largeMoneySeriesControls button { display: inline-flex; align-items: center; gap: 6px; padding: 4px 0;
       border: 0; background: transparent; color: #8fa5bf; font-size: 12px; cursor: pointer; }
-    #largeMoneySeriesControls button:hover { color: #edf4ff; background: transparent; }
+    #largeMoneySeriesControls button:hover { color: #eaf4f2; background: transparent; }
     #largeMoneySeriesControls button[aria-pressed="false"] { opacity: .4; }
     #largeMoneyHoldingModes { display: none; padding: 8px 16px 0; gap: 6px; }
     #largeMoneyHoldingModes.is-visible { display: flex; }
@@ -263,8 +263,8 @@ const script = `
         legend: { show: false },
         tooltip: {
           trigger: "axis", axisPointer: { type: "cross" },
-          backgroundColor: "rgba(7,17,31,.96)", borderColor: "#36506f",
-          textStyle: { color: "#edf4ff" },
+          backgroundColor: "rgba(8,20,22,.96)", borderColor: "#3c625f",
+          textStyle: { color: "#eaf4f2" },
           formatter(params) {
             const lines = params.filter(item => Number.isFinite(item.value?.[1])).map(item => item.marker + item.seriesName + "：<b>" +
               fmt(Number(item.value[1]), holdingView && holdingMode === "ratio" ? 3 : cfg.digits) +
@@ -283,15 +283,15 @@ const script = `
           }
         },
         xAxis: { type: "time", axisLine: { lineStyle: { color: "#344760" } },
-          axisLabel: { color: "#7890aa", hideOverlap: true }, splitLine: { show: false } },
+          axisLabel: { color: "#789b98", hideOverlap: true }, splitLine: { show: false } },
         yAxis: [
           { type: "value", scale: true, axisLabel: { color: northFlowMode ? "#f6c85f" : "#8fa5bf", formatter: "{value}" + displayUnit },
-            splitLine: { lineStyle: { color: "#17283d" } } },
+            splitLine: { lineStyle: { color: "#1b3737" } } },
         ],
         dataZoom: [
           { type: "inside", filterMode: "none", start: zoomStart, end: zoomEnd },
           { type: "slider", bottom: 12, height: 22, start: zoomStart, end: zoomEnd,
-            borderColor: "#263b58", backgroundColor: "#0d1929",
+            borderColor: "#35545a", backgroundColor: "#0e2022",
             fillerColor: "rgba(54,194,255,.17)", handleStyle: { color: "#36c2ff" },
             textStyle: { color: "#8fa5bf" } }
         ],

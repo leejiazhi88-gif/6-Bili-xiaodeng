@@ -26,7 +26,7 @@ const css = `
     #retailSeriesControls { display: flex; flex-wrap: wrap; gap: 8px 18px; padding: 10px 16px 0; }
     #retailSeriesControls button { display: inline-flex; align-items: center; gap: 6px; padding: 4px 0;
       border: 0; background: transparent; color: #8fa5bf; font-size: 12px; cursor: pointer; }
-    #retailSeriesControls button:hover { color: #edf4ff; background: transparent; }
+    #retailSeriesControls button:hover { color: #eaf4f2; background: transparent; }
     #retailSeriesControls button[aria-pressed="false"] { opacity: .4; }
     ${seriesMarkerCss(".retail-series-mark")}
     @media (max-width: 980px) {
@@ -192,8 +192,8 @@ const script = `
         legend: { show: false },
         tooltip: {
           trigger: "axis", axisPointer: { type: "cross" },
-          backgroundColor: "rgba(7,17,31,.96)", borderColor: "#36506f",
-          textStyle: { color: "#edf4ff" },
+          backgroundColor: "rgba(8,20,22,.96)", borderColor: "#3c625f",
+          textStyle: { color: "#eaf4f2" },
           formatter(params) {
             const lines = params.map(item => item.marker + item.seriesName + "：<b>" +
               fmt(item.value[1], cfg.digits) + (Number.isFinite(item.value[1]) ? cfg.unit : "") + "</b>");
@@ -203,21 +203,21 @@ const script = `
         xAxis: {
           type: "time", min: axisStart, max: retailData.series[retailData.series.length - 1].date,
           axisLine: { lineStyle: { color: "#344760" } },
-          axisLabel: { color: "#7890aa", hideOverlap: true }, splitLine: { show: false }
+          axisLabel: { color: "#789b98", hideOverlap: true }, splitLine: { show: false }
         },
         yAxis: {
           type: "value", scale: activeMetric !== "amount", min: activeMetric === "amount" ? 0 : undefined,
-          axisLabel: { color: "#7890aa", formatter(value) {
+          axisLabel: { color: "#789b98", formatter(value) {
             return cfg.unit === "亿元" && value >= 10000
               ? fmt(value / 10000, 1) + "万亿元"
               : fmt(value, cfg.digits) + cfg.unit;
           } },
-          splitLine: { lineStyle: { color: "#17283d" } }
+          splitLine: { lineStyle: { color: "#1b3737" } }
         },
         dataZoom: [
           { type: "inside", filterMode: "none", start: zoomStart, end: zoomEnd },
           { type: "slider", bottom: 12, height: 22, start: zoomStart, end: zoomEnd,
-            borderColor: "#263b58", backgroundColor: "#0d1929",
+            borderColor: "#35545a", backgroundColor: "#0e2022",
             fillerColor: "rgba(246,200,95,.18)", handleStyle: { color: "#f6c85f" },
             textStyle: { color: "#8fa5bf" } }
         ],

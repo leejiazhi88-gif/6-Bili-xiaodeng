@@ -230,7 +230,7 @@ function scaleSeries(name, rows, field, xAxisIndex, yAxisIndex, color) {
 }
 const commonAxis = {
   type: "time", axisLine: { lineStyle: { color: "#344760" } },
-  axisLabel: { color: "#7890aa", hideOverlap: true },
+  axisLabel: { color: "#789b98", hideOverlap: true },
   splitLine: { show: false }, axisPointer: { show: true }
 };
 function chartOption(lines, { volume = false, title = "", unit = "" } = {}) {
@@ -241,7 +241,7 @@ function chartOption(lines, { volume = false, title = "", unit = "" } = {}) {
     title: title ? { text: title, left: 20, top: 12, textStyle: { color: "#eaf4f2", fontSize: 13 } } : undefined,
     tooltip: {
       trigger: "axis", axisPointer: { type: "cross" },
-      backgroundColor: "rgba(7,17,31,.96)", borderColor: "#36506f", textStyle: { color: "#eaf4f2" },
+      backgroundColor: "rgba(8,20,22,.96)", borderColor: "#3c625f", textStyle: { color: "#eaf4f2" },
       formatter(params) {
         const date = params[0]?.axisValueLabel || "";
         return "<b>" + date + "</b><br>" + params.filter(p => p.value?.[1] != null)
@@ -252,9 +252,9 @@ function chartOption(lines, { volume = false, title = "", unit = "" } = {}) {
       : { top: 12, left: 20, type: "scroll", textStyle: { color: "#91aaa8" }, data: lines.map(line => line.name) },
     xAxis: { ...commonAxis, min: "${BOARD_START.sh}" },
     yAxis: volume ? [
-      { type: "value", scale: true, name: "亿手", axisLabel: { color: "#7890aa" }, splitLine: { lineStyle: { color: "#17283d" } } },
-      { type: "value", scale: true, name: "亿元", opposite: true, axisLabel: { color: "#7890aa" }, splitLine: { show: false } }
-    ] : { type: "value", scale: true, name: unit, axisLabel: { color: "#7890aa" }, splitLine: { lineStyle: { color: "#17283d" } } },
+      { type: "value", scale: true, name: "亿手", axisLabel: { color: "#789b98" }, splitLine: { lineStyle: { color: "#1b3737" } } },
+      { type: "value", scale: true, name: "亿元", opposite: true, axisLabel: { color: "#789b98" }, splitLine: { show: false } }
+    ] : { type: "value", scale: true, name: unit, axisLabel: { color: "#789b98" }, splitLine: { lineStyle: { color: "#1b3737" } } },
     dataZoom: [
       { type: "inside", filterMode: "none", start: 0, end: 100 },
       { type: "slider", bottom: 8, height: 20, borderColor: "#35545a", backgroundColor: "#0e2022",

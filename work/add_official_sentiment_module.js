@@ -184,7 +184,7 @@ const script = `
         legend: { show: false },
         tooltip: {
           trigger: "axis", axisPointer: { type: "cross" },
-          backgroundColor: "rgba(7,17,31,.96)", borderColor: "#36506f", textStyle: { color: "#edf4ff" },
+          backgroundColor: "rgba(8,20,22,.96)", borderColor: "#3c625f", textStyle: { color: "#eaf4f2" },
           formatter(params) {
             const date = params[0]?.value?.[0];
             const row = byDate.get(date);
@@ -202,16 +202,16 @@ const script = `
           }
         },
         xAxis: { type: "time", axisLine: { lineStyle: { color: "#344760" } },
-          axisLabel: { color: "#7890aa", hideOverlap: true }, splitLine: { show: false } },
+          axisLabel: { color: "#789b98", hideOverlap: true }, splitLine: { show: false } },
         yAxis: { type: "value", scale: true, name: cfg.unit, nameTextStyle: { color: "#8fa5bf" },
           axisLabel: { color: "#8fa5bf", formatter(value) {
             return cfg.unit === "亿元" && Math.abs(value) >= 10000
               ? fmt(value / 10000, 1) + "万亿元" : fmt(value, cfg.unit === "%" ? cfg.digits : 0) + cfg.unit;
-          } }, splitLine: { lineStyle: { color: "#17283d" } } },
+          } }, splitLine: { lineStyle: { color: "#1b3737" } } },
         dataZoom: [
           { type: "inside", filterMode: "none", ...zoom },
           { type: "slider", bottom: 12, height: 22, ...zoom,
-            borderColor: "#263b58", backgroundColor: "#0d1929", fillerColor: "rgba(255,93,115,.15)",
+            borderColor: "#35545a", backgroundColor: "#0e2022", fillerColor: "rgba(255,93,115,.15)",
             handleStyle: { color: "#ff5d73" }, textStyle: { color: "#8fa5bf" } }
         ],
         series

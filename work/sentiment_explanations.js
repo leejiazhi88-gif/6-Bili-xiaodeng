@@ -121,7 +121,7 @@ function guideCss(scope) {
     #${scope} .metric-guide ol { margin: 0; padding-left: 1.5em; }
     #${scope} .metric-guide li { padding-left: 4px; margin: 8px 0; overflow-wrap: anywhere; }
     #${scope} .metric-guide li::marker { color: #f6c85f; font-weight: 600; }
-    #${scope} .metric-guide strong, #${scope} .metric-method strong { color: #edf4ff; }
+    #${scope} .metric-guide strong, #${scope} .metric-method strong { color: #eaf4f2; }
     #${scope} .metric-guide p { margin: 4px 0; }
     #${scope} .valuation-foot { grid-template-columns: 1fr; }
     #${scope} .metric-method { width: 100%; color: #a7b9cf; font-size: 13px; line-height: 1.8; }
