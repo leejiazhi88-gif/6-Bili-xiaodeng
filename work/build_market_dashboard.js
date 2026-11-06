@@ -233,7 +233,7 @@ const commonAxis = {
   axisLabel: { color: "#789b98", hideOverlap: true },
   splitLine: { show: false }, axisPointer: { show: true }
 };
-function chartOption(lines, { volume = false, title = "", unit = "" } = {}) {
+function chartOption(lines, { volume = false, title = "", unit = "", disableInside = false } = {}) {
   return {
     animation: false,
     backgroundColor: "transparent",
@@ -256,7 +256,7 @@ function chartOption(lines, { volume = false, title = "", unit = "" } = {}) {
       { type: "value", scale: true, name: "亿元", opposite: true, axisLabel: { color: "#789b98" }, splitLine: { show: false } }
     ] : { type: "value", scale: true, name: unit, axisLabel: { color: "#789b98" }, splitLine: { lineStyle: { color: "#1b3737" } } },
     dataZoom: [
-      { type: "inside", filterMode: "none", start: 0, end: 100 },
+      ...(disableInside ? [] : [{ type: "inside", filterMode: "none", start: 0, end: 100 }]),
       { type: "slider", bottom: 8, height: 20, borderColor: "#35545a", backgroundColor: "#0e2022",
         fillerColor: "rgba(246,200,95,.18)", handleStyle: { color: "#f5c96a" },
         textStyle: { color: "#91aaa8" }, start: 0, end: 100 }
@@ -271,7 +271,7 @@ const chartConfigs = [
     { name: "创业板指", rows: DATA.sh, field: "close", color: COLORS.sh, marks: true },
     { name: "科创50", rows: DATA.k50, field: "close", color: COLORS.k50 },
     { name: "科创综指", rows: DATA.sz, field: "close", color: COLORS.sz }
-  ], { unit: "点" }],
+  ], { unit: "点", disableInside: true }],
   ["chart-pe", [
     { name: "创业板指 PE", rows: DATA.sh, field: "pe", color: COLORS.sh },
     { name: "科创50 PE", rows: DATA.k50, field: "pe", color: COLORS.k50 },
