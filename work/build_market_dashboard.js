@@ -256,7 +256,6 @@ function chartOption(lines, { volume = false, title = "", unit = "", disableInsi
       { type: "value", scale: true, name: "亿元", opposite: true, axisLabel: { color: "#789b98" }, splitLine: { show: false } }
     ] : { type: "value", scale: true, name: unit, axisLabel: { color: "#789b98" }, splitLine: { lineStyle: { color: "#1b3737" } } },
     dataZoom: [
-      ...(disableInside ? [] : [{ type: "inside", filterMode: "none", start: 0, end: 100 }]),
       { type: "slider", bottom: 8, height: 20, borderColor: "#35545a", backgroundColor: "#0e2022",
         fillerColor: "rgba(246,200,95,.18)", handleStyle: { color: "#f5c96a" },
         textStyle: { color: "#91aaa8" }, start: 0, end: 100 }
