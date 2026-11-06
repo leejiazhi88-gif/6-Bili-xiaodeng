@@ -701,12 +701,12 @@ window.addEventListener("resize", () => charts.forEach(chart => chart.resize()))
       ? Number(value).toLocaleString("zh-CN", { minimumFractionDigits: digits, maximumFractionDigits: digits })
       : "--";
 
-    const valuationData = { sh: DATA.sh, sz: DATA.officialHistory.rows, k50: DATA.k50 };
+    const valuationData = { sh: DATA.sh, sz: DATA.overviewPe.sz, k50: DATA.k50 };
     valuationExtra.k50 = DATA.k50;
     valuationExtra.sz = DATA.official.snapshots;
     const metricConfig = {
       pe: {
-        title: "PE(TTM)", unit: "倍", subtitle: "创业板、科创50：Tushare周频；科创综指：中证指数日频",
+        title: "PE(TTM)", unit: "倍", subtitle: "创业板、科创50、科创综指：统一按7天采样；科创综指原始来源为中证指数日频",
         note: "科创综指官方PE从2024-10-23开始；与Tushare估值口径不同，不直接比较绝对倍数。"
       },
       pePercentile: {
@@ -721,8 +721,8 @@ window.addEventListener("resize", () => charts.forEach(chart => chart.resize()))
     };
 
     const methodology = {
-      "pe": "采样：创业板指、科创50按每年1月1日起每7个自然日分组，取组内最后有效交易日的PE，另保留历史起点；不是固定周五、不是周均值。科创综指取中证指数实际可用的每日PE，自2024-10-23起，不降为周频。两来源口径不同，不宜直接比较绝对倍数。",
-      "pePercentile": "采样：创业板指、科创50按年内7天分组取最后有效交易日PE并保留起点；科创综指用可用日频PE。分位=当前所选跨度内不高于该值的样本数/有效样本数，各指数分别计算；不是逐时点只用此前历史的滚动分位，也不是周均值。",
+      "pe": "采样：创业板指、科创50按每年1月1日起每7个自然日分组，取组内最后有效交易日的PE，另保留历史起点；不是固定周五、不是周均值。科创综指取中证指数实际可用的每日PE，自2024-10-23起，再按7天采样。两来源口径不同，不宜直接比较绝对倍数。",
+      "pePercentile": "采样：创业板指、科创50按年内7天分组取最后有效交易日PE并保留起点；科创综指也先按7天采样，原始来源为中证指数日频。分位=当前所选跨度内不高于该值的样本数/有效样本数，各指数分别计算；不是逐时点只用此前历史的滚动分位，也不是周均值。",
       "pbPercentile": "采样：创业板指按自然周取最后有效交易日PB；科创50按年内7天分组取最后有效交易日PB并保留起点，日期可能不同。分位按当前所选跨度内各自有效PB样本计算，不是周均值或仅用当时已知历史。科创综指暂无连续PB，不绘制。",
 };
 
