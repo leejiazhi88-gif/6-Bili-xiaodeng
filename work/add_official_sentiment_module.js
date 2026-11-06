@@ -209,7 +209,6 @@ const script = `
               ? fmt(value / 10000, 1) + "万亿元" : fmt(value, cfg.unit === "%" ? cfg.digits : 0) + cfg.unit;
           } }, splitLine: { lineStyle: { color: "#1b3737" } } },
         dataZoom: [
-          { type: "inside", filterMode: "none", ...zoom },
           { type: "slider", bottom: 12, height: 22, ...zoom,
             borderColor: "#35545a", backgroundColor: "#0e2022", fillerColor: "rgba(255,93,115,.15)",
             handleStyle: { color: "#ef7180" }, textStyle: { color: "#8fa5bf" } }
