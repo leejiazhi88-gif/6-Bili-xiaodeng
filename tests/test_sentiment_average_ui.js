@@ -246,7 +246,7 @@ for (const def of definitions) {
     last.click();
     assert.equal(ui.series().length, 1, "Must keep at least one visible curve");
     assert.equal(last.getAttribute("aria-pressed"), "true");
-    assert.equal(ui.chart.option.dataZoom.length, 2);
+    assert.equal(ui.chart.option.dataZoom.length, 1);
   });
 }
 
