@@ -418,3 +418,33 @@ test('official board amounts reconcile independently to issuance records, includ
   ui.metric('ipoFund');
   assert.equal(ui.chart.option.series.find(s => s.id === 'chinext').data.find(p => p[0] === '2021-07-31')[1], 95.31);
 });
+
+test('official: 7/30 monthly averages use history before clipping and persist across metrics and boards', () => {
+  const ui = mount(officialDef);
+  for (const window of [1, 7, 30]) {
+    ui.click('AverageModes', 'data-average', String(window));
+    for (const metric of officialFields) {
+      ui.metric(metric);
+      const source = jsonConstant(scripts[officialDef.script], metric === 'refinanceFund' ? 'refinancingData' : 'officialData');
+      const first = source.series.find(r => Number.isFinite(r[metric]));
+      const rows = source.series.filter(r => !first || r.date >= first.date);
+      const field = metric === 'ipoFund' ? 'ipoBoards' : metric === 'refinanceFund' ? 'refinanceBoards' : 'holderBoards';
+      for (const line of ui.chart.option.series) {
+        const values = rows.map(r => line.id === 'market' ? r[metric] : r[field]?.[line.id]?.[metric]);
+        for (const [date, actual] of line.data) {
+          const i = rows.findIndex(r => r.date === date);
+          const samples = values.slice(Math.max(0, i - window + 1), i + 1);
+          const expected = samples.length === window && samples.every(Number.isFinite)
+            ? samples.reduce((a, b) => a + b, 0) / window : null;
+          if (expected == null) assert.equal(actual, null);
+          else assert.ok(Math.abs(actual - expected) < 1e-8);
+        }
+      }
+      assert.equal(ui.buttons('AverageModes').find(b => b.classList.contains('active')).dataset.average, String(window));
+    }
+  }
+  ui.chart.option.dataZoom = [{start: 20, end: 70}];
+  ui.click('AverageModes', 'data-average', '7');
+  assert.equal(ui.chart.option.dataZoom[0].start, 20);
+  assert.equal(ui.chart.option.dataZoom[0].end, 70);
+});

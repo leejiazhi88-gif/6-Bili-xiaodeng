@@ -1,6 +1,7 @@
 const fs = require("fs");
 const path = require("path");
 const { guideCss, explanationScript } = require("./sentiment_explanations");
+const { movingAverageScript, movingAverageControls, movingAverageCss } = require("./point_moving_average");
 const { seriesMarkerCss } = require("./series_marker");
 const explanationMethods = require("./sentiment_methodology.json");
 
@@ -19,6 +20,7 @@ function stripExisting(html) {
 const css = `
   <style id="official-sentiment-style">
     ${guideCss("official-sentiment")}
+    ${movingAverageCss("official-sentiment")}
     #refinanceSourceLink { color: #f5c96a; }
     #officialSeriesControls { display: flex; flex-wrap: wrap; gap: 8px 18px; padding: 12px 16px 4px; }
     #officialSeriesControls button { display: inline-flex; align-items: center; gap: 7px; border: 0;
@@ -74,6 +76,7 @@ const moduleHtml = `
         <button class="metric-tab" data-metric="refinanceFund">再融资额</button>
         <button class="metric-tab" data-metric="holderNetReductionAmount">重要股东净减持额</button>
       </div>
+      ${movingAverageControls("official")}
       <div class="metric-note">
         <a id="refinanceSourceLink" href="https://data.eastmoney.com/other/qbzf.html" target="_blank" rel="noopener" hidden>查看再融资数据来源</a>
         <span class="metric-reading" id="officialLatestReading"></span>
@@ -95,6 +98,7 @@ const moduleHtml = `
 const script = `
   <script id="official-sentiment-script">
   (() => {
+    ${movingAverageScript()}
     const officialData = __OFFICIAL_DATA__;
     const refinancingData = __REFINANCING_DATA__;
     const fmt = (value, digits = 1) => Number.isFinite(value)
@@ -119,11 +123,13 @@ const script = `
     const selected = new Set(scopes.map(scope => scope.key));
     let activeMetric = "ipoFund";
     let activeYears = 0;
+    let averageWindow = 1;
     const chart = echarts.init(document.getElementById("officialSentimentChart"), null, { renderer: "canvas" });
     document.getElementById("officialDataStatus").textContent = "数据核对至 " + officialData.meta.updated;
 
     function renderChart(preserveZoom = false) {
       const cfg = metrics[activeMetric];
+      const averageLabel = averageWindow === 1 ? "原数据" : averageWindow + "点均线";
       document.getElementById("officialDataStatus").textContent = "数据核对至 " +
         (activeMetric === "refinanceFund" ? refinancingData.meta.updated.slice(0, 10) : officialData.meta.updated);
       const holderMetric = activeMetric === "holderNetReductionAmount";
@@ -157,9 +163,14 @@ const script = `
         button.title = enabled ? "切换显示；对官方模块全部页签生效" : reason;
       });
       renderExplanation("official", activeMetric);
+      document.querySelectorAll("#officialAverageModes [data-average]").forEach(button => {
+        const active = Number(button.dataset.average) === averageWindow;
+        button.classList.toggle("active", active);
+        button.setAttribute("aria-pressed", String(active));
+      });
       const latestRows = visibleRows.filter(row => Number.isFinite(row[activeMetric]));
       const latest = latestRows[latestRows.length - 1];
-      let reading = latest ? cfg.market + " · " + latest.date + " · " + fmt(latest[activeMetric], cfg.digits) + cfg.unit
+      let reading = latest ? "月度数据 · " + latest.date
         : cfg.market + " · 当前范围暂无数据";
       if (latest && cfg.partial && latest.partialMonth) reading += "（本月截至当日累计，非完整月）";
       if (latest && holderMetric) {
@@ -170,7 +181,9 @@ const script = `
       const series = scopes.filter(scope => selected.has(scope.key) && canSelect(scope.key)).map(scope => ({
         id: scope.key, name: lineName(scope),
         type: "line", step: cfg.step || false, connectNulls: false,
-        data: visibleRows.map(row => [row.date, (scope.key === "market" ? row[activeMetric] : row[breakdownField]?.[scope.key]?.[activeMetric]) ?? null]),
+        data: pointMovingAverage(rows.filter(row => !first || row.date >= first.date).map(row =>
+          [row.date, (scope.key === "market" ? row[activeMetric] : row[breakdownField]?.[scope.key]?.[activeMetric]) ?? null]), averageWindow)
+          .filter(point => point[0] >= minDate),
         showSymbol: false,
         lineStyle: { width: 2, color: scope.color }, itemStyle: { color: scope.color }
       }));
@@ -198,7 +211,7 @@ const script = `
               return text;
             });
             const partial = cfg.partial && row?.partialMonth ? " · 截至当日累计，非完整月" : "";
-            return "<b>" + (date || "") + partial + "</b><br>" + lines.join("<br>");
+            return "<b>" + (date || "") + partial + " · " + averageLabel + "</b><br>" + lines.join("<br>");
           }
         },
         xAxis: { type: "time", axisLine: { lineStyle: { color: "#344760" } },
@@ -217,6 +230,12 @@ const script = `
       }, true);
     }
 
+    document.querySelectorAll("#officialAverageModes [data-average]").forEach(button => {
+      button.addEventListener("click", () => {
+        averageWindow = Number(button.dataset.average);
+        renderChart(true);
+      });
+    });
     document.querySelectorAll("#officialSeriesControls [data-series]").forEach(button => {
       button.addEventListener("click", () => {
         if (button.disabled) return;

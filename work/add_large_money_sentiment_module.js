@@ -251,7 +251,6 @@ const script = `
         ? (holdingRows.length ? "季度末 " + holdingRows[0].date + " 至 " + holdingRows[holdingRows.length - 1].date : "当前范围暂无持仓数据")
         : moneyPoints.length
         ? (fundMode ? "报告期 " : "周标签 ") + moneyPoints[0][0] + " 至 " + moneyPoints[moneyPoints.length - 1][0] +
-          " · 最新" + (supportsAverage ? averageLabel : "") + " " + fmt(moneyPoints[moneyPoints.length - 1][1], cfg.digits) + displayUnit +
           (supportsAverage && moneyPoints[moneyPoints.length - 1][1] == null
             ? "（" + (effectiveAverageWindow > 1 ? "窗口点数不足或含缺失值" : "暂无数据") + "）" : "") +
           (latestIncomplete ? " · 本周未结束" + (etfMode ? "，份额取最近披露值" : "，仅含截至刷新日记录") : "") +

@@ -346,6 +346,7 @@ async function main() {
   require("./add_retail_sentiment_module");
   require("./add_large_money_sentiment_module");
   require("./add_official_sentiment_module");
+  fs.writeFileSync(OUTPUT, require("./dashboard_interactions").enhance(fs.readFileSync(OUTPUT, "utf8")));
   fs.copyFileSync(OUTPUT, ROOT_INDEX);
   console.log(JSON.stringify({
     output: OUTPUT,
