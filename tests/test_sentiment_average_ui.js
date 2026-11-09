@@ -110,13 +110,10 @@ function mount(def) {
 function expectedRaw(def, metric) {
   const source = scripts[def.script];
   if (def.prefix === "retail") {
-    const market = jsonConstant(source, "retailData").series;
-    const index = jsonConstant(source, "indexData");
-    const marketField = metric === "volume" ? "volumeProxy" : metric;
-    const field = { amount: "amountYi", volume: "volumeYiShou", turnover: "turnover" }[metric];
-    return [{ name: "沪深两市", data: market.map(row => [row.date, row[marketField]]) },
+    const weekly = jsonConstant(source, "weeklyData");
+    return [{ name: "沪深两市", data: weekly.market.map(row => [row.date, row[metric]]) },
       ...dataKeys.map((key, i) => ({ name: indexNames[i],
-        data: (metric === "turnover" ? index : marketData)[key].map(row => [row.date, row[field]]) }))];
+        data: weekly[key].map(row => [row.date, row[metric]]) }))];
   }
   const market = jsonConstant(source, "largeMoneyData").series;
   const index = jsonConstant(source, "indexMoneyData");

@@ -95,6 +95,7 @@ const script = `
   (() => {
     const retailData = __RETAIL_DATA__;
     const indexData = __INDEX_DATA__;
+    const weeklyData = __WEEKLY_DATA__;
     const market = { name: "沪深两市", rows: retailData.series, color: "#f5c96a" };
     const indices = [
       { name: "创业板指", rows: DATA.sh, color: COLORS.sh },
@@ -109,22 +110,25 @@ const script = `
     const fmt = (value, digits = 1) => Number.isFinite(value)
       ? Number(value).toLocaleString("zh-CN", { minimumFractionDigits: digits, maximumFractionDigits: digits })
       : "--";
+    const weeklySources = field => [
+      { ...market, rows: weeklyData.market, field },
+      ...indices.map((item, i) => ({ ...item, rows: weeklyData[["sh", "k50", "sz"][i]], field }))
+    ];
     const metrics = {
       amount: {
         unit: "亿元", digits: 0,
-        subtitle: "沪深两市与三个指数成交额，周频展示",
-        sources: [{ ...market, field: "amount" }, ...indices.map(item => ({ ...item, field: "amountYi" }))]
+        subtitle: "沪深两市与三个指数成交额，周内交易日日均值",
+        sources: weeklySources("amount")
       },
       volume: {
         unit: "亿手", digits: 2,
-        subtitle: "两市宽基代理与三个指数成交量，周频展示",
-        sources: [{ ...market, field: "volumeProxy" },
-          ...indices.map(item => ({ ...item, field: "volumeYiShou" }))]
+        subtitle: "两市宽基代理与三个指数成交量，周内交易日日均值",
+        sources: weeklySources("volume")
       },
       turnover: {
         unit: "%", digits: 2,
-        subtitle: "沪深两市与三个指数的实际换手率",
-        sources: [{ ...market, field: "turnover" }, ...indexMetrics.map(item => ({ ...item, field: "turnover" }))]
+        subtitle: "沪深两市与三个指数换手率，先逐日计算再取周内日均值",
+        sources: weeklySources("turnover")
       },
       marginBalance: {
         unit: "亿元", digits: 0,
@@ -197,7 +201,9 @@ const script = `
           formatter(params) {
             const lines = params.map(item => item.marker + item.seriesName + "：<b>" +
               fmt(item.value[1], cfg.digits) + (Number.isFinite(item.value[1]) ? cfg.unit : "") + "</b>");
-            return "<b>" + (params[0]?.axisValueLabel || "") + "</b> · " + averageLabel + "<br>" + lines.join("<br>");
+            const sample = supportsAverage && cfg.sources[0].rows.find(row => row.date === params[0]?.value?.[0]);
+            const period = sample ? "<br>采样周：" + sample.periodStart + " 至 " + sample.date + "（" + sample.tradingDays + "个交易日）" : "";
+            return "<b>" + (params[0]?.axisValueLabel || "") + "</b> · " + (supportsAverage ? "周内日均 · " : "") + averageLabel + period + "<br>" + lines.join("<br>");
           }
         },
         xAxis: {
@@ -283,7 +289,8 @@ function insertBeforeLast(source, marker, content) {
 }
 
 const retailScript = script.replace("__RETAIL_DATA__", JSON.stringify(data))
-  .replace("__INDEX_DATA__", JSON.stringify(indexData));
+  .replace("__INDEX_DATA__", JSON.stringify(indexData))
+  .replace("__WEEKLY_DATA__", fs.readFileSync(path.join(ROOT, "work", "retail_weekly_averages.json"), "utf8"));
 html = insertBeforeLast(html, "</head>", css + "\n");
 html = insertBeforeLast(html, "</main>", moduleHtml + "\n");
 html = insertBeforeLast(html, "</body>", retailScript + "\n");

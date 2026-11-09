@@ -66,7 +66,7 @@ function runtime() {
       const contextId = ({retailSentimentChart:'retail',largeMoneyChart:'largeMoney',officialSentimentChart:'official'})[id];
       const average = contextId && document.querySelector('#'+contextId+'AverageModes:not([hidden]) .active')?.textContent;
       header.innerHTML = '<div class="chart-reading-heading">'+escape(items[0]?.title || metadata(id,{})[0])+
-        '<div class="chart-reading-date">'+escape(['最新数据',sameDate?dates[0]:dates.length?'各曲线日期见读数':'暂无数据',average].filter(Boolean).join(' · '))+'</div></div>'+
+        '<div class="chart-reading-date">'+escape(['最新数据',sameDate?dates[0]:dates.length?'各曲线日期见读数':'暂无数据',id==='retailSentimentChart' && ['amount','volume','turnover'].includes(active('retail')) ? '周内日均' : '',average].filter(Boolean).join(' · '))+'</div></div>'+
         '<div class="chart-reading-values">'+items.map(i=>'<div class="chart-reading-item" style="color:'+escape(i.color)+'" data-series="'+escape(i.name)+'">'+
           '<div class="chart-reading-name">'+escape(i.name)+'</div><div class="chart-reading-number">'+
           (Number.isFinite(i.value)?i.value.toLocaleString('zh-CN',{minimumFractionDigits:2,maximumFractionDigits:2}):'--')+'<small>'+escape(i.unit)+'</small></div>'+

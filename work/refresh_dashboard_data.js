@@ -11,6 +11,7 @@ const TASKS = [
   { id: "market", file: "fetch_market_overview_data.py" },
   { id: "starSnapshot", file: "fetch_star_official_valuation.py" },
   { id: "starHistory", file: "fetch_star_official_history.py", after: ["starSnapshot"] },
+  { id: "retailWeeklyMeans", file: "fetch_retail_weekly_averages.py", after: ["market", "retailIndices"] },
   { id: "retailIndices", file: "fetch_retail_index_metrics.py", after: ["retail"] },
   { id: "etf", file: "fetch_large_money_etf_shares.py", after: ["largeMoney"] },
   { id: "valuation", file: "fetch_valuation_data.py", after: ["market"] },
