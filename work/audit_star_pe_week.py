@@ -53,6 +53,15 @@ def main():
         if len(basics) >= 6000:
             raise ValueError('Possible daily_basic truncation')
         lookup = {r['ts_code']: r for r in basics}
+        carried = {}
+        for code in set(members) - set(lookup):
+            prior = request('daily_basic', {'ts_code': code, 'start_date': start, 'end_date': date},
+                            'ts_code,trade_date,close,total_mv,pe_ttm,pb')
+            prior = [row for row in prior if row['trade_date'] < date and row.get('total_mv')]
+            if prior:
+                latest = max(prior, key=lambda row: row['trade_date'])
+                lookup[code] = latest
+                carried[code] = latest['trade_date']
         matched = {code: lookup[code] for code in members if code in lookup}
         if len(matched) != len(members):
             raise ValueError('Missing constituents: ' + str(set(members) - set(matched)))
@@ -79,6 +88,7 @@ def main():
         result = {
             'date': date, 'official_pe': float(official_row['peg']), 'membership_date': weight_date,
             'members': len(members), 'matched': len(matched), 'positive_pe_stocks': len(positive),
+            'carried_price_codes': carried,
             'nonpositive_or_missing_pe_stocks': len(members)-len(positive),
             'snapshot_weight_sum': sum(members.values()),
             'positive_market_cap_pct': positive_mv/total_mv*100,
