@@ -188,7 +188,7 @@ function htmlTemplate(data, echartsSource) {
     </div>
   </section>
   <section class="notes">
-    <div class="note"><strong>采样口径：</strong>价格、交易规模和总览PE按每年1月1日起每7个自然日分组，取组内最后有效交易日，并保留历史起点；并非固定周五。价格是当天收盘价，成交额/成交量是当天单日量，PE是该日可用值（缺失时可能沿用最近值），均不是周合计或周平均。利润底层为季度报告期TTM，按报告期末映射到价格采样点并沿用至下一期；重复展示不代表每周重新披露。报告期末不等于公告日，该历史汇总不是严格按当时已知信息构建的回测序列。</div>
+    <div class="note"><strong>采样口径：</strong>价格、交易规模和总览PE按每年1月1日起每7个自然日分组，取组内最后有效交易日，并保留历史起点；并非固定周五。价格是当天收盘价，成交额/成交量是当天单日量，均不是周合计或周平均。科创综指PE按最近一期月度成分快照的总市值/合计TTM归母利润（含亏损）逐日复算，自2025-01-27起有数据；接近Choice口径，但不是Choice原始值。利润底层为季度报告期TTM，按报告期末映射到价格采样点并沿用至下一期；重复展示不代表每周重新披露。报告期末不等于公告日，该历史汇总不是严格按当时已知信息构建的回测序列。</div>
     <div class="note"><strong>利润口径：</strong>真实利润为指数成分股归母净利润 TTM 汇总，单位为亿元；按 Tushare 指数权重表识别当期成分，再汇总这些成分股最近四个季度的归母净利润。最新报告期可能尚未披露完整：创业板覆盖率 ${data.stats.sh.profitCoverage ?? "—"}%，科创综指覆盖率 ${data.stats.sz.profitCoverage ?? "—"}%；未完整披露的汇总不可直接与完整报告期比较。</div>
     <div class="note"><strong>阅读方法：</strong>价格上涨若主要由真实利润上升推动，质量更扎实；若价格快速上涨、利润横盘而PE显著抬升，则主要是估值扩张。虚线标记历史典型顶部窗口，仅用于辅助复盘。</div>
   </section>
@@ -273,7 +273,7 @@ const chartConfigs = [
   ["chart-pe", [
     { name: "创业板指 PE", rows: DATA.sh, field: "pe", color: COLORS.sh },
     { name: "科创50 PE", rows: DATA.k50, field: "pe", color: COLORS.k50 },
-    { name: "科创综指 PE · 中证指数", rows: DATA.overviewPe.sz, field: "pe", color: COLORS.sz }
+    { name: "科创综指 PE · 整体法", rows: DATA.overviewPe.sz, field: "pe", color: COLORS.sz }
   ], { unit: "倍" }],
   ["chart-profit", [
     { name: "创业板指利润", rows: DATA.sh, field: "profitYi", color: COLORS.sh },
@@ -338,10 +338,12 @@ async function main() {
   const k50 = lastByWeek(overview.k50);
   const official = JSON.parse(fs.readFileSync(path.join(ROOT, "work", "star_official_valuation.json"), "utf8"));
   const officialHistory = JSON.parse(fs.readFileSync(path.join(ROOT, "work", "star_official_history.json"), "utf8"));
+  const starAggregate = JSON.parse(fs.readFileSync(path.join(ROOT, "work", "star_aggregate_pe.json"), "utf8"));
   const echartsSource = fs.readFileSync(path.join(ROOT, "work", "echarts.min.js"), "utf8");
-  const data = { sh, sz, k50, official, officialHistory,
-    overviewPe: { sz: lastByWeek(officialHistory.rows) },
-    valuationPeDaily: { sh: overview.sh, k50: overview.k50, sz: officialHistory.rows },
+  const data = { sh, sz, k50, official, officialHistory, starAggregate,
+    overviewPe: { sz: lastByWeek(starAggregate.rows) },
+    officialOverviewPe: { sz: lastByWeek(officialHistory.rows) },
+    valuationPeDaily: { sh: overview.sh, k50: overview.k50, sz: starAggregate.rows },
     stats: { sh: stats(sh), sz: stats(sz), k50: stats(k50) } };
   fs.mkdirSync(path.dirname(OUTPUT), { recursive: true });
   fs.writeFileSync(OUTPUT, htmlTemplate(data, echartsSource), "utf8");

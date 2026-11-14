@@ -6,6 +6,7 @@ const ROOT = path.resolve(__dirname, "..");
 // Long jobs start first. Dependencies protect the files reused downstream.
 const TASKS = [
   { id: "profit", file: "fetch_index_profit_data.py" },
+  { id: "starAggregatePe", file: "fetch_star_aggregate_pe.py", after: ["profit", "market"] },
   { id: "largeMoney", file: "fetch_large_money_sentiment_data.py" },
   { id: "retail", file: "fetch_retail_sentiment_data.py" },
   { id: "market", file: "fetch_market_overview_data.py" },

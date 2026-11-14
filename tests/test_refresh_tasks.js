@@ -7,15 +7,16 @@ const { tasksFor, refreshMode, runTasks, withRefreshLock } = require("../work/re
 const quiet = { log: () => {} };
 
 test("daily refresh excludes fund scans; reports and full retain explicit verification", () => {
-  assert.equal(tasksFor("daily").length, 13);
+  assert.equal(tasksFor("daily").length, 14);
   assert.ok(!tasksFor("daily").some(task => task.id === "fundReports"));
   assert.deepEqual(tasksFor("reports").map(task => task.id), ["fundReports"]);
-  assert.equal(tasksFor("full").length, 14);
+  assert.equal(tasksFor("full").length, 15);
   assert.deepEqual(tasksFor("cached"), []);
   assert.equal(refreshMode(["--reports"]), "reports");
   assert.throws(() => refreshMode(["--cached", "--full"]));
   const after = Object.fromEntries(tasksFor("daily").map(task => [task.id, task.after]));
   assert.deepEqual(after.valuation, ["market"]);
+  assert.deepEqual(after.starAggregatePe, ["profit", "market"]);
   assert.deepEqual(after.starHistory, ["starSnapshot"]);
   assert.deepEqual(after.retailIndices, ["retail"]);
   assert.deepEqual(after.retailWeeklyMeans, ["market", "retailIndices"]);

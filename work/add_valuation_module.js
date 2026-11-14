@@ -58,6 +58,9 @@ const css = `
     .panel-subtitle { color: var(--muted); font-size: 11px; margin-top: 4px; }
     .metric-tabs, .range-tabs { display: flex; gap: 7px; flex-wrap: wrap; }
     .metric-tabs { padding: 13px 15px 0; }
+    #valuationPeModes { padding-top: 8px; align-items: center; }
+    #valuationPeModes .mode-label { color: var(--muted); font-size: 12px; margin-right: 4px; }
+    #valuationPeModes[hidden] { display: none; }
     .metric-tab, .range-tab { padding: 7px 10px; font-size: 12px; }
     .range-tab { padding: 5px 8px; }
     .metric-tab[disabled] {
@@ -117,6 +120,11 @@ const moduleHtml = `
           <button class="metric-tab" data-metric="pePercentile">PE历史分位</button>
           <button class="metric-tab" data-metric="pbPercentile">PB历史分位</button>
         </div>
+        <div class="metric-tabs" id="valuationPeModes" role="group" aria-label="科创综指PE口径">
+          <span class="mode-label">科创综指 PE 口径</span>
+          <button type="button" class="metric-tab active" data-pe-mode="aggregate">整体法（含亏损）</button>
+          <button type="button" class="metric-tab" data-pe-mode="official">中证官方</button>
+        </div>
         <div class="metric-note">
           <span id="valuationMetricNote">PE越高，市场对未来盈利增长的要求越高。</span>
           <span class="metric-reading" id="valuationMetricCoverage"></span>
@@ -144,8 +152,8 @@ const js = `
     valuationExtra.sz = DATA.official.snapshots;
     const metricConfig = {
       pe: {
-        title: "PE(TTM)", unit: "倍", subtitle: "创业板、科创50、科创综指：统一按7天采样；科创综指原始来源为中证指数日频",
-        note: "科创综指官方PE从2024-10-23开始；与Tushare估值口径不同，不直接比较绝对倍数。"
+        title: "PE(TTM)", unit: "倍", subtitle: "三个指数PE按7天展示；科创综指可切换统计口径",
+        note: "科创综指整体法接近Choice展示口径，但不是Choice原始数据。"
       },
       pePercentile: {
         title: "PE历史分位", unit: "%", subtitle: "各时点相对当前所选时间跨度的位置",
@@ -159,8 +167,8 @@ const js = `
     };
 
     const methodology = {
-      "pe": "采样：创业板指、科创50按每年1月1日起每7个自然日分组，取组内最后有效交易日的PE，另保留历史起点；不是固定周五、不是周均值。科创综指取中证指数实际可用的每日PE，自2024-10-23起，再按7天采样。两来源口径不同，不宜直接比较绝对倍数。",
-      "pePercentile": "图上按年内7天分组显示代表点，但分位使用所选跨度内全部有效交易日PE计算：不高于该点PE的交易日数/有效交易日总数。各指数分别计算；不是周均值，也不是只用此前历史的滚动分位。",
+      "pe": "图上按年内7天分组显示代表点，不是周均值。科创综指整体法=最近一期月度成分快照的总市值合计/截至该日已披露的四季度归母利润合计，亏损照计；停牌股沿用最后可用市值。自2025-01-27起有可核对的成分数据，不是Choice原始值。",
+      "pePercentile": "图上按年内7天分组显示代表点；分位按所选跨度内全部有效交易日PE计算：不高于该点PE的交易日数/有效交易日总数。科创综指随上方口径切换，不同口径的分位不可混用。",
       "pbPercentile": "采样：创业板指按自然周取最后有效交易日PB；科创50按年内7天分组取最后有效交易日PB并保留起点，日期可能不同。分位按当前所选跨度内各自有效PB样本计算，不是周均值或仅用当时已知历史。科创综指暂无连续PB，不绘制。",
 };
 
@@ -170,6 +178,7 @@ const js = `
 
     const chart = echarts.init(document.getElementById("valuationChart"), null, { renderer: "canvas" });
     let activeMetric = "pe";
+    let peMode = "aggregate";
     let activeYears = 0;
 
     function rowsForActiveRange(market, field) {
@@ -197,7 +206,9 @@ const js = `
       const rows = rowsForActiveRange(market, field);
       if (field === "pePercentile" || field === "pbPercentile") {
         const sourceField = field === "pePercentile" ? "pe" : "pb";
-        const rankRows = field === "pePercentile" ? DATA.valuationPeDaily[market] : rows;
+        const rankRows = field === "pePercentile" && market === "sz" && peMode === "official"
+          ? DATA.officialHistory.rows
+          : field === "pePercentile" ? DATA.valuationPeDaily[market] : rows;
         const end = rankRows[rankRows.length - 1]?.date;
         const cutoff = end && activeYears ? new Date(end + "T00:00:00Z") : null;
         if (cutoff) cutoff.setUTCFullYear(cutoff.getUTCFullYear() - activeYears);
@@ -211,17 +222,25 @@ const js = `
 
     function renderValuationChart() {
       const cfg = metricConfig[activeMetric];
-      document.getElementById("valuationMethodology").textContent = methodology[activeMetric];
+      valuationData.sz = peMode === "official" ? DATA.officialOverviewPe.sz : DATA.overviewPe.sz;
+      document.getElementById("valuationPeModes").hidden = activeMetric === "pbPercentile";
+      document.getElementById("valuationMethodology").textContent =
+        activeMetric === "pe" && peMode === "official"
+          ? "科创综指取中证指数公布的滚动市盈率，自2024-10-23起按7天显示代表点；它与含亏损整体法计算规则不同。创业板指、科创50仍取Tushare指数PE。"
+          : methodology[activeMetric];
       const shPoints = valuationPoints("sh", activeMetric);
       const szPoints = valuationPoints("sz", activeMetric);
       const k50Points = valuationPoints("k50", activeMetric);
       const rangeLabel = activeYears ? activeYears + "年" : "全部可用";
       document.getElementById("valuationMetricSubtitle").textContent =
         cfg.fixedRange ? cfg.subtitle + "（" + rangeLabel + "样本动态计算）" : cfg.subtitle;
-      document.getElementById("valuationMetricNote").textContent = cfg.note +
+      document.getElementById("valuationMetricNote").textContent =
+        (activeMetric === "pe" && peMode === "official"
+          ? "科创综指为中证官方滚动PE，与另两条Tushare口径不宜直接比较。" : cfg.note) +
         (activeMetric === "pbPercentile" ? " 科创综指暂无连续PB数据。" : "");
       document.getElementById("valuationMetricCoverage").textContent = [
-        ["创业板指", shPoints], ["科创50", k50Points], ["科创综指", szPoints]
+        ["创业板指", shPoints], ["科创50", k50Points],
+        ["科创综指·" + (peMode === "official" ? "中证" : "整体法"), szPoints]
       ].filter(([, points]) => points.length).map(([name, points]) =>
         name + " " + fmt(points[points.length - 1][1], 2) + cfg.unit + " · " + points[0][0] + "起"
       ).join(" / ");
@@ -282,6 +301,14 @@ const js = `
         activeMetric = button.dataset.metric;
         document.querySelectorAll("#valuationMetricTabs [data-metric]").forEach(item => item.classList.remove("active"));
         button.classList.add("active");
+        renderValuationChart();
+      });
+    });
+    document.querySelectorAll("#valuationPeModes [data-pe-mode]").forEach(button => {
+      button.addEventListener("click", () => {
+        peMode = button.dataset.peMode;
+        document.querySelectorAll("#valuationPeModes [data-pe-mode]")
+          .forEach(item => item.classList.toggle("active", item === button));
         renderValuationChart();
       });
     });
