@@ -254,7 +254,8 @@ const script = `
           (supportsAverage && moneyPoints[moneyPoints.length - 1][1] == null
             ? "（" + (effectiveAverageWindow > 1 ? "窗口点数不足或含缺失值" : "暂无数据") + "）" : "") +
           (latestIncomplete ? " · 本周未结束" + (etfMode ? "，份额取最近披露值" : "，仅含截至刷新日记录") : "") +
-          (latestReport ? " · 样本 " + latestReport.funds + " 只 / 覆盖 " + latestReport.coverage + "%" : "")
+          (latestReport ? " · 样本 " + latestReport.funds + " 只 / 覆盖 " + latestReport.coverage + "%" +
+            " · 核验 " + (fundReports.meta.checkedAt?.[latestReport.date.replace(/-/g, "")]?.slice(0, 10) || "未记录") : "")
         : "当前范围暂无资金数据";
       chart.setOption({
         animation: false, backgroundColor: "transparent",

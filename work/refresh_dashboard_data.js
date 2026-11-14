@@ -31,8 +31,8 @@ function refreshMode(args = process.argv.slice(2)) {
 function tasksFor(mode) {
   if (mode === "cached") return [];
   if (mode === "reports") return [FUND_TASK];
-  if (mode === "full") return [...TASKS, FUND_TASK];
-  if (mode === "daily") return TASKS;
+  if (mode === "full") return [FUND_TASK, ...TASKS];
+  if (mode === "daily") return [FUND_TASK, ...TASKS];
   throw new Error(`Unknown refresh mode: ${mode}`);
 }
 
@@ -96,14 +96,14 @@ function runPython(python, task, env) {
 async function runRefresh(mode) {
   if (mode === "cached") return;
   const python = findPython();
-  const env = { ...process.env, XIAODENG_REFRESH_FULL: mode === "full" ? "1" : "0" };
+  const env = { ...process.env, PYTHONUTF8: "1", PYTHONIOENCODING: "utf-8", XIAODENG_REFRESH_FULL: mode === "full" ? "1" : "0" };
   const summary = { mode, startedAt: new Date().toISOString(), status: "running", tasks: [] };
   try {
     if (mode === "daily") {
       summary.fundReports = JSON.parse(execFileSync(python, [path.join(__dirname, FUND_TASK.file), "--status"], { env, encoding: "utf8" }));
       const due = summary.fundReports.duePeriods;
-      console.log(`[refresh] Fund reports: reusing verified data; latest report ${summary.fundReports.latestReportDate || "unavailable"}.`);
-      if (due.length) console.log(`[refresh] Fund reports awaiting verification: ${due.join(", ")}. Run node work/build_market_dashboard.js --reports separately.`);
+      console.log(`[refresh] Fund reports: latest report ${summary.fundReports.latestReportDate || "unavailable"}.`);
+      if (due.length) console.log(`[refresh] Fund reports will verify due periods: ${due.join(", ")}.`);
     }
     await runTasks(tasksFor(mode), task => runPython(python, task, env), { records: summary.tasks });
     summary.status = "complete";

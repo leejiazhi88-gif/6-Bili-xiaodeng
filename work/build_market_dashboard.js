@@ -353,6 +353,7 @@ async function main() {
   require("./add_official_sentiment_module");
   fs.writeFileSync(OUTPUT, require("./dashboard_interactions").enhance(fs.readFileSync(OUTPUT, "utf8")));
   fs.copyFileSync(OUTPUT, ROOT_INDEX);
+  require("./audit_dashboard_freshness").audit(ROOT);
   console.log(JSON.stringify({
     output: OUTPUT,
     rootIndex: ROOT_INDEX,

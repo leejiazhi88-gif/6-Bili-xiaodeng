@@ -1,0 +1,597 @@
+{
+  "inspectedAt": "2026-11-14T14:05:47.428Z",
+  "note": "Dates are valid row/period labels and may be weekly or monthly labels, not actual observation dates. Read source meta for as-of/check dates. Compare daily, monthly, quarterly and semiannual disclosure schedules separately; this report alone does not prove source freshness.",
+  "sources": {
+    "market_overview_data": {
+      "meta": {
+        "checkedThrough": "20261114",
+        "end": "2026-11-13"
+      },
+      "series": {
+        "sh": {
+          "rows": 3996,
+          "firstDate": "2010-05-31",
+          "lastDate": "2026-11-13",
+          "latestValidDate": {
+            "close": "2026-11-13",
+            "volumeYiShou": "2026-11-13",
+            "amountYi": "2026-11-13",
+            "pe": "2026-11-13",
+            "pb": "2026-11-13",
+            "earnings": "2026-11-13"
+          }
+        },
+        "sz": {
+          "rows": 1664,
+          "firstDate": "2019-12-31",
+          "lastDate": "2026-11-13",
+          "latestValidDate": {
+            "close": "2026-11-13",
+            "volumeYiShou": "2026-11-13",
+            "amountYi": "2026-11-13"
+          }
+        },
+        "k50": {
+          "rows": 1664,
+          "firstDate": "2019-12-31",
+          "lastDate": "2026-11-13",
+          "latestValidDate": {
+            "close": "2026-11-13",
+            "volumeYiShou": "2026-11-13",
+            "amountYi": "2026-11-13",
+            "pe": "2026-11-13",
+            "pb": "2026-11-13",
+            "earnings": "2026-11-13"
+          }
+        }
+      }
+    },
+    "index_profit_data": {
+      "meta": {
+        "end": "2026-11-14",
+        "unit": "亿元",
+        "profit": "指数成分股归母净利润TTM汇总",
+        "source": "Tushare index_weight + income"
+      },
+      "series": {
+        "sh": {
+          "rows": 66,
+          "firstDate": "2010-06-30",
+          "lastDate": "2026-09-30",
+          "latestValidDate": {
+            "profitCny": "2026-09-30",
+            "profitYi": "2026-09-30",
+            "memberCount": "2026-09-30",
+            "coveredCount": "2026-09-30",
+            "coverage": "2026-09-30"
+          }
+        },
+        "sz": {
+          "rows": 7,
+          "firstDate": "2025-03-31",
+          "lastDate": "2026-09-30",
+          "latestValidDate": {
+            "profitCny": "2026-09-30",
+            "profitYi": "2026-09-30",
+            "memberCount": "2026-09-30",
+            "coveredCount": "2026-09-30",
+            "coverage": "2026-09-30"
+          }
+        }
+      }
+    },
+    "valuation_data": {
+      "meta": {
+        "start": "2006-01-01",
+        "end": "2026-11-14",
+        "bond": "中债国债收益率曲线 10年期到期收益率",
+        "spread": "100 / PE(TTM) - 10年期国债收益率",
+        "indices": "创业板指(399006.SZ) / 科创综指(000680.SH)"
+      },
+      "series": {
+        "sh": {
+          "rows": 843,
+          "firstDate": "2010-06-04",
+          "lastDate": "2026-11-13",
+          "latestValidDate": {
+            "pb": "2026-11-13",
+            "pbPercentile": "2026-11-13"
+          }
+        }
+      }
+    },
+    "star_aggregate_pe": {
+      "meta": {
+        "source": "Tushare index_weight + verified constituent events + daily_basic + income + earnings express",
+        "method": "sum all constituent total market caps / sum available TTM profit, including losses and disclosed earnings flashes; no TTM profit contributes zero",
+        "frequency": "daily",
+        "methodVersion": 3,
+        "eventSignature": "df4aa793d54bf82616dbe92efaedb6eb0746b3b8d884ff5ec2cd8c0bb3608299",
+        "fetchedAt": "2026-11-14T13:57:03.650890+00:00"
+      },
+      "series": {
+        "rows": {
+          "rows": 434,
+          "firstDate": "2025-01-27",
+          "lastDate": "2026-11-13",
+          "latestValidDate": {
+            "pe": "2026-11-13",
+            "members": "2026-11-13",
+            "profitCoverage": "2026-11-13"
+          }
+        }
+      }
+    },
+    "star_official_history": {
+      "meta": {
+        "tsCode": "000680.SH",
+        "source": "中证指数官方历史行情",
+        "sourceUrl": "https://www.csindex.com.cn/csindex-home/perf/index-perf?indexCode=000680&startDate=20260813&endDate=20261114",
+        "field": "peg（官网历史行情的滚动市盈率）",
+        "startDate": "20191231",
+        "requestStartDate": "20260813",
+        "endDate": "20261114",
+        "fetchedAt": "2026-11-14T13:57:04.459387+00:00"
+      },
+      "series": {
+        "rows": {
+          "rows": 477,
+          "firstDate": "2024-10-23",
+          "lastDate": "2026-11-11",
+          "latestValidDate": {
+            "pe": "2026-11-11"
+          }
+        }
+      }
+    },
+    "star_official_valuation": {
+      "meta": {
+        "tsCode": "000680.SH",
+        "source": "中证指数官方单张",
+        "sourceUrl": "https://oss-ch.csindex.com.cn/static/html/csindex/public/uploads/indices/detail/files/zh_CN/000680factsheet.pdf",
+        "method": "滚动市盈率；指数指标采用个股计算用股本计算",
+        "frequency": "官方月末快照",
+        "fetchedAt": "2026-11-14T13:57:04.047956+00:00",
+        "sha256": "845e7230624c662dbc340e2201abfead5005b098b5f746c34e2b0d5e0734a31e",
+        "archive": "work/sources/000680-2026-10-30.pdf"
+      },
+      "series": {
+        "snapshots": {
+          "rows": 2,
+          "firstDate": "2026-09-30",
+          "lastDate": "2026-10-30",
+          "latestValidDate": {
+            "pe": "2026-10-30",
+            "pb": "2026-10-30"
+          }
+        }
+      }
+    },
+    "retail_sentiment_data": {
+      "meta": {
+        "updated": "2026-11-14",
+        "start": "2005-01-04",
+        "end": "2026-11-13",
+        "frequency": "weekly",
+        "sources": {
+          "market": "Tushare daily_info",
+          "volumeProxy": "Tushare index_daily 000001.SH + 399106.SZ (broad-index proxy)",
+          "margin": "Tushare margin",
+          "limit": "Tushare limit_list_d (available since 2020)"
+        }
+      },
+      "series": {
+        "series": {
+          "rows": 1114,
+          "firstDate": "2005-01-07",
+          "lastDate": "2026-11-13",
+          "latestValidDate": {
+            "amount": "2026-11-13",
+            "volumeProxy": "2026-11-13",
+            "turnover": "2026-11-13",
+            "marginBalance": "2026-11-13",
+            "marginFloatRatio": "2026-11-13",
+            "marginBuyRatio": "2026-11-13",
+            "limitUpCount": "2026-11-13"
+          }
+        }
+      }
+    },
+    "retail_index_metrics": {
+      "meta": {
+        "frequency": {
+          "turnover": "weekly",
+          "marginBalance": "weekly",
+          "marginFloatRatio": "weekly",
+          "limitUpCount": "weekly"
+        },
+        "sources": "Tushare index_weight + daily_basic + margin_detail",
+        "turnover": "Tushare index_dailybasic turnover_rate for sh/k50; constituent turnover_rate weighted by circ_mv for sz",
+        "marginBalance": "Sum of constituent rzye; non-margin-eligible stocks contribute zero",
+        "marginFloatRatio": "Constituent rzye / sum(circ_mv) * 100",
+        "limitUpCount": "Count of current constituents in Tushare limit_list_d limit_type U"
+      },
+      "series": {
+        "sh": {
+          "rows": 843,
+          "firstDate": "2010-06-04",
+          "lastDate": "2026-11-13",
+          "latestValidDate": {
+            "turnover": "2026-11-13",
+            "memberCount": "2026-11-13",
+            "marginMatched": "2026-11-13",
+            "capCoverage": "2026-11-13",
+            "marginBalance": "2026-11-06",
+            "marginFloatRatio": "2026-11-06",
+            "limitUpCount": "2026-11-13"
+          }
+        },
+        "k50": {
+          "rows": 324,
+          "firstDate": "2020-07-24",
+          "lastDate": "2026-11-13",
+          "latestValidDate": {
+            "turnover": "2026-11-13",
+            "limitUpCount": "2026-11-13",
+            "memberCount": "2026-11-13",
+            "marginMatched": "2026-11-13",
+            "marginBalance": "2026-11-13",
+            "marginFloatRatio": "2026-11-13",
+            "capCoverage": "2026-11-13"
+          }
+        },
+        "sz": {
+          "rows": 93,
+          "firstDate": "2025-01-27",
+          "lastDate": "2026-11-13",
+          "latestValidDate": {
+            "turnover": "2026-11-13",
+            "marginBalance": "2026-11-13",
+            "marginFloatRatio": "2026-11-13",
+            "limitUpCount": "2026-11-13",
+            "memberCount": "2026-11-13",
+            "capCoverage": "2026-11-13",
+            "marginMatched": "2026-11-13"
+          }
+        }
+      }
+    },
+    "retail_weekly_averages": {
+      "meta": {
+        "updated": "2026-11-14T21:57:21",
+        "end": "2026-11-13",
+        "sampling": "ISO calendar week; arithmetic mean of all trading days, labelled last observed trading day; missing day values leave a null week",
+        "starTurnover": "As-of index constituents, daily circ_mv-weighted turnover, >=95% cap-row coverage; then arithmetic daily mean"
+      },
+      "series": {
+        "market": {
+          "rows": 1114,
+          "firstDate": "2005-01-07",
+          "lastDate": "2026-11-13",
+          "latestValidDate": {
+            "tradingDays": "2026-11-13",
+            "amount": "2026-11-13",
+            "volume": "2026-11-13",
+            "turnover": "2026-11-13"
+          }
+        },
+        "sh": {
+          "rows": 843,
+          "firstDate": "2010-06-04",
+          "lastDate": "2026-11-13",
+          "latestValidDate": {
+            "tradingDays": "2026-11-13",
+            "amount": "2026-11-13",
+            "volume": "2026-11-13",
+            "turnover": "2026-11-13"
+          }
+        },
+        "k50": {
+          "rows": 352,
+          "firstDate": "2020-01-03",
+          "lastDate": "2026-11-13",
+          "latestValidDate": {
+            "tradingDays": "2026-11-13",
+            "amount": "2026-11-13",
+            "volume": "2026-11-13",
+            "turnover": "2026-11-13"
+          }
+        },
+        "sz": {
+          "rows": 352,
+          "firstDate": "2020-01-03",
+          "lastDate": "2026-11-13",
+          "latestValidDate": {
+            "tradingDays": "2026-11-13",
+            "amount": "2026-11-13",
+            "volume": "2026-11-13",
+            "turnover": "2026-11-13"
+          }
+        }
+      }
+    },
+    "large_money_sentiment_data": {
+      "meta": {
+        "updated": "2026-11-14",
+        "start": "2002-01-12",
+        "end": "2026-11-14",
+        "northEnd": "2024-08-16",
+        "northAggregation": "sum of daily net flows / 100; weekly CNY hundred-million",
+        "sources": {
+          "north": "Tushare moneyflow_hsgt",
+          "block": "Tushare block_trade",
+          "holder": "Tushare stk_holdertrade (priced A-share trades only)"
+        }
+      },
+      "series": {
+        "series": {
+          "rows": 1251,
+          "firstDate": "2002-01-12",
+          "lastDate": "2026-11-14",
+          "latestValidDate": {
+            "holderNetShares": "2026-11-14",
+            "holderNetAmount": "2026-11-14",
+            "blockAmount": "2026-11-14",
+            "institutionBlockNet": "2026-11-14",
+            "northMoney": "2024-08-17"
+          }
+        }
+      }
+    },
+    "large_money_index_data": {
+      "meta": {
+        "updated": "2026-11-14",
+        "source": "Tushare index_weight, block_trade, stk_holdertrade",
+        "holderAmountUnit": "100 million yuan"
+      },
+      "series": {
+        "sh": {
+          "rows": 840,
+          "firstDate": "2010-07-03",
+          "lastDate": "2026-11-14",
+          "latestValidDate": {
+            "blockAmount": "2026-11-14",
+            "institutionBlockNet": "2026-11-14",
+            "holderNetAmount": "2026-11-14"
+          }
+        },
+        "k50": {
+          "rows": 323,
+          "firstDate": "2020-08-01",
+          "lastDate": "2026-11-14",
+          "latestValidDate": {
+            "blockAmount": "2026-11-14",
+            "institutionBlockNet": "2026-11-14",
+            "holderNetAmount": "2026-11-14"
+          }
+        },
+        "sz": {
+          "rows": 93,
+          "firstDate": "2025-02-01",
+          "lastDate": "2026-11-14",
+          "latestValidDate": {
+            "blockAmount": "2026-11-14",
+            "institutionBlockNet": "2026-11-14",
+            "holderNetAmount": "2026-11-14"
+          }
+        }
+      }
+    },
+    "large_money_fund_reports": {
+      "meta": {
+        "source": "Tushare fund_basic + fund_portfolio + fund_nav + index_weight",
+        "frequency": "semiannual",
+        "coverageThreshold": 90,
+        "checkedAt": {
+          "20251231": "2026-11-14T22:00:29.395098",
+          "20260630": "2026-11-14T22:05:47.181289"
+        },
+        "incrementalBaseline": "2026-11-03T20:07:17.791508",
+        "scope": "active stock/mixed fund sample with >=90% disclosed stock holdings"
+      },
+      "series": {
+        "series": {
+          "rows": 43,
+          "firstDate": "2005-06-30",
+          "lastDate": "2026-06-30",
+          "latestValidDate": {
+            "funds": "2026-06-30",
+            "navFunds": "2026-06-30",
+            "coverage": "2026-06-30",
+            "total.position": "2026-06-30",
+            "total.concentration": "2026-06-30",
+            "sh.position": "2026-06-30",
+            "sh.concentration": "2026-06-30",
+            "k50.position": "2026-06-30",
+            "k50.concentration": "2026-06-30",
+            "sz.position": "2026-06-30",
+            "sz.concentration": "2026-06-30"
+          }
+        }
+      }
+    },
+    "large_money_etf_shares": {
+      "meta": {
+        "source": "Tushare etf_basic + fund_share",
+        "scope": "ETF funds tracking 399006.SZ, 000688.SH or 000680.SH; includes delisted funds",
+        "unit": "100 million shares",
+        "coverageThreshold": 90,
+        "updated": "2026-11-14",
+        "dateSemantics": "completed weeks use Saturday labels; the current incomplete week uses the actual as-of date"
+      },
+      "series": {
+        "series": {
+          "rows": 766,
+          "firstDate": "2011-12-10",
+          "lastDate": "2026-11-14",
+          "latestValidDate": {
+            "funds": "2026-11-14",
+            "coverage": "2026-11-14",
+            "sh": "2026-11-14",
+            "total": "2026-11-14",
+            "k50": "2026-11-14",
+            "sz": "2026-11-14"
+          }
+        }
+      }
+    },
+    "northbound_index_holdings": {
+      "meta": {
+        "source": "Tushare hk_hold + daily + daily_basic + index_weight",
+        "frequency": "quarterly",
+        "valueUnit": "100 million CNY",
+        "ratioDenominator": "sum of constituent total market capitalizations"
+      },
+      "series": {
+        "series": {
+          "rows": 40,
+          "firstDate": "2016-06-30",
+          "lastDate": "2026-09-30",
+          "latestValidDate": {
+            "sh.value": "2026-09-30",
+            "sh.ratio": "2026-09-30",
+            "sh.members": "2026-09-30",
+            "sh.pricedMembers": "2026-09-30",
+            "k50.members": "2026-09-30",
+            "k50.pricedMembers": "2026-09-30",
+            "sz.members": "2026-09-30",
+            "sz.pricedMembers": "2026-09-30",
+            "k50.value": "2026-09-30",
+            "k50.ratio": "2026-09-30",
+            "sz.value": "2026-09-30",
+            "sz.ratio": "2026-09-30"
+          }
+        }
+      }
+    },
+    "official_sentiment_data": {
+      "meta": {
+        "updated": "2026-11-14",
+        "schemaVersion": 5,
+        "ipoDefinition": "IPO发行总额：发行总量（万股）×发行价格（元/股）÷10000，单位亿元，未扣发行费用；若含老股转让不等于公司实际净募集资金。",
+        "ipoBoardCoverage": {
+          "chinext": {
+            "name": "创业板",
+            "startMonth": "200909",
+            "records": 1451,
+            "missingAmountRecords": 1
+          },
+          "star": {
+            "name": "科创板",
+            "startMonth": "201906",
+            "records": 623,
+            "missingAmountRecords": 0
+          }
+        },
+        "ipoAmountEvidence": {
+          "source": "https://pdf.dfcfw.com/pdf/H2_AN201907161338712768_1.pdf",
+          "evidence": "睿创微纳上市公告书披露首次公开发行6000万股、发行价20元/股，对应发行总额12亿元。Tushare new_share的funds返回5.265亿元，与该发行总额不同，故统一使用amount乘price计算发行总额，不使用funds作为实际发行金额。"
+        },
+        "holderDefinition": "沪深京A股重要股东公告中可按变动股数×披露均价计算的金额，减持减增持；非完整市场净流出。",
+        "boardDefinition": "同批公告按股票上市板块汇总：300/301/302.SZ属创业板、688/689.SH属科创板，不按指数成分筛选。",
+        "start": "1991-12-31",
+        "end": "2026-11-14",
+        "frequency": "monthly",
+        "sources": {
+          "ipo": "Tushare new_share",
+          "holder": "Tushare stk_holdertrade",
+          "money": "Tushare cn_m",
+          "social": "Tushare sf_month",
+          "lpr": "Tushare shibor_lpr",
+          "stampDuty": "manual policy table"
+        },
+        "constituentAvailability": {
+          "ipoFund": "按发行记录的上市板块统计全市场、创业板和科创板IPO，不按指数成分筛选，不受指数调样影响。",
+          "refinanceFund": "按已实施增发、配股逐笔记录统计全市场、创业板、科创板发行金额，不按指数成分筛选。",
+          "holderNetReductionAmount": "按上市板块归集同批重要股东公告金额，包含非指数成分股。",
+          "stampDutyRate": "统一税率，不存在成分股税率分项。",
+          "lpr1y": "全国统一报价，不存在成分股LPR分项。",
+          "socialFinancing": "全国实体经济融资，无法按股票指数成分拆分。",
+          "m2Yoy": "全国货币供应量同比，无法按股票指数成分拆分。"
+        }
+      },
+      "series": {
+        "series": {
+          "rows": 420,
+          "firstDate": "1991-12-31",
+          "lastDate": "2026-11-14",
+          "latestValidDate": {
+            "m2Yoy": "2026-09-30",
+            "m1Yoy": "2026-09-30",
+            "socialFinancing": "2026-09-30",
+            "ipoFund": "2026-11-14",
+            "ipoCount": "2026-11-14",
+            "ipoMissingFunds": "2026-11-14",
+            "stampDutyRate": "2026-11-14",
+            "ipoBoards.chinext.ipoFund": "2026-11-14",
+            "ipoBoards.chinext.ipoCount": "2026-11-14",
+            "ipoBoards.chinext.ipoMissingFunds": "2026-11-14",
+            "lpr1y": "2026-11-14",
+            "holderReductionAmount": "2026-11-14",
+            "holderNetReductionAmount": "2026-11-14",
+            "holderCoverage.market.records": "2026-11-14",
+            "holderCoverage.market.pricedRecords": "2026-11-14",
+            "holderCoverage.market.missingRecords": "2026-11-14",
+            "holderCoverage.chinext.records": "2026-11-14",
+            "holderCoverage.chinext.pricedRecords": "2026-11-14",
+            "holderCoverage.chinext.missingRecords": "2026-11-14",
+            "holderBoards.chinext.holderNetReductionAmount": "2026-11-14",
+            "holderBoards.chinext.holderReductionAmount": "2026-11-14",
+            "ipoBoards.star.ipoFund": "2026-11-14",
+            "ipoBoards.star.ipoCount": "2026-11-14",
+            "ipoBoards.star.ipoMissingFunds": "2026-11-14",
+            "holderCoverage.star.records": "2026-11-14",
+            "holderCoverage.star.pricedRecords": "2026-11-14",
+            "holderCoverage.star.missingRecords": "2026-11-14",
+            "holderBoards.star.holderNetReductionAmount": "2026-11-14",
+            "holderBoards.star.holderReductionAmount": "2026-11-14",
+            "lpr5y": "2026-11-14"
+          }
+        }
+      }
+    },
+    "refinancing_data": {
+      "meta": {
+        "updated": "2026-11-14T21:58:08+08:00",
+        "schemaVersion": 2,
+        "provider": "东方财富数据中心",
+        "source": "https://data.eastmoney.com/other/qbzf.html",
+        "rightsSource": "https://data.eastmoney.com/xg/pg/",
+        "unit": "亿元",
+        "frequency": "monthly",
+        "definition": "已实施增发、配股发行金额；含非现金资产认购及换股合并，不等于现金到账或二级市场流出；不含可转债和首次发行。",
+        "dateDefinition": "增发按发行日期，配股按缴款截止日归月；仅展示已结束月，未用上市日或公告日替代。",
+        "boardDefinition": "按发行记录的交易所和股票代码归属创业板、科创板；不按指数成分筛选。",
+        "currentMonthExcluded": true,
+        "start": "2008-01-31",
+        "end": "2026-10-31",
+        "excludedInitialOfferings": 360,
+        "sourceRecords": 5723
+      },
+      "series": {
+        "series": {
+          "rows": 226,
+          "firstDate": "2008-01-31",
+          "lastDate": "2026-10-31",
+          "latestValidDate": {
+            "coverage.market.records": "2026-10-31",
+            "coverage.market.missingAmounts": "2026-10-31",
+            "refinanceFund": "2026-10-31",
+            "additionalFund": "2026-10-31",
+            "rightsFund": "2026-10-31",
+            "refinanceBoards.chinext.refinanceFund": "2026-10-31",
+            "refinanceBoards.chinext.additionalFund": "2026-10-31",
+            "refinanceBoards.chinext.rightsFund": "2026-10-31",
+            "coverage.chinext.records": "2026-10-31",
+            "coverage.chinext.missingAmounts": "2026-10-31",
+            "refinanceBoards.star.refinanceFund": "2026-10-31",
+            "refinanceBoards.star.additionalFund": "2026-10-31",
+            "refinanceBoards.star.rightsFund": "2026-10-31",
+            "coverage.star.records": "2026-10-31",
+            "coverage.star.missingAmounts": "2026-10-31"
+          }
+        }
+      }
+    }
+  }
+}

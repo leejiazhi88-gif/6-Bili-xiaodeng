@@ -6,9 +6,9 @@ const path = require("node:path");
 const { tasksFor, refreshMode, runTasks, withRefreshLock } = require("../work/refresh_dashboard_data");
 const quiet = { log: () => {} };
 
-test("daily refresh excludes fund scans; reports and full retain explicit verification", () => {
-  assert.equal(tasksFor("daily").length, 14);
-  assert.ok(!tasksFor("daily").some(task => task.id === "fundReports"));
+test("daily refresh includes disclosure-aware fund verification", () => {
+  assert.equal(tasksFor("daily").length, 15);
+  assert.ok(tasksFor("daily").some(task => task.id === "fundReports"));
   assert.deepEqual(tasksFor("reports").map(task => task.id), ["fundReports"]);
   assert.equal(tasksFor("full").length, 15);
   assert.deepEqual(tasksFor("cached"), []);

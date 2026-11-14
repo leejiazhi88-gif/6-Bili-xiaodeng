@@ -48,7 +48,7 @@ def parse_history(payload, snapshots):
 
 def main():
     end_date = datetime.now().strftime("%Y%m%d")
-    previous = json.loads(OUTPUT.read_text()) if OUTPUT.exists() and not full_refresh() else {}
+    previous = json.loads(OUTPUT.read_text(encoding="utf-8")) if OUTPUT.exists() and not full_refresh() else {}
     start_date = lookback(previous["rows"][-1]["date"]) if previous.get("rows") else START_DATE
     query = urllib.parse.urlencode({"indexCode": INDEX_CODE, "startDate": start_date,
                                     "endDate": end_date})
