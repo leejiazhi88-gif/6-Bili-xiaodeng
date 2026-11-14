@@ -118,7 +118,6 @@ const moduleHtml = `
         <div class="metric-tabs" id="valuationMetricTabs">
           <button class="metric-tab active" data-metric="pe">PE(TTM)</button>
           <button class="metric-tab" data-metric="pePercentile">PE历史分位</button>
-          <button class="metric-tab" data-metric="pbPercentile">PB历史分位</button>
         </div>
         <div class="metric-tabs" id="valuationPeModes" role="group" aria-label="科创综指PE口径">
           <span class="mode-label">科创综指 PE 口径</span>
@@ -222,6 +221,7 @@ const js = `
 
     function renderValuationChart() {
       const cfg = metricConfig[activeMetric];
+      const selected = { ...(chart.getOption()?.legend?.[0]?.selected || {}) };
       valuationData.sz = peMode === "official" ? DATA.officialOverviewPe.sz : DATA.overviewPe.sz;
       document.getElementById("valuationPeModes").hidden = activeMetric === "pbPercentile";
       document.getElementById("valuationMethodology").textContent =
@@ -267,7 +267,7 @@ const js = `
             return "<b>" + (params[0]?.axisValueLabel || "") + "</b><br>" + lines.join("<br>");
           }
         },
-        legend: { type: "scroll", top: 12, textStyle: { color: "#8fa5bf", fontSize: 11 } },
+        legend: { type: "scroll", top: 12, selected, textStyle: { color: "#8fa5bf", fontSize: 11 } },
         xAxis: {
           type: "time", axisLine: { lineStyle: { color: "#344760" } },
           axisLabel: { color: "#789b98", hideOverlap: true }, splitLine: { show: false }
