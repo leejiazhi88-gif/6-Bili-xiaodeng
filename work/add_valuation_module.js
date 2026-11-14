@@ -160,7 +160,7 @@ const js = `
 
     const methodology = {
       "pe": "采样：创业板指、科创50按每年1月1日起每7个自然日分组，取组内最后有效交易日的PE，另保留历史起点；不是固定周五、不是周均值。科创综指取中证指数实际可用的每日PE，自2024-10-23起，再按7天采样。两来源口径不同，不宜直接比较绝对倍数。",
-      "pePercentile": "采样：创业板指、科创50按年内7天分组取最后有效交易日PE并保留起点；科创综指也先按7天采样，原始来源为中证指数日频。分位=当前所选跨度内不高于该值的样本数/有效样本数，各指数分别计算；不是逐时点只用此前历史的滚动分位，也不是周均值。",
+      "pePercentile": "图上按年内7天分组显示代表点，但分位使用所选跨度内全部有效交易日PE计算：不高于该点PE的交易日数/有效交易日总数。各指数分别计算；不是周均值，也不是只用此前历史的滚动分位。",
       "pbPercentile": "采样：创业板指按自然周取最后有效交易日PB；科创50按年内7天分组取最后有效交易日PB并保留起点，日期可能不同。分位按当前所选跨度内各自有效PB样本计算，不是周均值或仅用当时已知历史。科创综指暂无连续PB，不绘制。",
 };
 
@@ -197,7 +197,13 @@ const js = `
       const rows = rowsForActiveRange(market, field);
       if (field === "pePercentile" || field === "pbPercentile") {
         const sourceField = field === "pePercentile" ? "pe" : "pb";
-        const sorted = rows.map(row => row[sourceField]).sort((a, b) => a - b);
+        const rankRows = field === "pePercentile" ? DATA.valuationPeDaily[market] : rows;
+        const end = rankRows[rankRows.length - 1]?.date;
+        const cutoff = end && activeYears ? new Date(end + "T00:00:00Z") : null;
+        if (cutoff) cutoff.setUTCFullYear(cutoff.getUTCFullYear() - activeYears);
+        const sorted = rankRows.filter(row => Number.isFinite(row[sourceField]) &&
+          (!cutoff || new Date(row.date + "T00:00:00Z") >= cutoff))
+          .map(row => row[sourceField]).sort((a, b) => a - b);
         return rows.map(row => [row.date, percentileRank(sorted, row[sourceField])]);
       }
       return rows.map(row => [row.date, row[field]]);

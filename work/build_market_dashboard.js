@@ -339,7 +339,10 @@ async function main() {
   const official = JSON.parse(fs.readFileSync(path.join(ROOT, "work", "star_official_valuation.json"), "utf8"));
   const officialHistory = JSON.parse(fs.readFileSync(path.join(ROOT, "work", "star_official_history.json"), "utf8"));
   const echartsSource = fs.readFileSync(path.join(ROOT, "work", "echarts.min.js"), "utf8");
-  const data = { sh, sz, k50, official, officialHistory, overviewPe: { sz: lastByWeek(officialHistory.rows) }, stats: { sh: stats(sh), sz: stats(sz), k50: stats(k50) } };
+  const data = { sh, sz, k50, official, officialHistory,
+    overviewPe: { sz: lastByWeek(officialHistory.rows) },
+    valuationPeDaily: { sh: overview.sh, k50: overview.k50, sz: officialHistory.rows },
+    stats: { sh: stats(sh), sz: stats(sz), k50: stats(k50) } };
   fs.mkdirSync(path.dirname(OUTPUT), { recursive: true });
   fs.writeFileSync(OUTPUT, htmlTemplate(data, echartsSource), "utf8");
   require("./add_valuation_module");
