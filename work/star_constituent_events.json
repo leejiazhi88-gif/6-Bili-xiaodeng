@@ -1,0 +1,46 @@
+{
+  "events": [
+    {
+      "from": "20260305",
+      "until": "20260331",
+      "add": ["688795.SH"],
+      "source": "https://vip.stock.finance.sina.com.cn/corp/view/vII_NewestComponent.php?indexid=000681&page=1",
+      "basis": "Historical constituent roster gives 2026-03-05 inclusion."
+    },
+    {
+      "from": "20260317",
+      "until": "20260331",
+      "add": ["688802.SH"],
+      "source": "https://vip.stock.finance.sina.com.cn/corp/view/vII_NewestComponent.php?indexid=000681&page=1",
+      "basis": "Historical constituent roster gives 2026-03-17 inclusion."
+    },
+    {
+      "from": "20260325",
+      "until": "20260331",
+      "add": ["688757.SH"],
+      "source": "https://vip.stock.finance.sina.com.cn/corp/view/vII_NewestComponent.php?indexid=000681&page=1",
+      "basis": "Historical constituent roster gives 2026-03-25 inclusion."
+    },
+    {
+      "from": "20260615",
+      "until": "20260630",
+      "remove": ["688022.SH", "688033.SH", "688066.SH"],
+      "source": "https://www.sse.com.cn/disclosure/magin/announcement/ssereport/c/c_20260430_10817280.shtml",
+      "basis": "Risk warning from 2026-05-06; index methodology removes samples after the next month's second Friday."
+    },
+    {
+      "from": "20261027",
+      "until": "20261030",
+      "add": ["688825.SH"],
+      "source": "https://vip.stock.finance.sina.com.cn/corp/view/vII_NewestComponent.php?indexid=000681&page=1",
+      "basis": "Historical constituent roster gives 2026-10-27 inclusion."
+    },
+    {
+      "from": "20261028",
+      "until": "20261030",
+      "add": ["688759.SH", "688765.SH", "688783.SH"],
+      "source": "https://vip.stock.finance.sina.com.cn/corp/view/vII_NewestComponent.php?indexid=000681&page=1",
+      "basis": "Historical constituent roster gives 2026-10-28 inclusion."
+    }
+  ]
+}
