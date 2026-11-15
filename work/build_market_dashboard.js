@@ -166,6 +166,7 @@ function htmlTemplate(data, echartsSource) {
         <button data-years="3">3年</button>
         <button data-years="5">5年</button>
         <button data-years="10">10年</button>
+        <button data-years="20">20年</button>
         <button class="active" data-years="0">全部</button>
       </div>
       <div class="legend">
