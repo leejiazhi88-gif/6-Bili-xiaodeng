@@ -264,6 +264,14 @@
 .chart-reading-name::before{content:"";width:6px;height:6px;border-radius:50%;background:currentColor;flex-shrink:0}
 .chart-reading-number{font-size:13px;font-weight:650;font-variant-numeric:tabular-nums;margin-top:3px;white-space:nowrap}
 .chart-reading-number small{font-size:12px;color:var(--muted);font-weight:400;margin-left:4px}
+.valuation-reading-values{gap:14px 24px}
+.valuation-reading-item{min-width:190px}
+.valuation-reading-top,.valuation-reading-rank{display:flex;align-items:center;gap:8px;white-space:nowrap}
+.valuation-reading-top .chart-reading-name{font-weight:650}
+.valuation-reading-pe{color:var(--text);font-variant-numeric:tabular-nums}
+.valuation-reading-rank{margin-top:8px;color:var(--text);font-variant-numeric:tabular-nums}
+.valuation-rank-track{position:relative;display:inline-block;width:112px;height:6px;border-radius:3px;background:linear-gradient(to right,#4baf97 0%,#4baf97 20%,#8fbc6b 20%,#8fbc6b 40%,#c1b65e 40%,#c1b65e 60%,#d6a74e 60%,#d6a74e 80%,#ce6482 80%,#ce6482 100%)}
+.valuation-rank-marker{position:absolute;top:-3px;width:5px;height:12px;border:1px solid #f5c96a;background:#eaf4f2;border-radius:2px;transform:translateX(-50%);box-shadow:0 0 0 1px #081416}
 .page-nav{max-width:100%;overflow-x:auto;flex-wrap:nowrap}.page-nav a{flex-shrink:0;white-space:nowrap}
 @media(max-width:620px){.chart-reading{flex-direction:column;gap:10px;left:16px;right:16px}.chart-reading-values{gap:10px 16px}.page-nav{position:sticky!important;top:0;justify-content:flex-start!important}}
 </style>
@@ -822,6 +830,18 @@ window.addEventListener("resize", () => charts.forEach(chart => chart.resize()))
       const szPoints = valuationPoints("sz", activeMetric);
       const k50Points = valuationPoints("k50", activeMetric);
       const rangeLabel = activeYears ? activeYears + "年" : "全部可用";
+      chart.valuationReading = { sample: activeYears ? activeYears + "年样本" : "全部有效交易日样本",
+        items: [["sh", "创业板指"], ["k50", "科创50"], ["sz", "科创综指"]].map(([market, name]) => {
+          const source = market === "sz" && peMode === "official" ? DATA.officialHistory.rows : DATA.valuationPeDaily[market];
+          const valid = source.filter(row => Number.isFinite(row.pe));
+          const latest = valid[valid.length - 1];
+          const cutoff = latest && activeYears ? new Date(latest.date + "T00:00:00Z") : null;
+          if (cutoff) cutoff.setUTCFullYear(cutoff.getUTCFullYear() - activeYears);
+          const sorted = valid.filter(row => !cutoff || new Date(row.date + "T00:00:00Z") >= cutoff)
+            .map(row => row.pe).sort((a, b) => a - b);
+          return { name, date: latest?.date, pe: latest?.pe,
+            percentile: latest ? percentileRank(sorted, latest.pe) : null };
+        }) };
       document.getElementById("valuationMetricSubtitle").textContent =
         cfg.fixedRange ? cfg.subtitle + "（" + rangeLabel + "样本动态计算）" : cfg.subtitle;
       document.getElementById("valuationMetricNote").textContent =
@@ -1674,6 +1694,26 @@ window.addEventListener("resize", () => charts.forEach(chart => chart.resize()))
       const sameDate = dates.length === 1;
       const contextId = ({retailSentimentChart:'retail',largeMoneyChart:'largeMoney',officialSentimentChart:'official'})[id];
       const average = contextId && document.querySelector('#'+contextId+'AverageModes:not([hidden]) .active')?.textContent;
+      if (id === 'valuationChart' && chart.valuationReading) {
+        const summary = chart.valuationReading;
+        const readings = items.map(item => ({ ...item, ...summary.items.find(row => row.name === item.name) }));
+        const readingDates = [...new Set(readings.map(item => item.date).filter(Boolean))];
+        const number = value => Number.isFinite(value) ? value.toLocaleString('zh-CN', { minimumFractionDigits:2, maximumFractionDigits:2 }) : '--';
+        header.innerHTML = '<div class="chart-reading-heading">PE(TTM) · PE历史分位<div class="chart-reading-date">' +
+          escape(['最新数据', readingDates.length === 1 ? readingDates[0] : '各曲线日期见读数', summary.sample].join(' · ')) + '</div></div>' +
+          '<div class="chart-reading-values valuation-reading-values">' + readings.map(item => {
+            const rank = item.percentile;
+            const color = Number.isFinite(rank) ? rank < 20 ? '#4baf97' : rank >= 80 ? '#ce6482' : '#d6b65e' : 'var(--muted)';
+            const position = Number.isFinite(rank) ? Math.max(0, Math.min(100, rank)) : null;
+            return '<div class="chart-reading-item valuation-reading-item" data-series="' + escape(item.name) + '" style="color:' + escape(item.color) + '">' +
+              '<div class="valuation-reading-top"><span class="chart-reading-name">' + escape(item.name) + '</span><span class="valuation-reading-pe">PE ' + number(item.pe) + ' 倍</span></div>' +
+              '<div class="valuation-reading-rank"><span>PE分位 <span style="color:' + color + '">' + number(rank) + '%</span></span>' +
+              (position !== null ? '<span class="valuation-rank-track" role="meter" aria-label="' + escape(item.name) + 'PE历史分位" aria-valuemin="0" aria-valuemax="100" aria-valuenow="' + position + '"><i class="valuation-rank-marker" style="left:' + position + '%"></i></span>' : '') + '</div>' +
+              (readingDates.length > 1 && item.date ? '<div class="chart-reading-date">' + escape(item.date) + '</div>' : '') + '</div>';
+          }).join('') + '</div>';
+        layout();
+        return;
+      }
       header.innerHTML = '<div class="chart-reading-heading">'+escape(items[0]?.title || metadata(id,{})[0])+
         '<div class="chart-reading-date">'+escape(['最新数据',sameDate?dates[0]:dates.length?'各曲线日期见读数':'暂无数据',id==='retailSentimentChart' && ['amount','volume','turnover'].includes(active('retail')) ? '周内日均' : '',average].filter(Boolean).join(' · '))+'</div></div>'+
         '<div class="chart-reading-values">'+items.map(i=>'<div class="chart-reading-item" style="color:'+escape(i.color)+'" data-series="'+escape(i.name)+'">'+

@@ -233,6 +233,18 @@ const js = `
       const szPoints = valuationPoints("sz", activeMetric);
       const k50Points = valuationPoints("k50", activeMetric);
       const rangeLabel = activeYears ? activeYears + "年" : "全部可用";
+      chart.valuationReading = { sample: activeYears ? activeYears + "年样本" : "全部有效交易日样本",
+        items: [["sh", "创业板指"], ["k50", "科创50"], ["sz", "科创综指"]].map(([market, name]) => {
+          const source = market === "sz" && peMode === "official" ? DATA.officialHistory.rows : DATA.valuationPeDaily[market];
+          const valid = source.filter(row => Number.isFinite(row.pe));
+          const latest = valid[valid.length - 1];
+          const cutoff = latest && activeYears ? new Date(latest.date + "T00:00:00Z") : null;
+          if (cutoff) cutoff.setUTCFullYear(cutoff.getUTCFullYear() - activeYears);
+          const sorted = valid.filter(row => !cutoff || new Date(row.date + "T00:00:00Z") >= cutoff)
+            .map(row => row.pe).sort((a, b) => a - b);
+          return { name, date: latest?.date, pe: latest?.pe,
+            percentile: latest ? percentileRank(sorted, latest.pe) : null };
+        }) };
       document.getElementById("valuationMetricSubtitle").textContent =
         cfg.fixedRange ? cfg.subtitle + "（" + rangeLabel + "样本动态计算）" : cfg.subtitle;
       document.getElementById("valuationMetricNote").textContent =
