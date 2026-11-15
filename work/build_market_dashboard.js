@@ -1,5 +1,6 @@
 const fs = require("fs");
 const path = require("path");
+const { lastByWeek } = require("./weekly_sampling");
 
 const ROOT = path.resolve(__dirname, "..");
 const OUTPUT = path.join(ROOT, "outputs", "growth_indices_dashboard.html");
@@ -13,25 +14,6 @@ function readMarketOverview() {
 
 function readIndexProfit() {
   return JSON.parse(fs.readFileSync(path.join(ROOT, "work", "index_profit_data.json"), "utf8"));
-}
-
-function lastByWeek(rows) {
-  const result = [];
-  let key = "";
-  for (const row of rows) {
-    const date = new Date(`${row.date}T00:00:00Z`);
-    const first = new Date(Date.UTC(date.getUTCFullYear(), 0, 1));
-    const week = Math.floor((date - first) / 604800000);
-    const nextKey = `${date.getUTCFullYear()}-${week}`;
-    if (nextKey !== key) {
-      result.push(row);
-      key = nextKey;
-    } else {
-      result[result.length - 1] = row;
-    }
-  }
-  if (rows.length && result[0].date !== rows[0].date) result.unshift(rows[0]);
-  return result;
 }
 
 function attachProfit(rows, profitRows) {
@@ -189,7 +171,7 @@ function htmlTemplate(data, echartsSource) {
     </div>
   </section>
   <section class="notes">
-    <div class="note"><strong>采样口径：</strong>价格、交易规模和总览PE按每年1月1日起每7个自然日分组，取组内最后有效交易日，并保留历史起点；并非固定周五。价格是当天收盘价，成交额/成交量是当天单日量，均不是周合计或周平均。科创综指PE按月度成分快照（补入已核实的月中变动）的全部总市值/已披露TTM利润（含亏损）逐日复算；正式利润表发布前采用已公告业绩快报（季度累计值换算为TTM），无完整利润的成分股暂按0利润计入。该PE自2025-01-27起有数据，不是Choice原始值。利润底层为季度报告期TTM，按报告期末映射到价格采样点并沿用至下一期；重复展示不代表每周重新披露。报告期末不等于公告日，该历史汇总不是严格按当时已知信息构建的回测序列。</div>
+    <div class="note"><strong>采样口径：</strong>价格、交易规模和总览PE按自然周取最后一个有效交易日，通常为周五；周五休市取当周此前最后交易日，未结束周取最新已披露交易日，不改写原始日期。价格是当天收盘价，成交额/成交量是当天单日量，均不是周合计或周平均。科创综指PE按月度成分快照（补入已核实的月中变动）的全部总市值/已披露TTM利润（含亏损）逐日复算；正式利润表发布前采用已公告业绩快报（季度累计值换算为TTM），无完整利润的成分股暂按0利润计入。该PE自2025-01-27起有数据，不是Choice原始值。利润底层为季度报告期TTM，按报告期末映射到价格采样点并沿用至下一期；重复展示不代表每周重新披露。报告期末不等于公告日，该历史汇总不是严格按当时已知信息构建的回测序列。</div>
     <div class="note"><strong>利润口径：</strong>真实利润为指数成分股归母净利润 TTM 汇总，单位为亿元；按 Tushare 指数权重表识别当期成分，再汇总这些成分股最近四个季度的归母净利润。最新报告期可能尚未披露完整：创业板覆盖率 ${data.stats.sh.profitCoverage ?? "—"}%，科创综指覆盖率 ${data.stats.sz.profitCoverage ?? "—"}%；未完整披露的汇总不可直接与完整报告期比较。</div>
     <div class="note"><strong>阅读方法：</strong>价格上涨若主要由真实利润上升推动，质量更扎实；若价格快速上涨、利润横盘而PE显著抬升，则主要是估值扩张。虚线标记历史典型顶部窗口，仅用于辅助复盘。</div>
   </section>

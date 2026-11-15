@@ -1,5 +1,6 @@
 from refresh_cache import full_refresh
 from refresh_cache import historical_cache
+from weekly_dates import calendar_week_ends, align_rows
 import calendar
 import json
 import re
@@ -346,6 +347,9 @@ def main():
                      + [row for row in fresh if row["date"] >= start])
         index_series[key] = fresh
 
+    calendar_ends = calendar_week_ends(token, call_api, series, END_DATE)
+    series = align_rows(series, calendar_ends)
+    index_series = {key: align_rows(rows, calendar_ends) for key, rows in index_series.items()}
     result = {
         "meta": {
             "updated": datetime.now().strftime("%Y-%m-%d"),
@@ -353,6 +357,7 @@ def main():
             "end": series[-1]["date"],
             "northEnd": "2024-08-16",
             "northAggregation": "sum of daily net flows / 100; weekly CNY hundred-million",
+            "weekDateSemantics": "ISO week period labelled by last exchange trading day; full weekly amounts, not Friday-only observations",
             "sources": {
                 "north": "Tushare moneyflow_hsgt",
                 "block": "Tushare block_trade",

@@ -6,6 +6,7 @@ from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
 
 from fetch_retail_sentiment_data import ROOT, call_api, get_token
+from weekly_dates import calendar_week_ends, week_key
 
 
 OUTPUT = ROOT / "work" / "large_money_etf_shares.json"
@@ -65,10 +66,15 @@ def main():
     with ThreadPoolExecutor(max_workers=3) as pool:
         histories = list(pool.map(lambda fund: fund_history(token, fund), funds.values()))
     today = datetime.now().strftime("%Y-%m-%d")
-    weeks = [row["date"] for row in json.loads(WEEKS.read_text(encoding="utf-8"))["series"]]
+    week_rows = json.loads(WEEKS.read_text(encoding="utf-8"))["series"]
+    weeks = [row["date"] for row in week_rows]
+    ends = calendar_week_ends(token, request, week_rows, today.replace("-", ""))
     result = []
     for week_label in weeks:
-        date = min(week_label, today)
+        end = ends.get(week_key(week_label))
+        if not end:
+            continue
+        date = f"{end[:4]}-{end[4:6]}-{end[6:]}"
         compact = date.replace("-", "")
         day = datetime.strptime(compact, "%Y%m%d")
         sums = {key: 0.0 for key in INDEX_CODES}
@@ -87,9 +93,7 @@ def main():
             sums[key] += values[dates[position]]
         if not any(reported.values()):
             continue
-        # The source series uses Saturday as a completed-week label. For the
-        # still-open current week, use the actual as-of date instead of a
-        # future Saturday that could be mistaken for an observed date.
+        # Weekly labels come from the exchange calendar; shares are read as of that date.
         label = date
         row = {"date": label, "funds": sum(reported.values()),
                "coverage": round(sum(reported.values()) / sum(eligible.values()) * 100, 1)}
@@ -104,7 +108,7 @@ def main():
         "scope": "ETF funds tracking 399006.SZ, 000688.SH or 000680.SH; includes delisted funds",
         "unit": "100 million shares", "coverageThreshold": 90,
         "updated": today,
-        "dateSemantics": "completed weeks use Saturday labels; the current incomplete week uses the actual as-of date",
+        "dateSemantics": "last exchange trading day per ISO week; share disclosures available by that date",
     }, "series": result})
     print(json.dumps({"funds": len(funds), "weeks": len(result),
                       "start": result[0]["date"], "end": result[-1]["date"]}))

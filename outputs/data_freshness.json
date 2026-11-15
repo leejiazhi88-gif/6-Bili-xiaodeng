@@ -1,5 +1,5 @@
 {
-  "inspectedAt": "2026-11-15T13:26:37.873Z",
+  "inspectedAt": "2026-11-15T23:38:07.423Z",
   "note": "Dates are valid row/period labels and may be weekly or monthly labels, not actual observation dates. Read source meta for as-of/check dates. Compare daily, monthly, quarterly and semiannual disclosure schedules separately; this report alone does not prove source freshness.",
   "sources": {
     "market_overview_data": {
@@ -313,27 +313,28 @@
     "large_money_sentiment_data": {
       "meta": {
         "updated": "2026-11-14",
-        "start": "2002-01-12",
-        "end": "2026-11-14",
+        "start": "2002-01-11",
+        "end": "2026-11-13",
         "northEnd": "2024-08-16",
         "northAggregation": "sum of daily net flows / 100; weekly CNY hundred-million",
         "sources": {
           "north": "Tushare moneyflow_hsgt",
           "block": "Tushare block_trade",
           "holder": "Tushare stk_holdertrade (priced A-share trades only)"
-        }
+        },
+        "weekDateSemantics": "ISO week period labelled by its last exchange trading day; weekly sums retain full period amounts, not Friday-only observations"
       },
       "series": {
         "series": {
           "rows": 1251,
-          "firstDate": "2002-01-12",
-          "lastDate": "2026-11-14",
+          "firstDate": "2002-01-11",
+          "lastDate": "2026-11-13",
           "latestValidDate": {
-            "holderNetShares": "2026-11-14",
-            "holderNetAmount": "2026-11-14",
-            "blockAmount": "2026-11-14",
-            "institutionBlockNet": "2026-11-14",
-            "northMoney": "2024-08-17"
+            "holderNetShares": "2026-11-13",
+            "holderNetAmount": "2026-11-13",
+            "blockAmount": "2026-11-13",
+            "institutionBlockNet": "2026-11-13",
+            "northMoney": "2024-08-16"
           }
         }
       }
@@ -342,37 +343,38 @@
       "meta": {
         "updated": "2026-11-14",
         "source": "Tushare index_weight, block_trade, stk_holdertrade",
-        "holderAmountUnit": "100 million yuan"
+        "holderAmountUnit": "100 million yuan",
+        "weekDateSemantics": "ISO week period labelled by its last exchange trading day; weekly sums retain full period amounts, not Friday-only observations"
       },
       "series": {
         "sh": {
           "rows": 840,
-          "firstDate": "2010-07-03",
-          "lastDate": "2026-11-14",
+          "firstDate": "2010-07-02",
+          "lastDate": "2026-11-13",
           "latestValidDate": {
-            "blockAmount": "2026-11-14",
-            "institutionBlockNet": "2026-11-14",
-            "holderNetAmount": "2026-11-14"
+            "blockAmount": "2026-11-13",
+            "institutionBlockNet": "2026-11-13",
+            "holderNetAmount": "2026-11-13"
           }
         },
         "k50": {
           "rows": 323,
-          "firstDate": "2020-08-01",
-          "lastDate": "2026-11-14",
+          "firstDate": "2020-07-31",
+          "lastDate": "2026-11-13",
           "latestValidDate": {
-            "blockAmount": "2026-11-14",
-            "institutionBlockNet": "2026-11-14",
-            "holderNetAmount": "2026-11-14"
+            "blockAmount": "2026-11-13",
+            "institutionBlockNet": "2026-11-13",
+            "holderNetAmount": "2026-11-13"
           }
         },
         "sz": {
           "rows": 93,
-          "firstDate": "2025-02-01",
-          "lastDate": "2026-11-14",
+          "firstDate": "2025-01-27",
+          "lastDate": "2026-11-13",
           "latestValidDate": {
-            "blockAmount": "2026-11-14",
-            "institutionBlockNet": "2026-11-14",
-            "holderNetAmount": "2026-11-14"
+            "blockAmount": "2026-11-13",
+            "institutionBlockNet": "2026-11-13",
+            "holderNetAmount": "2026-11-13"
           }
         }
       }
@@ -416,21 +418,21 @@
         "scope": "ETF funds tracking 399006.SZ, 000688.SH or 000680.SH; includes delisted funds",
         "unit": "100 million shares",
         "coverageThreshold": 90,
-        "updated": "2026-11-14",
-        "dateSemantics": "completed weeks use Saturday labels; the current incomplete week uses the actual as-of date"
+        "updated": "2026-11-16",
+        "dateSemantics": "last exchange trading day per ISO week; share disclosures available by that date"
       },
       "series": {
         "series": {
-          "rows": 766,
-          "firstDate": "2011-12-10",
-          "lastDate": "2026-11-14",
+          "rows": 765,
+          "firstDate": "2011-12-09",
+          "lastDate": "2026-11-13",
           "latestValidDate": {
-            "funds": "2026-11-14",
-            "coverage": "2026-11-14",
-            "sh": "2026-11-14",
-            "total": "2026-11-14",
-            "k50": "2026-11-14",
-            "sz": "2026-11-14"
+            "funds": "2026-11-13",
+            "coverage": "2026-11-13",
+            "sh": "2026-11-13",
+            "total": "2026-11-13",
+            "k50": "2026-11-13",
+            "sz": "2026-11-13"
           }
         }
       }

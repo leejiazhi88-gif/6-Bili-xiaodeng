@@ -152,7 +152,7 @@ const js = `
     valuationExtra.sz = DATA.official.snapshots;
     const metricConfig = {
       pe: {
-        title: "PE(TTM)", unit: "倍", subtitle: "三个指数PE按7天展示；科创综指可切换统计口径",
+        title: "PE(TTM)", unit: "倍", subtitle: "三个指数PE按自然周最后交易日展示；科创综指可切换统计口径",
         note: "科创综指整体法接近Choice展示口径，但不是Choice原始数据。"
       },
       pePercentile: {
@@ -167,8 +167,8 @@ const js = `
     };
 
     const methodology = {
-      "pe": "图上按年内7天分组显示代表点，不是周均值。科创综指整体法=月度成分快照（补入已核实的月中变动）的全部总市值/已披露的TTM利润合计，亏损照计。正式利润表发布前采用已公告业绩快报（季度累计值换算为TTM）净利润；无完整利润的成分股市值计入、利润暂按0；停牌股沿用最后可用市值。自2025-01-27起有数据，不是Choice原始值。",
-      "pePercentile": "图上按年内7天分组显示代表点；分位按所选跨度内全部有效交易日PE计算：不高于该点PE的交易日数/有效交易日总数。科创综指随上方口径切换，不同口径的分位不可混用。",
+      "pe": "图上按自然周最后交易日（通常周五）显示代表点，不是周均值。科创综指整体法=月度成分快照（补入已核实的月中变动）的全部总市值/已披露的TTM利润合计，亏损照计。正式利润表发布前采用已公告业绩快报（季度累计值换算为TTM）净利润；无完整利润的成分股市值计入、利润暂按0；停牌股沿用最后可用市值。自2025-01-27起有数据，不是Choice原始值。",
+      "pePercentile": "图上按自然周最后交易日（通常周五）显示代表点；分位按所选跨度内全部有效交易日PE计算：不高于该点PE的交易日数/有效交易日总数。科创综指随上方口径切换，不同口径的分位不可混用。",
       "pbPercentile": "采样：创业板指按自然周取最后有效交易日PB；科创50按年内7天分组取最后有效交易日PB并保留起点，日期可能不同。分位按当前所选跨度内各自有效PB样本计算，不是周均值或仅用当时已知历史。科创综指暂无连续PB，不绘制。",
 };
 
@@ -227,7 +227,7 @@ const js = `
       document.getElementById("valuationPeModes").hidden = activeMetric === "pbPercentile";
       document.getElementById("valuationMethodology").textContent =
         activeMetric === "pe" && peMode === "official"
-          ? "科创综指取中证指数公布的滚动市盈率，自2024-10-23起按7天显示代表点；它与含亏损整体法计算规则不同。创业板指、科创50仍取Tushare指数PE。"
+          ? "科创综指取中证指数公布的滚动市盈率，自2024-10-23起按自然周最后交易日显示代表点；它与含亏损整体法计算规则不同。创业板指、科创50仍取Tushare指数PE。"
           : methodology[activeMetric];
       const shPoints = valuationPoints("sh", activeMetric);
       const szPoints = valuationPoints("sz", activeMetric);

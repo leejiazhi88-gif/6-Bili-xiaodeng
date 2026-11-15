@@ -384,7 +384,7 @@ for (const key of Object.keys(indexData)) {
 }
 etfShares.series = capWeeklyDates(etfShares.series, etfShares.meta.updated);
 for (const row of etfShares.series) {
-  if (row.date === etfShares.meta.updated && new Date(row.date + "T00:00:00Z").getUTCDay() < 6) row.incompleteWeek = true;
+  if (row.date === etfShares.meta.updated && new Date(row.date + "T00:00:00Z").getUTCDay() < 5) row.incompleteWeek = true;
 }
 let html = stripExisting(fs.readFileSync(OUTPUT, "utf8"));
 html = html.replace(
