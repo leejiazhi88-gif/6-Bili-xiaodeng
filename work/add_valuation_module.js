@@ -98,7 +98,7 @@ const moduleHtml = `
         <h2>估值</h2>
         <p>连续数据观察创业板与科创板的估值位置。</p>
       </div>
-      <div class="module-status">默认展示全部可用历史</div>
+      <div class="module-status">默认展示近10年</div>
     </div>
 
     <article class="valuation-panel">
@@ -111,9 +111,9 @@ const moduleHtml = `
             <button class="range-tab" data-years="1">1年</button>
             <button class="range-tab" data-years="3">3年</button>
             <button class="range-tab" data-years="5">5年</button>
-            <button class="range-tab" data-years="10">10年</button>
+            <button class="range-tab active" data-years="10">10年</button>
             <button class="range-tab" data-years="20">20年</button>
-            <button class="range-tab active" data-years="0">全部</button>
+            <button class="range-tab" data-years="0">全部</button>
           </div>
         </div>
         <div class="metric-tabs" id="valuationMetricTabs">
@@ -179,7 +179,7 @@ const js = `
     const chart = echarts.init(document.getElementById("valuationChart"), null, { renderer: "canvas" });
     let activeMetric = "pe";
     let peMode = "aggregate";
-    let activeYears = 0;
+    let activeYears = 10;
 
     function rowsForActiveRange(market, field) {
       const sourceField = field === "pePercentile" ? "pe"

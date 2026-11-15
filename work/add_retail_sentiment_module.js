@@ -56,9 +56,9 @@ const moduleHtml = `
           <button class="range-tab" data-years="1">1年</button>
           <button class="range-tab" data-years="3">3年</button>
           <button class="range-tab" data-years="5">5年</button>
-          <button class="range-tab" data-years="10">10年</button>
+          <button class="range-tab active" data-years="10">10年</button>
           <button class="range-tab" data-years="20">20年</button>
-          <button class="range-tab active" data-years="0">全部</button>
+          <button class="range-tab" data-years="0">全部</button>
         </div>
       </div>
       <div id="retailSeriesControls" role="group" aria-label="选择对照曲线">
@@ -146,7 +146,7 @@ const script = `
     ${movingAverageScript()}
 
     let activeMetric = "amount";
-    let activeYears = 0;
+    let activeYears = 10;
     let activeAverage = 1;
     const averageMetrics = new Set(["amount", "volume", "turnover"]);
     const selectedSeries = new Set(["沪深两市", "创业板指", "科创50", "科创综指"]);

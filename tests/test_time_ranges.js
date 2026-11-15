@@ -11,4 +11,7 @@ test("all five dashboard sections use the same six time ranges", () => {
   for (const group of groups) {
     assert.deepEqual([...group.matchAll(/data-years="(\d+)"/g)].map(match => Number(match[1])), [1, 3, 5, 10, 20, 0]);
   }
+  groups.forEach((group, index) => {
+    assert.equal(group.match(/<button[^>]*class="[^"]*active[^"]*"[^>]*data-years="(\d+)"/)[1], index === 0 ? "0" : "10");
+  });
 });

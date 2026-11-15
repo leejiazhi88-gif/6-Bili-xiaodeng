@@ -61,9 +61,9 @@ const moduleHtml = `
           <button class="range-tab" data-years="1">1年</button>
           <button class="range-tab" data-years="3">3年</button>
           <button class="range-tab" data-years="5">5年</button>
-          <button class="range-tab" data-years="10">10年</button>
+          <button class="range-tab active" data-years="10">10年</button>
           <button class="range-tab" data-years="20">20年</button>
-          <button class="range-tab active" data-years="0">全部</button>
+          <button class="range-tab" data-years="0">全部</button>
         </div>
       </div>
       <div id="largeMoneySeriesControls" role="group" aria-label="选择对照曲线">
@@ -165,7 +165,7 @@ const script = `
     let activeMetric = "blockAmount";
     let averageWindow = 1;
     let holdingMode = "value";
-    let activeYears = 0;
+    let activeYears = 10;
     const selectedSeries = new Set(["全市场资金", "创业板指", "科创50", "科创综指"]);
     const chart = echarts.init(document.getElementById("largeMoneyChart"), null, { renderer: "canvas" });
     document.getElementById("largeMoneyDataStatus").textContent =

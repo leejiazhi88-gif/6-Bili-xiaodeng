@@ -66,9 +66,9 @@ const moduleHtml = `
           <button class="range-tab" data-years="1">1年</button>
           <button class="range-tab" data-years="3">3年</button>
           <button class="range-tab" data-years="5">5年</button>
-          <button class="range-tab" data-years="10">10年</button>
+          <button class="range-tab active" data-years="10">10年</button>
           <button class="range-tab" data-years="20">20年</button>
-          <button class="range-tab active" data-years="0">全部</button>
+          <button class="range-tab" data-years="0">全部</button>
         </div>
       </div>
       <div class="metric-tabs" id="officialMetricTabs">
@@ -122,7 +122,7 @@ const script = `
     // One global board selection applies to every official metric.
     const selected = new Set(scopes.map(scope => scope.key));
     let activeMetric = "ipoFund";
-    let activeYears = 0;
+    let activeYears = 10;
     let averageWindow = 1;
     const chart = echarts.init(document.getElementById("officialSentimentChart"), null, { renderer: "canvas" });
     document.getElementById("officialDataStatus").textContent = "数据核对至 " + officialData.meta.updated;

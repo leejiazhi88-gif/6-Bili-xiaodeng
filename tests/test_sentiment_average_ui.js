@@ -54,7 +54,7 @@ function element(attrs = {}) {
     }
   };
 }
-function mount(def) {
+function mount(def, { fullHistory = true } = {}) {
   const nodes = new Map();
   for (const match of html.matchAll(/<[a-z][\w-]*\b([^>]*\bid="[^"]+"[^>]*)>/g)) {
     const attrs = attributes(match[1]);
@@ -93,6 +93,8 @@ function mount(def) {
   };
   assert.ok(scripts[def.script], "Build the dashboard before running this test");
   vm.runInNewContext(scripts[def.script], sandbox, { filename: def.script, timeout: 10000 });
+  // Historical arithmetic tests explicitly select all; production starts at ten years.
+  if (fullHistory) nodes.get(def.prefix + "RangeTabs").children.find(button => button.dataset.years === "0").click();
   return {
     chart, nodes,
     controls: nodes.get(def.prefix + "AverageModes"),
@@ -147,6 +149,11 @@ function checkSample(raw, rendered, windowSize, position) {
 }
 
 for (const def of definitions) {
+  test(def.prefix + ": initial chart uses ten years before any range selection", () => {
+    const ui = mount(def, { fullHistory: false });
+    assert.equal(ui.buttons("RangeTabs").find(button => button.classList.contains("active")).dataset.years, "10");
+    assert.ok(ui.series().every(series => series.data.every(point => point[0] >= "2016-01-01")));
+  });
   test(def.prefix + ": defaults, 3 metrics × 3 modes, raw values and disclosed moving-average windows", () => {
     const ui = mount(def);
     selectedMode(ui, 1);
