@@ -6,5 +6,6 @@ __pycache__/
 Thumbs.db
 *.log
 .tools/
+.venv/
 
 work/.refresh-cache/
