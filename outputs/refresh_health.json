@@ -56,7 +56,7 @@
     },
     {
       "id": "etf",
-      "checkedAt": "2026-11-17T08:39:56.809Z",
+      "checkedAt": "2026-11-17T11:12:15.468Z",
       "execution": "executed",
       "contentChanged": true
     },
@@ -699,46 +699,6 @@
       "missingAtLatestRow": false
     },
     {
-      "source": "large_money_etf_shares",
-      "series": "series",
-      "field": "sh",
-      "frequency": "laggedSession",
-      "expectedDate": "2026-11-16",
-      "latestValidDate": "2026-11-17",
-      "status": "current",
-      "missingAtLatestRow": false
-    },
-    {
-      "source": "large_money_etf_shares",
-      "series": "series",
-      "field": "k50",
-      "frequency": "laggedSession",
-      "expectedDate": "2026-11-16",
-      "latestValidDate": "2026-11-17",
-      "status": "current",
-      "missingAtLatestRow": false
-    },
-    {
-      "source": "large_money_etf_shares",
-      "series": "series",
-      "field": "sz",
-      "frequency": "laggedSession",
-      "expectedDate": "2026-11-16",
-      "latestValidDate": "2026-11-17",
-      "status": "current",
-      "missingAtLatestRow": false
-    },
-    {
-      "source": "large_money_etf_shares",
-      "series": "series",
-      "field": "total",
-      "frequency": "laggedSession",
-      "expectedDate": "2026-11-16",
-      "latestValidDate": "2026-11-17",
-      "status": "current",
-      "missingAtLatestRow": false
-    },
-    {
       "source": "valuation_data",
       "series": "sh",
       "field": "pb",
@@ -937,7 +897,52 @@
       "latestValidDate": "2026-11-17",
       "status": "current",
       "missingAtLatestRow": false
+    },
+    {
+      "source": "large_money_etf_assets",
+      "series": "series",
+      "field": "sh",
+      "frequency": "laggedSession",
+      "expectedDate": "2026-11-16",
+      "latestValidDate": "2026-11-17",
+      "status": "current",
+      "missingAtLatestRow": false
+    },
+    {
+      "source": "large_money_etf_assets",
+      "series": "series",
+      "field": "k50",
+      "frequency": "laggedSession",
+      "expectedDate": "2026-11-16",
+      "latestValidDate": "2026-11-17",
+      "status": "current",
+      "missingAtLatestRow": false
+    },
+    {
+      "source": "large_money_etf_assets",
+      "series": "series",
+      "field": "sz",
+      "frequency": "laggedSession",
+      "expectedDate": "2026-11-16",
+      "latestValidDate": "2026-11-17",
+      "status": "current",
+      "missingAtLatestRow": false
+    },
+    {
+      "source": "large_money_etf_assets",
+      "series": "series",
+      "field": "total",
+      "frequency": "laggedSession",
+      "expectedDate": "2026-11-16",
+      "latestValidDate": "2026-11-17",
+      "status": "current",
+      "missingAtLatestRow": false
     }
   ],
-  "warnings": []
+  "warnings": [],
+  "partialUpdate": {
+    "task": "etf",
+    "checkedAt": "2026-11-17T11:12:15.468Z",
+    "note": "ETF asset calculation checked separately. Other task checks retain their existing timestamps; unrelated CSI preflight timed out, no new full refresh is claimed."
+  }
 }

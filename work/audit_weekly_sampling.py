@@ -21,7 +21,7 @@ def main():
                 if key != "meta":
                     walk(item, prefix + "." + key)
     for name in ("retail_sentiment_data", "retail_weekly_averages", "retail_index_metrics",
-                 "large_money_sentiment_data", "large_money_index_data", "large_money_etf_shares", "valuation_data"):
+                 "large_money_sentiment_data", "large_money_index_data", "large_money_etf_assets", "valuation_data"):
         file = ROOT / "work" / (name + ".json")
         if file.exists():
             walk(json.loads(file.read_text(encoding="utf-8")), name)

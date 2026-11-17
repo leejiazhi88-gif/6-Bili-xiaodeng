@@ -201,11 +201,11 @@
       "nonWeekEndExamples": [],
       "noSessionWeekLabels": []
     },
-    "large_money_etf_shares.series": {
-      "points": 766,
+    "large_money_etf_assets.series": {
+      "points": 765,
       "lastDate": "2026-11-17",
       "weekdayCounts": {
-        "Fri": 719,
+        "Fri": 718,
         "Thu": 19,
         "Wed": 18,
         "Mon": 4,

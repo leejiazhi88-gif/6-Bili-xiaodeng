@@ -10,7 +10,7 @@ const OUTPUT = path.join(ROOT, "outputs", "growth_indices_dashboard.html");
 const DATA_FILE = path.join(ROOT, "work", "large_money_sentiment_data.json");
 const INDEX_DATA_FILE = path.join(ROOT, "work", "large_money_index_data.json");
 const FUND_REPORTS_FILE = path.join(ROOT, "work", "large_money_fund_reports.json");
-const ETF_SHARES_FILE = path.join(ROOT, "work", "large_money_etf_shares.json");
+const ETF_SHARES_FILE = path.join(ROOT, "work", "large_money_etf_assets.json");
 const NORTH_HOLDINGS_FILE = path.join(ROOT, "work", "northbound_index_holdings.json");
 
 function stripExisting(html) {
@@ -79,7 +79,7 @@ const moduleHtml = `
         <button class="metric-tab" data-metric="northHoldings">北向持仓分布</button>
         <button class="metric-tab" data-metric="fundPosition">主动权益基金仓位</button>
         <button class="metric-tab" data-metric="institutionConcentration">机构持仓集中度</button>
-        <button class="metric-tab" data-metric="etfShares">ETF份额</button>
+        <button class="metric-tab" data-metric="etfShares">ETF资产规模</button>
       </div>
       ${movingAverageControls("largeMoney")}
       <div class="metric-tabs" id="largeMoneyHoldingModes" role="group" aria-label="北向持仓统计口径">
@@ -146,9 +146,9 @@ const script = `
         totalLabel: "主动基金样本"
       },
       etfShares: {
-        title: "ETF份额", field: "total", unit: "亿份", digits: 2,
-        subtitle: "跟踪三个指数的ETF期末存量份额",
-        totalLabel: "三指数ETF合计"
+        title: "ETF资产规模", field: "total", unit: "亿元", digits: 2,
+        subtitle: "跟踪三个指数的ETF净资产估算：同日份额×单位净值",
+        totalLabel: "三类ETF资产合计"
       }
     };
     ${explanationScript(["blockAmount", "institutionBlockNet", "holderNetShares", "northHoldings_value", "northHoldings_ratio", "fundPosition", "institutionConcentration", "etfShares"], "largeMoney", explanationMethods)}
@@ -254,10 +254,15 @@ const script = `
         ? (fundMode ? "报告期 " : "周标签 ") + moneyPoints[0][0] + " 至 " + moneyPoints[moneyPoints.length - 1][0] +
           (supportsAverage && moneyPoints[moneyPoints.length - 1][1] == null
             ? "（" + (effectiveAverageWindow > 1 ? "窗口点数不足或含缺失值" : "暂无数据") + "）" : "") +
-          (latestIncomplete ? " · 本周未结束" + (etfMode ? "，份额取最近披露值" : "，仅含截至刷新日记录") : "") +
+          (latestIncomplete ? " · 本周未结束" + (etfMode ? "，规模取最近可核实值" : "，仅含截至刷新日记录") : "") +
           (latestReport ? " · 样本 " + latestReport.funds + " 只 / 覆盖 " + latestReport.coverage + "%" +
             " · 核验 " + (fundReports.meta.checkedAt?.[latestReport.date.replace(/-/g, "")]?.slice(0, 10) || "未记录") : "")
         : "当前范围暂无资金数据";
+      chart.etfObservationDates = etfMode ? Object.fromEntries(sourceRows.map(row => {
+        const dates = Object.values(row.observationDates || {}).sort();
+        const format = date => date ? date.slice(0,4) + "-" + date.slice(4,6) + "-" + date.slice(6) : "";
+        return [row.date, dates.length ? (dates[0] === dates[dates.length - 1] ? format(dates[0]) : format(dates[0]) + " 至 " + format(dates[dates.length - 1])) : ""];
+      })) : null;
       chart.setOption({
         animation: false, backgroundColor: "transparent",
         grid: { left: 80, right: 28, top: 26, bottom: 66 },
@@ -273,7 +278,11 @@ const script = `
             if (!lines.length) lines.push(effectiveAverageWindow > 1 ? "窗口点数不足或含缺失值" : "暂无数据");
             const pointDate = params.find(item => item.value?.[0])?.value[0];
             if (sourceRows.find(row => row.date === pointDate)?.incompleteWeek) {
-              lines.push("本周未结束" + (etfMode ? "，份额取最近披露值" : "，仅含截至刷新日记录"));
+              lines.push("本周未结束" + (etfMode ? "，规模取最近可核实值" : "，仅含截至刷新日记录"));
+            }
+            if (etfMode) {
+              const row = sourceRows.find(item => item.date === pointDate);
+              if (row) lines.push("实际观察日：" + (chart.etfObservationDates?.[pointDate] || "暂无") + "；基金覆盖 " + row.funds + "/" + row.eligibleFunds + "（" + row.coverage + "%）");
             }
             if (fundMode) {
               const reportDate = params.find(item => item.value?.[0])?.value[0];
@@ -365,7 +374,7 @@ const script = `
 if (!fs.existsSync(DATA_FILE)) throw new Error("Missing large_money_sentiment_data.json.");
 if (!fs.existsSync(INDEX_DATA_FILE)) throw new Error("Missing large_money_index_data.json.");
 if (!fs.existsSync(FUND_REPORTS_FILE)) throw new Error("Missing large_money_fund_reports.json.");
-if (!fs.existsSync(ETF_SHARES_FILE)) throw new Error("Missing large_money_etf_shares.json.");
+if (!fs.existsSync(ETF_SHARES_FILE)) throw new Error("Missing large_money_etf_assets.json.");
 if (!fs.existsSync(NORTH_HOLDINGS_FILE)) throw new Error("Missing northbound_index_holdings.json.");
 const data = JSON.parse(fs.readFileSync(DATA_FILE, "utf8"));
 const indexData = JSON.parse(fs.readFileSync(INDEX_DATA_FILE, "utf8"));

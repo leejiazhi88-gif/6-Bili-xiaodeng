@@ -18,7 +18,7 @@ const CONTRACTS = {
   retailWeeklyMeans: { files: ['retail_weekly_averages'], series: ['market','sh','k50','sz'].map(key => [key,['amount','volume','turnover'], 'session']) },
   starSnapshot: { files: ['star_official_valuation'], series: [['snapshots',['pe','pb'], 'monthSession']] },
   starHistory: { files: ['star_official_history'], series: [['rows',['pe'], 'officialSession']] },
-  etf: { files: ['large_money_etf_shares'], series: [['series',['sh','k50','sz','total'], 'laggedSession']] },
+  etf: { files: ['large_money_etf_assets'], series: [['series',['sh','k50','sz','total'], 'laggedSession']] },
   valuation: { files: ['valuation_data'], series: [['sh',['pb','pbPercentile'], 'session']] },
   refinancing: { files: ['refinancing_data','refinancing_issuance_records'], series: [['series',
     ['refinanceFund','refinanceBoards.chinext.refinanceFund','refinanceBoards.star.refinanceFund'], 'month']] },

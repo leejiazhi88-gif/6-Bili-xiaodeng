@@ -4,7 +4,7 @@ const path = require("node:path");
 const SOURCES = [
   "market_overview_data", "index_profit_data", "valuation_data", "star_aggregate_pe", "star_official_history", "star_official_valuation",
   "retail_sentiment_data", "retail_index_metrics", "retail_weekly_averages", "large_money_sentiment_data",
-  "large_money_index_data", "large_money_fund_reports", "large_money_etf_shares",
+  "large_money_index_data", "large_money_fund_reports", "large_money_etf_assets",
   "northbound_index_holdings", "official_sentiment_data", "refinancing_data",
 ];
 

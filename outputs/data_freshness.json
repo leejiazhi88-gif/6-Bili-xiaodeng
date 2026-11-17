@@ -1,5 +1,5 @@
 {
-  "inspectedAt": "2026-11-17T08:43:04.120Z",
+  "inspectedAt": "2026-11-17T11:12:16.080Z",
   "note": "Dates are valid row/period labels and may be weekly or monthly labels, not actual observation dates. Read source meta for as-of/check dates. Compare daily, monthly, quarterly and semiannual disclosure schedules separately; this report alone does not prove source freshness.",
   "sources": {
     "market_overview_data": {
@@ -411,26 +411,32 @@
         }
       }
     },
-    "large_money_etf_shares": {
+    "large_money_etf_assets": {
       "meta": {
-        "source": "Tushare etf_basic + fund_share",
-        "scope": "ETF funds tracking 399006.SZ, 000688.SH or 000680.SH; includes delisted funds",
-        "unit": "100 million shares",
+        "source": "Tushare etf_basic + fund_share + fund_nav unit_nav",
+        "unit": "100 million CNY",
+        "definition": "same-date outstanding shares times unadjusted unit NAV; no market-price proxy",
         "coverageThreshold": 90,
+        "maxObservationAgeDays": 15,
         "updated": "2026-11-17",
-        "dateSemantics": "last exchange trading day per ISO week; share disclosures available by that date"
+        "scope": "unique ETFs tracking 399006.SZ, 000688.SH or 000680.SH, including delisted funds",
+        "dateSemantics": "weekly exchange-session label; same-date shares and NAV, announced no later than label; see observationDates"
       },
       "series": {
         "series": {
-          "rows": 766,
-          "firstDate": "2011-12-09",
+          "rows": 765,
+          "firstDate": "2011-12-16",
           "lastDate": "2026-11-17",
           "latestValidDate": {
             "funds": "2026-11-17",
+            "eligibleFunds": "2026-11-17",
             "coverage": "2026-11-17",
+            "groupCoverage.sh": "2026-11-17",
             "sh": "2026-11-17",
             "total": "2026-11-17",
+            "groupCoverage.k50": "2026-11-17",
             "k50": "2026-11-17",
+            "groupCoverage.sz": "2026-11-17",
             "sz": "2026-11-17"
           }
         }

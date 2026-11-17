@@ -33,7 +33,7 @@ function runtime() {
     if (id === 'retailSentimentChart') return [document.querySelector('#retailMetricTabs .active')?.textContent,
       ({volume:'亿手',turnover:'%',marginFloatRatio:'%'})[active('retail')] || '亿元'];
     if (id === 'largeMoneyChart') return [document.querySelector('#largeMoneyMetricTabs .active')?.textContent,
-      ({fundPosition:'%',institutionConcentration:'%',etfShares:'亿份'})[active('largeMoney')] ||
+      ({fundPosition:'%',institutionConcentration:'%',etfShares:'亿元'})[active('largeMoney')] ||
       (active('largeMoney') === 'northHoldings' && document.querySelector('#largeMoneyHoldingModes [data-holding-mode="ratio"]')?.classList.contains('active') ? '%' : '亿元')];
     return [document.querySelector('#officialMetricTabs .active')?.textContent,'亿元'];
   };
@@ -67,7 +67,7 @@ function runtime() {
         const reportDate = id === 'chart-profit' && point
           ? (s.name.includes('创业板') ? DATA.sh : DATA.sz).findLast(row => row.date <= point[0] && Number.isFinite(row.profitYi))?.profitPeriod : null;
         return {name:s.name,color:s.itemStyle?.color || s.lineStyle?.color || '#91aaa8',
-          value:point?.[1],date:reportDate || point?.[0],title,unit,status:trailingMissing?'最近一期缺失，显示此前有效值':!point?'暂无数据':''};
+          value:point?.[1],date:reportDate || (id === 'largeMoneyChart' && chart.etfObservationDates?.[point?.[0]]) || point?.[0],title,unit,status:trailingMissing?'最近一期缺失，显示此前有效值':!point?'暂无数据':''};
       });
       const dates = [...new Set(items.map(i=>i.date).filter(Boolean))];
       const sameDate = dates.length === 1;

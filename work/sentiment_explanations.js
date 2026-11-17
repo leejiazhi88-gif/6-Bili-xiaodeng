@@ -61,9 +61,9 @@ const guides = {
     "不是全部机构的集中度，也不是每只基金前十大持仓占比的平均值。不同范围各自排名，比例不能相加。"
   ],
   "etfShares": [
-    "ETF是可以在交易所买卖的基金。份额是基金发行在外的单位数量，本图统计跟踪这三个指数的ETF，单位亿份。",
-    "基金名单和份额折算不变时，份额增加通常表示申购多于赎回，减少通常表示相反。投资者在交易所买卖已有份额，不会直接改变总份额。",
-    "合计线仅包括这三组ETF，不是全市场ETF。份额不是资金金额；不同ETF每份价值不同，新基金上市和份额拆分也会改变总量。"
+    "ETF资产规模表示这些基金持有的净资产金额，单位亿元。逐只用同一天的流通在外份额乘单位净值估算，再按跟踪指数汇总。",
+    "黄色线是跟踪创业板指、科创50、科创综指的三类ETF资产合计；同一基金只计一次。成分股重叠不影响不同基金资产相加，但这不是全市场ETF规模。",
+    "资产规模上涨可能来自净申购，也可能来自持仓价格上涨或新基金上市，不能当作资金净流入。使用单位净值，不使用交易价格或累计净值。"
   ],
   "ipoFund": [
     "IPO是公司首次公开发行股票。本图以发行总股数乘发行价计算IPO发行总额，单位亿元，未扣发行费用；不是股票上市后的成交额。",
@@ -146,7 +146,7 @@ function explanationScript(keys, scope, methods) {
     function renderExplanation(prefix, metric) {
       const content = metricExplanations[metric];
       const scope = metric === "etfShares"
-        ? "三条指数线分别统计跟踪相应指数的ETF份额；黄色线是这三组ETF的份额合计，不是全市场ETF。"
+        ? "三条线分别统计跟踪相应指数的ETF资产规模；黄色线是这三组不同ETF的资产合计，不是全市场ETF。"
         : (typeof curveScope === "string" ? curveScope : curveScope[metric]);
       const lines = [["是什么", content.guide[0]], ["怎么看", content.guide[1]],
         ["图中曲线", (prefix === "official" ? "" : indexDefinitions + " ") + scope], ["注意什么", content.guide[2]]];
