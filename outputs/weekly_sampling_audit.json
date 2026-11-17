@@ -1,5 +1,5 @@
 {
-  "cutoff": "20261116",
+  "cutoff": "20261117",
   "rule": "Natural ISO week, last actual exchange trading day. Weekly means/sums keep their numerical definition. Earlier source observations and weeks without trading sessions remain explicit exceptions; no artificial Friday observations.",
   "series": {
     "retail_sentiment_data.series": {
@@ -12,8 +12,13 @@
         "Tue": 8,
         "Thu": 23
       },
-      "nonWeekEndObservationCount": 0,
-      "nonWeekEndExamples": [],
+      "nonWeekEndObservationCount": 1,
+      "nonWeekEndExamples": [
+        {
+          "observedDate": "2026-11-16",
+          "calendarWeekEnd": "20261117"
+        }
+      ],
       "noSessionWeekLabels": []
     },
     "retail_weekly_averages.market": {
@@ -26,19 +31,24 @@
         "Tue": 8,
         "Thu": 23
       },
-      "nonWeekEndObservationCount": 0,
-      "nonWeekEndExamples": [],
+      "nonWeekEndObservationCount": 1,
+      "nonWeekEndExamples": [
+        {
+          "observedDate": "2026-11-16",
+          "calendarWeekEnd": "20261117"
+        }
+      ],
       "noSessionWeekLabels": []
     },
     "retail_weekly_averages.sh": {
       "points": 844,
-      "lastDate": "2026-11-16",
+      "lastDate": "2026-11-17",
       "weekdayCounts": {
         "Fri": 794,
-        "Tue": 7,
+        "Tue": 8,
         "Thu": 20,
         "Wed": 18,
-        "Mon": 5
+        "Mon": 4
       },
       "nonWeekEndObservationCount": 0,
       "nonWeekEndExamples": [],
@@ -46,13 +56,13 @@
     },
     "retail_weekly_averages.k50": {
       "points": 353,
-      "lastDate": "2026-11-16",
+      "lastDate": "2026-11-17",
       "weekdayCounts": {
         "Fri": 329,
         "Thu": 11,
         "Wed": 8,
-        "Tue": 2,
-        "Mon": 3
+        "Tue": 3,
+        "Mon": 2
       },
       "nonWeekEndObservationCount": 0,
       "nonWeekEndExamples": [],
@@ -60,13 +70,13 @@
     },
     "retail_weekly_averages.sz": {
       "points": 353,
-      "lastDate": "2026-11-16",
+      "lastDate": "2026-11-17",
       "weekdayCounts": {
         "Fri": 329,
         "Thu": 11,
         "Wed": 8,
-        "Tue": 2,
-        "Mon": 3
+        "Tue": 3,
+        "Mon": 2
       },
       "nonWeekEndObservationCount": 0,
       "nonWeekEndExamples": [],
@@ -82,8 +92,13 @@
         "Wed": 18,
         "Mon": 5
       },
-      "nonWeekEndObservationCount": 0,
-      "nonWeekEndExamples": [],
+      "nonWeekEndObservationCount": 1,
+      "nonWeekEndExamples": [
+        {
+          "observedDate": "2026-11-16",
+          "calendarWeekEnd": "20261117"
+        }
+      ],
       "noSessionWeekLabels": []
     },
     "retail_index_metrics.k50": {
@@ -96,8 +111,13 @@
         "Tue": 2,
         "Mon": 3
       },
-      "nonWeekEndObservationCount": 0,
-      "nonWeekEndExamples": [],
+      "nonWeekEndObservationCount": 1,
+      "nonWeekEndExamples": [
+        {
+          "observedDate": "2026-11-16",
+          "calendarWeekEnd": "20261117"
+        }
+      ],
       "noSessionWeekLabels": []
     },
     "retail_index_metrics.sz": {
@@ -110,19 +130,24 @@
         "Wed": 3,
         "Tue": 1
       },
-      "nonWeekEndObservationCount": 0,
-      "nonWeekEndExamples": [],
+      "nonWeekEndObservationCount": 1,
+      "nonWeekEndExamples": [
+        {
+          "observedDate": "2026-11-16",
+          "calendarWeekEnd": "20261117"
+        }
+      ],
       "noSessionWeekLabels": []
     },
     "large_money_sentiment_data.series": {
       "points": 1252,
-      "lastDate": "2026-11-16",
+      "lastDate": "2026-11-17",
       "weekdayCounts": {
         "Fri": 1189,
         "Wed": 24,
-        "Tue": 9,
+        "Tue": 10,
         "Thu": 24,
-        "Mon": 5,
+        "Mon": 4,
         "Sat": 1
       },
       "nonWeekEndObservationCount": 0,
@@ -133,13 +158,13 @@
     },
     "large_money_index_data.sh": {
       "points": 841,
-      "lastDate": "2026-11-16",
+      "lastDate": "2026-11-17",
       "weekdayCounts": {
         "Fri": 790,
-        "Tue": 7,
+        "Tue": 8,
         "Thu": 20,
         "Wed": 18,
-        "Mon": 5,
+        "Mon": 4,
         "Sat": 1
       },
       "nonWeekEndObservationCount": 0,
@@ -150,13 +175,13 @@
     },
     "large_money_index_data.k50": {
       "points": 324,
-      "lastDate": "2026-11-16",
+      "lastDate": "2026-11-17",
       "weekdayCounts": {
         "Fri": 303,
         "Wed": 7,
         "Thu": 9,
-        "Tue": 2,
-        "Mon": 3
+        "Tue": 3,
+        "Mon": 2
       },
       "nonWeekEndObservationCount": 0,
       "nonWeekEndExamples": [],
@@ -164,13 +189,13 @@
     },
     "large_money_index_data.sz": {
       "points": 94,
-      "lastDate": "2026-11-16",
+      "lastDate": "2026-11-17",
       "weekdayCounts": {
-        "Mon": 2,
+        "Mon": 1,
         "Fri": 84,
         "Thu": 4,
         "Wed": 3,
-        "Tue": 1
+        "Tue": 2
       },
       "nonWeekEndObservationCount": 0,
       "nonWeekEndExamples": [],
@@ -178,13 +203,13 @@
     },
     "large_money_etf_shares.series": {
       "points": 766,
-      "lastDate": "2026-11-16",
+      "lastDate": "2026-11-17",
       "weekdayCounts": {
         "Fri": 719,
         "Thu": 19,
         "Wed": 18,
-        "Mon": 5,
-        "Tue": 5
+        "Mon": 4,
+        "Tue": 6
       },
       "nonWeekEndObservationCount": 0,
       "nonWeekEndExamples": [],
@@ -192,13 +217,13 @@
     },
     "valuation_data.sh": {
       "points": 844,
-      "lastDate": "2026-11-16",
+      "lastDate": "2026-11-17",
       "weekdayCounts": {
         "Fri": 794,
-        "Tue": 7,
+        "Tue": 8,
         "Thu": 20,
         "Wed": 18,
-        "Mon": 5
+        "Mon": 4
       },
       "nonWeekEndObservationCount": 0,
       "nonWeekEndExamples": [],
@@ -206,13 +231,13 @@
     },
     "overview.sh": {
       "points": 844,
-      "lastDate": "2026-11-16",
+      "lastDate": "2026-11-17",
       "weekdayCounts": {
         "Fri": 794,
-        "Tue": 7,
+        "Tue": 8,
         "Thu": 20,
         "Wed": 18,
-        "Mon": 5
+        "Mon": 4
       },
       "nonWeekEndObservationCount": 0,
       "nonWeekEndExamples": [],
@@ -220,13 +245,13 @@
     },
     "overview.sz": {
       "points": 353,
-      "lastDate": "2026-11-16",
+      "lastDate": "2026-11-17",
       "weekdayCounts": {
         "Fri": 329,
         "Thu": 11,
         "Wed": 8,
-        "Tue": 2,
-        "Mon": 3
+        "Tue": 3,
+        "Mon": 2
       },
       "nonWeekEndObservationCount": 0,
       "nonWeekEndExamples": [],
@@ -234,13 +259,13 @@
     },
     "overview.k50": {
       "points": 353,
-      "lastDate": "2026-11-16",
+      "lastDate": "2026-11-17",
       "weekdayCounts": {
         "Fri": 329,
         "Thu": 11,
         "Wed": 8,
-        "Tue": 2,
-        "Mon": 3
+        "Tue": 3,
+        "Mon": 2
       },
       "nonWeekEndObservationCount": 0,
       "nonWeekEndExamples": [],
@@ -248,13 +273,13 @@
     },
     "overview.overviewPe.sz": {
       "points": 94,
-      "lastDate": "2026-11-16",
+      "lastDate": "2026-11-17",
       "weekdayCounts": {
-        "Mon": 2,
+        "Mon": 1,
         "Fri": 84,
         "Thu": 4,
         "Wed": 3,
-        "Tue": 1
+        "Tue": 2
       },
       "nonWeekEndObservationCount": 0,
       "nonWeekEndExamples": [],
@@ -270,8 +295,13 @@
         "Wed": 3,
         "Tue": 1
       },
-      "nonWeekEndObservationCount": 0,
-      "nonWeekEndExamples": [],
+      "nonWeekEndObservationCount": 1,
+      "nonWeekEndExamples": [
+        {
+          "observedDate": "2026-11-16",
+          "calendarWeekEnd": "20261117"
+        }
+      ],
       "noSessionWeekLabels": []
     }
   }
