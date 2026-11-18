@@ -129,6 +129,13 @@ function htmlTemplate(data, echartsSource) {
       .notes { grid-template-columns: 1fr; }
       h1 { font-size: 25px; }
     }
+    .overview-series-controls{display:flex;flex-wrap:wrap;gap:8px}
+    .overview-series-controls label{display:flex;align-items:center;gap:8px;padding:8px 10px;border:1px solid #35545a;border-radius:8px;background:#11292b;color:var(--text);font-size:12px;cursor:pointer}
+    .overview-series-controls input{accent-color:#f5c96a;cursor:pointer;margin:0;width:14px;height:14px}
+    .overview-series-controls label:has(input:not(:checked)){opacity:.45}
+    .overview-series-controls label:focus-within{outline:2px solid #f5c96a;outline-offset:2px}
+    .volume-charts{grid-template-columns:repeat(auto-fit,minmax(min(100%,320px),1fr))}
+    .chart-reading-shell[hidden]{display:none}
   </style>
 </head>
 <body>
@@ -151,10 +158,10 @@ function htmlTemplate(data, echartsSource) {
         <button data-years="20">20年</button>
         <button class="active" data-years="0">全部</button>
       </div>
-      <div class="legend">
-        <span><i class="dot" style="background:var(--sh)"></i>创业板指</span>
-        <span><i class="dot" style="background:var(--k50)"></i>科创50</span>
-        <span><i class="dot" style="background:var(--sz)"></i>科创综指</span>
+      <div class="overview-series-controls" id="overviewSeriesControls" role="group" aria-label="总览指数选择">
+        <label style="--series-color:var(--sh)"><input type="checkbox" data-index="sh" checked><i class="dot" style="background:var(--sh)"></i>创业板指</label>
+        <label style="--series-color:var(--k50)"><input type="checkbox" data-index="k50" checked><i class="dot" style="background:var(--k50)"></i>科创50</label>
+        <label style="--series-color:var(--sz)"><input type="checkbox" data-index="sz" checked><i class="dot" style="background:var(--sz)"></i>科创综指</label>
       </div>
     </div>
     <div class="index-charts">
@@ -172,7 +179,7 @@ function htmlTemplate(data, echartsSource) {
   </section>
   <section class="notes">
     <div class="note"><strong>采样口径：</strong>价格、交易规模和总览PE按自然周取最后一个有效交易日，通常为周五；周五休市取当周此前最后交易日，未结束周取最新已披露交易日，不改写原始日期。价格是当天收盘价，成交额/成交量是当天单日量，均不是周合计或周平均。科创综指PE按月度成分快照（补入已核实的月中变动）的全部总市值/已披露TTM利润（含亏损）逐日复算；正式利润表发布前采用已公告业绩快报（季度累计值换算为TTM），无完整利润的成分股暂按0利润计入。该PE自2025-01-27起有数据，不是Choice原始值。利润底层为季度报告期TTM，按报告期末映射到价格采样点并沿用至下一期；重复展示不代表每周重新披露。报告期末不等于公告日，该历史汇总不是严格按当时已知信息构建的回测序列。</div>
-    <div class="note"><strong>利润口径：</strong>真实利润为指数成分股归母净利润 TTM 汇总，单位为亿元；按 Tushare 指数权重表识别当期成分，再汇总这些成分股最近四个季度的归母净利润。最新报告期可能尚未披露完整：创业板覆盖率 ${data.stats.sh.profitCoverage ?? "—"}%，科创综指覆盖率 ${data.stats.sz.profitCoverage ?? "—"}%；未完整披露的汇总不可直接与完整报告期比较。</div>
+    <div class="note"><strong>利润口径：</strong>真实利润为指数成分股归母净利润 TTM 汇总，单位为亿元；按 Tushare 指数权重表识别当期成分，再汇总这些成分股最近四个季度的归母净利润。最新报告期可能尚未披露完整：创业板覆盖率 ${data.stats.sh.profitCoverage ?? "—"}%，科创50覆盖率 ${data.stats.k50.profitCoverage ?? "—"}%，科创综指覆盖率 ${data.stats.sz.profitCoverage ?? "—"}%；未完整披露的汇总不可直接与完整报告期比较。</div>
     <div class="note"><strong>阅读方法：</strong>价格上涨若主要由真实利润上升推动，质量更扎实；若价格快速上涨、利润横盘而PE显著抬升，则主要是估值扩张。虚线标记历史典型顶部窗口，仅用于辅助复盘。</div>
   </section>
 </main>
@@ -220,7 +227,7 @@ function chartOption(lines, { volume = false, title = "", unit = "", disableInsi
     animation: false,
     backgroundColor: "transparent",
     grid: { left: volume ? 54 : 72, right: volume ? 58 : 32, top: volume ? 50 : 55, bottom: 58 },
-    title: title ? { text: title, left: 20, top: 12, textStyle: { color: "#eaf4f2", fontSize: 13 } } : undefined,
+    title: { show: false },
     tooltip: {
       trigger: "axis", axisPointer: { type: "cross" },
       backgroundColor: "rgba(8,20,22,.96)", borderColor: "#3c625f", textStyle: { color: "#eaf4f2" },
@@ -230,8 +237,7 @@ function chartOption(lines, { volume = false, title = "", unit = "", disableInsi
           .map(p => p.marker + p.seriesName + "：<b>" + fmt(p.value[1]) + "</b>").join("<br>");
       }
     },
-    legend: volume ? { top: 13, right: 12, textStyle: { color: "#91aaa8" }, data: lines.map(line => line.name) }
-      : { top: 12, left: 20, type: "scroll", textStyle: { color: "#91aaa8" }, data: lines.map(line => line.name) },
+    legend: { show: false, selected: Object.fromEntries(lines.map(line => [line.name,true])) },
     xAxis: { ...commonAxis, min: "${BOARD_START.sh}" },
     yAxis: volume ? [
       { type: "value", scale: true, name: "亿手", axisLabel: { color: "#789b98" }, splitLine: { lineStyle: { color: "#1b3737" } } },
@@ -260,6 +266,7 @@ const chartConfigs = [
   ], { unit: "倍" }],
   ["chart-profit", [
     { name: "创业板指利润", rows: DATA.sh, field: "profitYi", color: COLORS.sh },
+    { name: "科创50利润", rows: DATA.k50, field: "profitYi", color: COLORS.k50 },
     { name: "科创综指利润", rows: DATA.sz, field: "profitYi", color: COLORS.sz }
   ], { unit: "亿元" }]
 ];
@@ -276,6 +283,35 @@ const charts = chartConfigs.map(([id, lines, options]) => {
   chart.setOption(chartOption(lines, options));
   return chart;
 });
+
+const overviewEnabled = { sh: true, k50: true, sz: true };
+function applyOverviewSelection() {
+  chartConfigs.forEach(([id, lines], position) => {
+    const chart = charts[position];
+    if (id.startsWith("chart-volume-")) {
+      const key = id.slice("chart-volume-".length);
+      const node = document.getElementById(id);
+      const container = node.closest(".chart-reading-shell") || node;
+      container.hidden = !overviewEnabled[key];
+
+    } else {
+      const selected = Object.fromEntries(lines.map(line => {
+        const key = line.name.includes("创业板") ? "sh" : line.name.includes("科创50") ? "k50" : "sz";
+        return [line.name, overviewEnabled[key]];
+      }));
+      chart.setOption({ legend: { show: false, selected } });
+      // dispatch keeps ECharts' hidden legend model and latest-readings row
+      // synchronized, without resetting the independently adjusted slider.
+      for (const [name, visible] of Object.entries(selected))
+        chart.dispatchAction({ type: visible ? "legendSelect" : "legendUnSelect", name });
+    }
+  });
+  charts.forEach(chart => { if (chart.getDom().getBoundingClientRect().width) chart.resize(); });
+}
+document.querySelectorAll("#overviewSeriesControls input").forEach(input => input.addEventListener("change", () => {
+  overviewEnabled[input.dataset.index] = input.checked;
+  applyOverviewSelection();
+}));
 
 function applySharedRange(years) {
   const end = new Date("${END}T00:00:00Z");
@@ -318,7 +354,7 @@ async function main() {
   const profit = readIndexProfit();
   const sh = lastByWeek(attachProfit(overview.sh, profit.sh));
   const sz = lastByWeek(attachProfit(overview.sz, profit.sz));
-  const k50 = lastByWeek(overview.k50);
+  const k50 = lastByWeek(attachProfit(overview.k50, profit.k50));
   const official = JSON.parse(fs.readFileSync(path.join(ROOT, "work", "star_official_valuation.json"), "utf8"));
   const officialHistory = JSON.parse(fs.readFileSync(path.join(ROOT, "work", "star_official_history.json"), "utf8"));
   const starAggregate = JSON.parse(fs.readFileSync(path.join(ROOT, "work", "star_aggregate_pe.json"), "utf8"));

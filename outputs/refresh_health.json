@@ -86,9 +86,9 @@
     },
     {
       "id": "profit",
-      "checkedAt": "2026-11-17T08:42:50.150Z",
+      "checkedAt": "2026-11-18T03:08:03.802Z",
       "execution": "executed",
-      "contentChanged": false
+      "contentChanged": true
     },
     {
       "id": "starAggregatePe",
@@ -869,26 +869,6 @@
       "missingAtLatestRow": false
     },
     {
-      "source": "index_profit_data",
-      "series": "sh",
-      "field": "profitYi",
-      "frequency": "quarter",
-      "expectedDate": "2026-09-30",
-      "latestValidDate": "2026-09-30",
-      "status": "current",
-      "missingAtLatestRow": false
-    },
-    {
-      "source": "index_profit_data",
-      "series": "sz",
-      "field": "profitYi",
-      "frequency": "quarter",
-      "expectedDate": "2026-09-30",
-      "latestValidDate": "2026-09-30",
-      "status": "current",
-      "missingAtLatestRow": false
-    },
-    {
       "source": "star_aggregate_pe",
       "series": "rows",
       "field": "pe",
@@ -937,12 +917,46 @@
       "latestValidDate": "2026-11-17",
       "status": "current",
       "missingAtLatestRow": false
+    },
+    {
+      "source": "index_profit_data",
+      "series": "sh",
+      "field": "profitYi",
+      "frequency": "quarter",
+      "expectedDate": "2026-09-30",
+      "latestValidDate": "2026-09-30",
+      "status": "current",
+      "missingAtLatestRow": false
+    },
+    {
+      "source": "index_profit_data",
+      "series": "k50",
+      "field": "profitYi",
+      "frequency": "quarter",
+      "expectedDate": "2026-09-30",
+      "latestValidDate": "2026-09-30",
+      "status": "current",
+      "missingAtLatestRow": false
+    },
+    {
+      "source": "index_profit_data",
+      "series": "sz",
+      "field": "profitYi",
+      "frequency": "quarter",
+      "expectedDate": "2026-09-30",
+      "latestValidDate": "2026-09-30",
+      "status": "current",
+      "missingAtLatestRow": false
     }
   ],
   "warnings": [],
   "partialUpdate": {
     "task": "etf",
     "checkedAt": "2026-11-17T11:12:15.468Z",
-    "note": "ETF asset calculation checked separately. Other task checks retain their existing timestamps; unrelated CSI preflight timed out, no new full refresh is claimed."
+    "note": "ETF asset calculation checked separately. Other task checks retain their existing timestamps; unrelated CSI preflight timed out, no new full refresh is claimed.",
+    "profit": {
+      "checkedAt": "2026-11-18T03:08:03.802Z",
+      "note": "Added historical 科创50 member profit aggregation and validated all three profit series. Other source validation times unchanged; not a full daily refresh."
+    }
   }
 }

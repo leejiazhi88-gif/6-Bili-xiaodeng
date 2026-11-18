@@ -136,5 +136,22 @@ class ProfitResumeTests(unittest.TestCase):
         self.assertEqual({call.args[1] for call in calls}, {"A", "B"})
 
 
+class ThreeIndexProfitTests(unittest.TestCase):
+    def test_science_50_uses_its_own_historical_members_and_includes_losses(self):
+        self.assertEqual(profit.INDICES['k50']['code'], '000688.SH')
+        # Four cumulative quarters produce TTM 40 + (-10), independently of
+        # profits from stocks which were not in the historical membership.
+        rows = lambda amount: [{'end_date': p, 'ann_date': '20250430', 'n_income_attr_p': amount * (i+1)}
+                               for i,p in enumerate(['20240331','20240630','20240930','20241231'])]
+        cache = {'income': {'A': rows(10), 'B': rows(-2.5), 'OUTSIDE': rows(1000)}}
+        with patch.object(profit, 'quarter_periods', return_value=['20241231']), \
+                patch.object(profit, 'END_DATE', '20250501'):
+            result = profit.build_index_profit({'20241230': ['A','B']}, cache)
+        self.assertEqual(len(result), 1)
+        self.assertEqual(result[0]['profitCny'], 30)
+        self.assertEqual(result[0]['memberCount'], 2)
+        self.assertEqual(result[0]['coverage'], 100)
+
+
 if __name__ == "__main__":
     unittest.main()

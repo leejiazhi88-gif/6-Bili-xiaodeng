@@ -3,6 +3,7 @@ const css = `
 <style id="dashboard-interactions-style">
 .chart-reading-shell{position:relative;min-width:0}
 .chart-reading{position:absolute;z-index:2;top:14px;left:20px;right:24px;display:flex;justify-content:space-between;align-items:flex-start;gap:16px;pointer-events:none}
+.volume-reading-shell .chart-reading{flex-direction:column;gap:10px}
 .chart-reading-heading{font-size:13px;font-weight:650;color:var(--text);line-height:1.4;min-width:0}
 .chart-reading-date,.chart-reading-status{font-size:11px;font-weight:400;color:var(--muted);margin-top:5px;line-height:1.4}
 .chart-reading-values{display:flex;flex-wrap:wrap;gap:10px 20px;min-width:0}
@@ -28,7 +29,7 @@ function runtime() {
   const metadata = (id, s) => {
     const overview = {'chart-price':['指数价格','点'], 'chart-pe':['市盈率 PE(TTM)','倍'], 'chart-profit':['归母净利润 TTM','亿元']};
     if (overview[id]) return overview[id];
-    if (id.startsWith('chart-volume')) return ['交易规模', s.name === '成交量' ? '亿手' : '亿元'];
+    if (id.startsWith('chart-volume')) return [({'chart-volume-sh':'创业板指','chart-volume-k50':'科创50','chart-volume-sz':'科创综指'})[id] + ' · 交易规模', s.name === '成交量' ? '亿手' : '亿元'];
     if (id === 'valuationChart') return [document.querySelector('#valuationMetricTabs .active')?.textContent, active('valuation') === 'pe' ? '倍' : '%'];
     if (id === 'retailSentimentChart') return [document.querySelector('#retailMetricTabs .active')?.textContent,
       ({volume:'亿手',turnover:'%',marginFloatRatio:'%'})[active('retail')] || '亿元'];
@@ -46,6 +47,7 @@ function runtime() {
     if (!chart) continue;
     const shell = document.createElement('div'); shell.className = 'chart-reading-shell';
     node.before(shell); shell.append(node);
+    if (id.startsWith('chart-volume-')) shell.classList.add('volume-reading-shell');
     const header = document.createElement('div'); header.className = 'chart-reading'; header.id = id + '-latest';
     header.setAttribute('aria-live','polite'); shell.prepend(header);
     const originalSet = chart.setOption.bind(chart);
@@ -65,7 +67,7 @@ function runtime() {
         const trailingMissing = point && points.at(-1)?.[0] > point[0];
         const [title,unit] = metadata(id,s);
         const reportDate = id === 'chart-profit' && point
-          ? (s.name.includes('创业板') ? DATA.sh : DATA.sz).findLast(row => row.date <= point[0] && Number.isFinite(row.profitYi))?.profitPeriod : null;
+          ? (s.name.includes('创业板') ? DATA.sh : s.name.includes('科创50') ? DATA.k50 : DATA.sz).findLast(row => row.date <= point[0] && Number.isFinite(row.profitYi))?.profitPeriod : null;
         return {name:s.name,color:s.itemStyle?.color || s.lineStyle?.color || '#91aaa8',
           value:point?.[1],date:reportDate || (id === 'largeMoneyChart' && chart.etfObservationDates?.[point?.[0]]) || point?.[0],title,unit,status:trailingMissing?'最近一期缺失，显示此前有效值':!point?'暂无数据':''};
       });
@@ -104,7 +106,7 @@ function runtime() {
     }
     chart.setOption = function(option, ...args) {
       const result = originalSet(option,...args);
-      if (option.series) {
+      if (option.series || option.legend) {
         const current = chart.getOption();
         allSeries = current.series || [];
         legendVisible = !!current.legend?.length && current.legend[0].show !== false;
@@ -113,7 +115,8 @@ function runtime() {
       }
       return result;
     };
-    chart.on('legendselectchanged', e => {legendSelection = e.selected;render();});
+    for (const event of ['legendselectchanged','legendselected','legendunselected'])
+      chart.on(event, e => {legendSelection = e.selected;render();});
     let frame=0;
     window.addEventListener('resize',()=>{cancelAnimationFrame(frame);frame=requestAnimationFrame(layout);});
     const current = chart.getOption(); allSeries=current.series || [];

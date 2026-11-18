@@ -26,6 +26,7 @@ END_DATE = datetime.now().strftime("%Y%m%d")
 INDICES = {
     "sh": {"code": "399006.SZ", "name": "创业板指"},
     "sz": {"code": "000680.SH", "name": "科创综指"},
+    "k50": {"code": "000688.SH", "name": "科创50"},
 }
 QUARTER_MONTH_DAYS = ("0331", "0630", "0930", "1231")
 
@@ -323,6 +324,7 @@ def main():
         },
         "sh": build_index_profit(weights["sh"], cache),
         "sz": build_index_profit(weights["sz"], cache),
+        "k50": build_index_profit(weights["k50"], cache),
     }
     OUTPUT.write_text(
         json.dumps(result, ensure_ascii=False, separators=(",", ":")),
@@ -335,8 +337,10 @@ def main():
                 "codes": len(all_codes),
                 "sh_points": len(result["sh"]),
                 "sz_points": len(result["sz"]),
+                "k50_points": len(result["k50"]),
                 "latest_sh": result["sh"][-1] if result["sh"] else None,
                 "latest_sz": result["sz"][-1] if result["sz"] else None,
+                "latest_k50": result["k50"][-1] if result["k50"] else None,
             },
             ensure_ascii=False,
         )

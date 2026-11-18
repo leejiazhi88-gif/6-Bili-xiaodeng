@@ -1,5 +1,5 @@
 {
-  "inspectedAt": "2026-11-17T11:12:16.080Z",
+  "inspectedAt": "2026-11-18T03:08:04.086Z",
   "note": "Dates are valid row/period labels and may be weekly or monthly labels, not actual observation dates. Read source meta for as-of/check dates. Compare daily, monthly, quarterly and semiannual disclosure schedules separately; this report alone does not prove source freshness.",
   "sources": {
     "market_overview_data": {
@@ -48,7 +48,7 @@
     },
     "index_profit_data": {
       "meta": {
-        "end": "2026-11-17",
+        "end": "2026-11-18",
         "unit": "亿元",
         "profit": "指数成分股归母净利润TTM汇总",
         "source": "Tushare index_weight + income"
@@ -69,6 +69,18 @@
         "sz": {
           "rows": 7,
           "firstDate": "2025-03-31",
+          "lastDate": "2026-09-30",
+          "latestValidDate": {
+            "profitCny": "2026-09-30",
+            "profitYi": "2026-09-30",
+            "memberCount": "2026-09-30",
+            "coveredCount": "2026-09-30",
+            "coverage": "2026-09-30"
+          }
+        },
+        "k50": {
+          "rows": 25,
+          "firstDate": "2020-09-30",
           "lastDate": "2026-09-30",
           "latestValidDate": {
             "profitCny": "2026-09-30",

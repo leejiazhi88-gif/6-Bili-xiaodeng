@@ -8,7 +8,7 @@ const { inspect } = require('./audit_dashboard_freshness');
 const CONTRACTS = {
   market: { files: ['market_overview_data'], series: ['sh','k50','sz'].map(key =>
     [key, ['close','amountYi','volumeYiShou', ...(key === 'sz' ? [] : ['pe'])], 'session']) },
-  profit: { files: ['index_profit_data','income_cache'], series: ['sh','sz'].map(key => [key,['profitYi'], 'quarter']) },
+  profit: { files: ['index_profit_data','income_cache'], series: ['sh','k50','sz'].map(key => [key,['profitYi'], 'quarter']) },
   starAggregatePe: { files: ['star_aggregate_pe'], series: [['rows',['pe'], 'session']] },
   largeMoney: { files: ['large_money_sentiment_data','large_money_index_data','northbound_daily_data'],
     series: [['series',['blockAmount','institutionBlockNet','holderNetShares'], 'session']],
