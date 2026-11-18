@@ -136,7 +136,7 @@ function htmlTemplate(data, echartsSource) {
   <header>
     <div>
       <div class="eyebrow">GROWTH INDICES DASHBOARD</div>
-      <h1>成长指数：创业板指、科创50、科创综指</h1>
+      <h1>6 XiaoDeng</h1>
       <div class="subtitle">创业板指 × 科创50 × 科创综指</div>
     </div>
     <div class="asof">截至 ${END}<br>周频展示，底层数据为交易日数据</div>
