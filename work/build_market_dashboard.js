@@ -167,14 +167,14 @@ function htmlTemplate(data, echartsSource) {
     <div class="index-charts">
       <h2 class="chart-heading">指数价格</h2>
       <div id="chart-price" class="index-chart"></div>
+      <h2 class="chart-heading">市盈率 PE(TTM)</h2><div id="chart-pe" class="index-chart"></div>
+      <h2 class="chart-heading">归母净利润 TTM（亿元）</h2><div id="chart-profit" class="index-chart"></div>
       <h2 class="chart-heading">交易规模</h2>
       <div class="volume-charts">
         <div id="chart-volume-sh" class="index-chart volume-chart"></div>
         <div id="chart-volume-k50" class="index-chart volume-chart"></div>
         <div id="chart-volume-sz" class="index-chart volume-chart"></div>
       </div>
-      <h2 class="chart-heading">市盈率 PE(TTM)</h2><div id="chart-pe" class="index-chart"></div>
-      <h2 class="chart-heading">归母净利润 TTM（亿元）</h2><div id="chart-profit" class="index-chart"></div>
     </div>
   </section>
   <section class="notes">
