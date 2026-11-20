@@ -1,98 +1,98 @@
 {
-  "checkedAt": "2026-11-17T08:43:03.897Z",
+  "checkedAt": "2026-11-20T11:10:47.981Z",
   "mode": "daily",
-  "expectedSession": "20261116",
+  "expectedSession": "20261120",
   "note": "checkedAt validates task output, not a new disclosure date. Source/report dates and fund checkedAt remain in data_freshness.json. executed tasks may reuse source caches; resumed outputs retain their original validation time.",
-  "status": "current",
-  "marginDetailRowsAtExpectedSession": 4490,
+  "status": "complete_with_source_lags",
+  "marginDetailRowsAtExpectedSession": 0,
   "tasks": [
     {
       "id": "fundReports",
-      "checkedAt": "2026-11-17T08:39:36.372Z",
-      "execution": "executed",
-      "contentChanged": false
-    },
-    {
-      "id": "largeMoney",
-      "checkedAt": "2026-11-17T08:39:40.000Z",
-      "execution": "executed",
-      "contentChanged": true
-    },
-    {
-      "id": "retail",
-      "checkedAt": "2026-11-17T08:39:43.405Z",
-      "execution": "executed",
-      "contentChanged": true
-    },
-    {
-      "id": "market",
-      "checkedAt": "2026-11-17T08:39:44.805Z",
-      "execution": "executed",
-      "contentChanged": true
-    },
-    {
-      "id": "starSnapshot",
-      "checkedAt": "2026-11-17T08:39:45.294Z",
-      "execution": "executed",
-      "contentChanged": false
-    },
-    {
-      "id": "starHistory",
-      "checkedAt": "2026-11-17T08:39:45.516Z",
-      "execution": "executed",
-      "contentChanged": true
-    },
-    {
-      "id": "retailIndices",
-      "checkedAt": "2026-11-17T08:39:49.616Z",
-      "execution": "executed",
-      "contentChanged": true
-    },
-    {
-      "id": "retailWeeklyMeans",
-      "checkedAt": "2026-11-17T08:39:52.307Z",
-      "execution": "executed",
-      "contentChanged": true
-    },
-    {
-      "id": "etf",
-      "checkedAt": "2026-11-17T11:12:15.468Z",
-      "execution": "executed",
-      "contentChanged": true
-    },
-    {
-      "id": "valuation",
-      "checkedAt": "2026-11-17T08:39:57.099Z",
-      "execution": "executed",
-      "contentChanged": true
-    },
-    {
-      "id": "refinancing",
-      "checkedAt": "2026-11-17T08:39:58.517Z",
-      "execution": "executed",
-      "contentChanged": true
-    },
-    {
-      "id": "official",
-      "checkedAt": "2026-11-17T08:40:00.885Z",
-      "execution": "executed",
-      "contentChanged": true
-    },
-    {
-      "id": "northHoldings",
-      "checkedAt": "2026-11-17T08:40:01.512Z",
+      "checkedAt": "2026-11-20T11:10:16.368Z",
       "execution": "executed",
       "contentChanged": false
     },
     {
       "id": "profit",
-      "checkedAt": "2026-11-18T03:08:03.802Z",
+      "checkedAt": "2026-11-20T11:10:18.512Z",
+      "execution": "executed",
+      "contentChanged": false
+    },
+    {
+      "id": "largeMoney",
+      "checkedAt": "2026-11-20T11:10:21.584Z",
+      "execution": "executed",
+      "contentChanged": false
+    },
+    {
+      "id": "retail",
+      "checkedAt": "2026-11-20T11:10:22.269Z",
+      "execution": "executed",
+      "contentChanged": false
+    },
+    {
+      "id": "starSnapshot",
+      "checkedAt": "2026-11-20T11:10:22.477Z",
+      "execution": "executed",
+      "contentChanged": false
+    },
+    {
+      "id": "starHistory",
+      "checkedAt": "2026-11-20T11:10:22.676Z",
+      "execution": "executed",
+      "contentChanged": true
+    },
+    {
+      "id": "market",
+      "checkedAt": "2026-11-20T11:10:23.443Z",
+      "execution": "executed",
+      "contentChanged": false
+    },
+    {
+      "id": "retailIndices",
+      "checkedAt": "2026-11-20T11:10:28.957Z",
+      "execution": "executed",
+      "contentChanged": true
+    },
+    {
+      "id": "retailWeeklyMeans",
+      "checkedAt": "2026-11-20T11:10:33.313Z",
       "execution": "executed",
       "contentChanged": true
     },
     {
       "id": "starAggregatePe",
-      "checkedAt": "2026-11-17T08:43:03.895Z",
+      "checkedAt": "2026-11-20T11:10:42.021Z",
+      "execution": "executed",
+      "contentChanged": true
+    },
+    {
+      "id": "valuation",
+      "checkedAt": "2026-11-20T11:10:42.271Z",
+      "execution": "executed",
+      "contentChanged": true
+    },
+    {
+      "id": "refinancing",
+      "checkedAt": "2026-11-20T11:10:45.136Z",
+      "execution": "executed",
+      "contentChanged": true
+    },
+    {
+      "id": "etf",
+      "checkedAt": "2026-11-20T11:10:45.169Z",
+      "execution": "executed",
+      "contentChanged": true
+    },
+    {
+      "id": "northHoldings",
+      "checkedAt": "2026-11-20T11:10:45.464Z",
+      "execution": "executed",
+      "contentChanged": false
+    },
+    {
+      "id": "official",
+      "checkedAt": "2026-11-20T11:10:47.975Z",
       "execution": "executed",
       "contentChanged": true
     }
@@ -179,12 +179,42 @@
       "missingAtLatestRow": false
     },
     {
+      "source": "index_profit_data",
+      "series": "sh",
+      "field": "profitYi",
+      "frequency": "quarter",
+      "expectedDate": "2026-09-30",
+      "latestValidDate": "2026-09-30",
+      "status": "current",
+      "missingAtLatestRow": false
+    },
+    {
+      "source": "index_profit_data",
+      "series": "k50",
+      "field": "profitYi",
+      "frequency": "quarter",
+      "expectedDate": "2026-09-30",
+      "latestValidDate": "2026-09-30",
+      "status": "current",
+      "missingAtLatestRow": false
+    },
+    {
+      "source": "index_profit_data",
+      "series": "sz",
+      "field": "profitYi",
+      "frequency": "quarter",
+      "expectedDate": "2026-09-30",
+      "latestValidDate": "2026-09-30",
+      "status": "current",
+      "missingAtLatestRow": false
+    },
+    {
       "source": "large_money_sentiment_data",
       "series": "series",
       "field": "blockAmount",
       "frequency": "session",
-      "expectedDate": "2026-11-16",
-      "latestValidDate": "2026-11-17",
+      "expectedDate": "2026-11-20",
+      "latestValidDate": "2026-11-20",
       "status": "current",
       "missingAtLatestRow": false
     },
@@ -193,8 +223,8 @@
       "series": "series",
       "field": "institutionBlockNet",
       "frequency": "session",
-      "expectedDate": "2026-11-16",
-      "latestValidDate": "2026-11-17",
+      "expectedDate": "2026-11-20",
+      "latestValidDate": "2026-11-20",
       "status": "current",
       "missingAtLatestRow": false
     },
@@ -203,8 +233,8 @@
       "series": "series",
       "field": "holderNetShares",
       "frequency": "session",
-      "expectedDate": "2026-11-16",
-      "latestValidDate": "2026-11-17",
+      "expectedDate": "2026-11-20",
+      "latestValidDate": "2026-11-20",
       "status": "current",
       "missingAtLatestRow": false
     },
@@ -213,8 +243,8 @@
       "series": "sh",
       "field": "blockAmount",
       "frequency": "session",
-      "expectedDate": "2026-11-16",
-      "latestValidDate": "2026-11-17",
+      "expectedDate": "2026-11-20",
+      "latestValidDate": "2026-11-20",
       "status": "current",
       "missingAtLatestRow": false
     },
@@ -223,8 +253,8 @@
       "series": "sh",
       "field": "institutionBlockNet",
       "frequency": "session",
-      "expectedDate": "2026-11-16",
-      "latestValidDate": "2026-11-17",
+      "expectedDate": "2026-11-20",
+      "latestValidDate": "2026-11-20",
       "status": "current",
       "missingAtLatestRow": false
     },
@@ -233,8 +263,8 @@
       "series": "sh",
       "field": "holderNetAmount",
       "frequency": "session",
-      "expectedDate": "2026-11-16",
-      "latestValidDate": "2026-11-17",
+      "expectedDate": "2026-11-20",
+      "latestValidDate": "2026-11-20",
       "status": "current",
       "missingAtLatestRow": false
     },
@@ -243,8 +273,8 @@
       "series": "k50",
       "field": "blockAmount",
       "frequency": "session",
-      "expectedDate": "2026-11-16",
-      "latestValidDate": "2026-11-17",
+      "expectedDate": "2026-11-20",
+      "latestValidDate": "2026-11-20",
       "status": "current",
       "missingAtLatestRow": false
     },
@@ -253,8 +283,8 @@
       "series": "k50",
       "field": "institutionBlockNet",
       "frequency": "session",
-      "expectedDate": "2026-11-16",
-      "latestValidDate": "2026-11-17",
+      "expectedDate": "2026-11-20",
+      "latestValidDate": "2026-11-20",
       "status": "current",
       "missingAtLatestRow": false
     },
@@ -263,8 +293,8 @@
       "series": "k50",
       "field": "holderNetAmount",
       "frequency": "session",
-      "expectedDate": "2026-11-16",
-      "latestValidDate": "2026-11-17",
+      "expectedDate": "2026-11-20",
+      "latestValidDate": "2026-11-20",
       "status": "current",
       "missingAtLatestRow": false
     },
@@ -273,8 +303,8 @@
       "series": "sz",
       "field": "blockAmount",
       "frequency": "session",
-      "expectedDate": "2026-11-16",
-      "latestValidDate": "2026-11-17",
+      "expectedDate": "2026-11-20",
+      "latestValidDate": "2026-11-20",
       "status": "current",
       "missingAtLatestRow": false
     },
@@ -283,8 +313,8 @@
       "series": "sz",
       "field": "institutionBlockNet",
       "frequency": "session",
-      "expectedDate": "2026-11-16",
-      "latestValidDate": "2026-11-17",
+      "expectedDate": "2026-11-20",
+      "latestValidDate": "2026-11-20",
       "status": "current",
       "missingAtLatestRow": false
     },
@@ -293,8 +323,8 @@
       "series": "sz",
       "field": "holderNetAmount",
       "frequency": "session",
-      "expectedDate": "2026-11-16",
-      "latestValidDate": "2026-11-17",
+      "expectedDate": "2026-11-20",
+      "latestValidDate": "2026-11-20",
       "status": "current",
       "missingAtLatestRow": false
     },
@@ -303,8 +333,8 @@
       "series": "series",
       "field": "amount",
       "frequency": "laggedSession",
-      "expectedDate": "2026-11-16",
-      "latestValidDate": "2026-11-16",
+      "expectedDate": "2026-11-20",
+      "latestValidDate": "2026-11-20",
       "status": "current",
       "missingAtLatestRow": false
     },
@@ -313,8 +343,8 @@
       "series": "series",
       "field": "volumeProxy",
       "frequency": "laggedSession",
-      "expectedDate": "2026-11-16",
-      "latestValidDate": "2026-11-16",
+      "expectedDate": "2026-11-20",
+      "latestValidDate": "2026-11-20",
       "status": "current",
       "missingAtLatestRow": false
     },
@@ -323,8 +353,8 @@
       "series": "series",
       "field": "turnover",
       "frequency": "laggedSession",
-      "expectedDate": "2026-11-16",
-      "latestValidDate": "2026-11-16",
+      "expectedDate": "2026-11-20",
+      "latestValidDate": "2026-11-20",
       "status": "current",
       "missingAtLatestRow": false
     },
@@ -333,8 +363,8 @@
       "series": "series",
       "field": "marginBalance",
       "frequency": "laggedSession",
-      "expectedDate": "2026-11-16",
-      "latestValidDate": "2026-11-16",
+      "expectedDate": "2026-11-20",
+      "latestValidDate": "2026-11-20",
       "status": "current",
       "missingAtLatestRow": false
     },
@@ -343,118 +373,8 @@
       "series": "series",
       "field": "marginFloatRatio",
       "frequency": "laggedSession",
-      "expectedDate": "2026-11-16",
-      "latestValidDate": "2026-11-16",
-      "status": "current",
-      "missingAtLatestRow": false
-    },
-    {
-      "source": "market_overview_data",
-      "series": "sh",
-      "field": "close",
-      "frequency": "session",
-      "expectedDate": "2026-11-16",
-      "latestValidDate": "2026-11-17",
-      "status": "current",
-      "missingAtLatestRow": false
-    },
-    {
-      "source": "market_overview_data",
-      "series": "sh",
-      "field": "amountYi",
-      "frequency": "session",
-      "expectedDate": "2026-11-16",
-      "latestValidDate": "2026-11-17",
-      "status": "current",
-      "missingAtLatestRow": false
-    },
-    {
-      "source": "market_overview_data",
-      "series": "sh",
-      "field": "volumeYiShou",
-      "frequency": "session",
-      "expectedDate": "2026-11-16",
-      "latestValidDate": "2026-11-17",
-      "status": "current",
-      "missingAtLatestRow": false
-    },
-    {
-      "source": "market_overview_data",
-      "series": "sh",
-      "field": "pe",
-      "frequency": "session",
-      "expectedDate": "2026-11-16",
-      "latestValidDate": "2026-11-17",
-      "status": "current",
-      "missingAtLatestRow": false
-    },
-    {
-      "source": "market_overview_data",
-      "series": "k50",
-      "field": "close",
-      "frequency": "session",
-      "expectedDate": "2026-11-16",
-      "latestValidDate": "2026-11-17",
-      "status": "current",
-      "missingAtLatestRow": false
-    },
-    {
-      "source": "market_overview_data",
-      "series": "k50",
-      "field": "amountYi",
-      "frequency": "session",
-      "expectedDate": "2026-11-16",
-      "latestValidDate": "2026-11-17",
-      "status": "current",
-      "missingAtLatestRow": false
-    },
-    {
-      "source": "market_overview_data",
-      "series": "k50",
-      "field": "volumeYiShou",
-      "frequency": "session",
-      "expectedDate": "2026-11-16",
-      "latestValidDate": "2026-11-17",
-      "status": "current",
-      "missingAtLatestRow": false
-    },
-    {
-      "source": "market_overview_data",
-      "series": "k50",
-      "field": "pe",
-      "frequency": "session",
-      "expectedDate": "2026-11-16",
-      "latestValidDate": "2026-11-17",
-      "status": "current",
-      "missingAtLatestRow": false
-    },
-    {
-      "source": "market_overview_data",
-      "series": "sz",
-      "field": "close",
-      "frequency": "session",
-      "expectedDate": "2026-11-16",
-      "latestValidDate": "2026-11-17",
-      "status": "current",
-      "missingAtLatestRow": false
-    },
-    {
-      "source": "market_overview_data",
-      "series": "sz",
-      "field": "amountYi",
-      "frequency": "session",
-      "expectedDate": "2026-11-16",
-      "latestValidDate": "2026-11-17",
-      "status": "current",
-      "missingAtLatestRow": false
-    },
-    {
-      "source": "market_overview_data",
-      "series": "sz",
-      "field": "volumeYiShou",
-      "frequency": "session",
-      "expectedDate": "2026-11-16",
-      "latestValidDate": "2026-11-17",
+      "expectedDate": "2026-11-20",
+      "latestValidDate": "2026-11-20",
       "status": "current",
       "missingAtLatestRow": false
     },
@@ -483,8 +403,118 @@
       "series": "rows",
       "field": "pe",
       "frequency": "officialSession",
-      "expectedDate": "2026-11-16",
-      "latestValidDate": "2026-11-16",
+      "expectedDate": "2026-11-20",
+      "latestValidDate": "2026-11-20",
+      "status": "current",
+      "missingAtLatestRow": false
+    },
+    {
+      "source": "market_overview_data",
+      "series": "sh",
+      "field": "close",
+      "frequency": "session",
+      "expectedDate": "2026-11-20",
+      "latestValidDate": "2026-11-20",
+      "status": "current",
+      "missingAtLatestRow": false
+    },
+    {
+      "source": "market_overview_data",
+      "series": "sh",
+      "field": "amountYi",
+      "frequency": "session",
+      "expectedDate": "2026-11-20",
+      "latestValidDate": "2026-11-20",
+      "status": "current",
+      "missingAtLatestRow": false
+    },
+    {
+      "source": "market_overview_data",
+      "series": "sh",
+      "field": "volumeYiShou",
+      "frequency": "session",
+      "expectedDate": "2026-11-20",
+      "latestValidDate": "2026-11-20",
+      "status": "current",
+      "missingAtLatestRow": false
+    },
+    {
+      "source": "market_overview_data",
+      "series": "sh",
+      "field": "pe",
+      "frequency": "session",
+      "expectedDate": "2026-11-20",
+      "latestValidDate": "2026-11-20",
+      "status": "current",
+      "missingAtLatestRow": false
+    },
+    {
+      "source": "market_overview_data",
+      "series": "k50",
+      "field": "close",
+      "frequency": "session",
+      "expectedDate": "2026-11-20",
+      "latestValidDate": "2026-11-20",
+      "status": "current",
+      "missingAtLatestRow": false
+    },
+    {
+      "source": "market_overview_data",
+      "series": "k50",
+      "field": "amountYi",
+      "frequency": "session",
+      "expectedDate": "2026-11-20",
+      "latestValidDate": "2026-11-20",
+      "status": "current",
+      "missingAtLatestRow": false
+    },
+    {
+      "source": "market_overview_data",
+      "series": "k50",
+      "field": "volumeYiShou",
+      "frequency": "session",
+      "expectedDate": "2026-11-20",
+      "latestValidDate": "2026-11-20",
+      "status": "current",
+      "missingAtLatestRow": false
+    },
+    {
+      "source": "market_overview_data",
+      "series": "k50",
+      "field": "pe",
+      "frequency": "session",
+      "expectedDate": "2026-11-20",
+      "latestValidDate": "2026-11-20",
+      "status": "current",
+      "missingAtLatestRow": false
+    },
+    {
+      "source": "market_overview_data",
+      "series": "sz",
+      "field": "close",
+      "frequency": "session",
+      "expectedDate": "2026-11-20",
+      "latestValidDate": "2026-11-20",
+      "status": "current",
+      "missingAtLatestRow": false
+    },
+    {
+      "source": "market_overview_data",
+      "series": "sz",
+      "field": "amountYi",
+      "frequency": "session",
+      "expectedDate": "2026-11-20",
+      "latestValidDate": "2026-11-20",
+      "status": "current",
+      "missingAtLatestRow": false
+    },
+    {
+      "source": "market_overview_data",
+      "series": "sz",
+      "field": "volumeYiShou",
+      "frequency": "session",
+      "expectedDate": "2026-11-20",
+      "latestValidDate": "2026-11-20",
       "status": "current",
       "missingAtLatestRow": false
     },
@@ -493,8 +523,8 @@
       "series": "sh",
       "field": "turnover",
       "frequency": "laggedSession",
-      "expectedDate": "2026-11-16",
-      "latestValidDate": "2026-11-16",
+      "expectedDate": "2026-11-20",
+      "latestValidDate": "2026-11-20",
       "status": "current",
       "missingAtLatestRow": false
     },
@@ -503,28 +533,28 @@
       "series": "sh",
       "field": "marginBalance",
       "frequency": "laggedSession",
-      "expectedDate": "2026-11-16",
-      "latestValidDate": "2026-11-16",
-      "status": "current",
-      "missingAtLatestRow": false
+      "expectedDate": "2026-11-20",
+      "latestValidDate": "2026-11-19",
+      "status": "source_lag",
+      "missingAtLatestRow": true
     },
     {
       "source": "retail_index_metrics",
       "series": "sh",
       "field": "marginFloatRatio",
       "frequency": "laggedSession",
-      "expectedDate": "2026-11-16",
-      "latestValidDate": "2026-11-16",
-      "status": "current",
-      "missingAtLatestRow": false
+      "expectedDate": "2026-11-20",
+      "latestValidDate": "2026-11-19",
+      "status": "source_lag",
+      "missingAtLatestRow": true
     },
     {
       "source": "retail_index_metrics",
       "series": "k50",
       "field": "turnover",
       "frequency": "laggedSession",
-      "expectedDate": "2026-11-16",
-      "latestValidDate": "2026-11-16",
+      "expectedDate": "2026-11-20",
+      "latestValidDate": "2026-11-20",
       "status": "current",
       "missingAtLatestRow": false
     },
@@ -533,28 +563,28 @@
       "series": "k50",
       "field": "marginBalance",
       "frequency": "laggedSession",
-      "expectedDate": "2026-11-16",
-      "latestValidDate": "2026-11-16",
-      "status": "current",
-      "missingAtLatestRow": false
+      "expectedDate": "2026-11-20",
+      "latestValidDate": "2026-11-19",
+      "status": "source_lag",
+      "missingAtLatestRow": true
     },
     {
       "source": "retail_index_metrics",
       "series": "k50",
       "field": "marginFloatRatio",
       "frequency": "laggedSession",
-      "expectedDate": "2026-11-16",
-      "latestValidDate": "2026-11-16",
-      "status": "current",
-      "missingAtLatestRow": false
+      "expectedDate": "2026-11-20",
+      "latestValidDate": "2026-11-19",
+      "status": "source_lag",
+      "missingAtLatestRow": true
     },
     {
       "source": "retail_index_metrics",
       "series": "sz",
       "field": "turnover",
       "frequency": "laggedSession",
-      "expectedDate": "2026-11-16",
-      "latestValidDate": "2026-11-16",
+      "expectedDate": "2026-11-20",
+      "latestValidDate": "2026-11-20",
       "status": "current",
       "missingAtLatestRow": false
     },
@@ -563,28 +593,28 @@
       "series": "sz",
       "field": "marginBalance",
       "frequency": "laggedSession",
-      "expectedDate": "2026-11-16",
-      "latestValidDate": "2026-11-16",
-      "status": "current",
-      "missingAtLatestRow": false
+      "expectedDate": "2026-11-20",
+      "latestValidDate": "2026-11-19",
+      "status": "source_lag",
+      "missingAtLatestRow": true
     },
     {
       "source": "retail_index_metrics",
       "series": "sz",
       "field": "marginFloatRatio",
       "frequency": "laggedSession",
-      "expectedDate": "2026-11-16",
-      "latestValidDate": "2026-11-16",
-      "status": "current",
-      "missingAtLatestRow": false
+      "expectedDate": "2026-11-20",
+      "latestValidDate": "2026-11-19",
+      "status": "source_lag",
+      "missingAtLatestRow": true
     },
     {
       "source": "retail_weekly_averages",
       "series": "market",
       "field": "amount",
       "frequency": "session",
-      "expectedDate": "2026-11-16",
-      "latestValidDate": "2026-11-16",
+      "expectedDate": "2026-11-20",
+      "latestValidDate": "2026-11-20",
       "status": "current",
       "missingAtLatestRow": false
     },
@@ -593,8 +623,8 @@
       "series": "market",
       "field": "volume",
       "frequency": "session",
-      "expectedDate": "2026-11-16",
-      "latestValidDate": "2026-11-16",
+      "expectedDate": "2026-11-20",
+      "latestValidDate": "2026-11-20",
       "status": "current",
       "missingAtLatestRow": false
     },
@@ -603,8 +633,8 @@
       "series": "market",
       "field": "turnover",
       "frequency": "session",
-      "expectedDate": "2026-11-16",
-      "latestValidDate": "2026-11-16",
+      "expectedDate": "2026-11-20",
+      "latestValidDate": "2026-11-20",
       "status": "current",
       "missingAtLatestRow": false
     },
@@ -613,8 +643,8 @@
       "series": "sh",
       "field": "amount",
       "frequency": "session",
-      "expectedDate": "2026-11-16",
-      "latestValidDate": "2026-11-17",
+      "expectedDate": "2026-11-20",
+      "latestValidDate": "2026-11-20",
       "status": "current",
       "missingAtLatestRow": false
     },
@@ -623,8 +653,8 @@
       "series": "sh",
       "field": "volume",
       "frequency": "session",
-      "expectedDate": "2026-11-16",
-      "latestValidDate": "2026-11-17",
+      "expectedDate": "2026-11-20",
+      "latestValidDate": "2026-11-20",
       "status": "current",
       "missingAtLatestRow": false
     },
@@ -633,8 +663,8 @@
       "series": "sh",
       "field": "turnover",
       "frequency": "session",
-      "expectedDate": "2026-11-16",
-      "latestValidDate": "2026-11-17",
+      "expectedDate": "2026-11-20",
+      "latestValidDate": "2026-11-20",
       "status": "current",
       "missingAtLatestRow": false
     },
@@ -643,8 +673,8 @@
       "series": "k50",
       "field": "amount",
       "frequency": "session",
-      "expectedDate": "2026-11-16",
-      "latestValidDate": "2026-11-17",
+      "expectedDate": "2026-11-20",
+      "latestValidDate": "2026-11-20",
       "status": "current",
       "missingAtLatestRow": false
     },
@@ -653,8 +683,8 @@
       "series": "k50",
       "field": "volume",
       "frequency": "session",
-      "expectedDate": "2026-11-16",
-      "latestValidDate": "2026-11-17",
+      "expectedDate": "2026-11-20",
+      "latestValidDate": "2026-11-20",
       "status": "current",
       "missingAtLatestRow": false
     },
@@ -663,8 +693,8 @@
       "series": "k50",
       "field": "turnover",
       "frequency": "session",
-      "expectedDate": "2026-11-16",
-      "latestValidDate": "2026-11-17",
+      "expectedDate": "2026-11-20",
+      "latestValidDate": "2026-11-20",
       "status": "current",
       "missingAtLatestRow": false
     },
@@ -673,8 +703,8 @@
       "series": "sz",
       "field": "amount",
       "frequency": "session",
-      "expectedDate": "2026-11-16",
-      "latestValidDate": "2026-11-17",
+      "expectedDate": "2026-11-20",
+      "latestValidDate": "2026-11-20",
       "status": "current",
       "missingAtLatestRow": false
     },
@@ -683,8 +713,8 @@
       "series": "sz",
       "field": "volume",
       "frequency": "session",
-      "expectedDate": "2026-11-16",
-      "latestValidDate": "2026-11-17",
+      "expectedDate": "2026-11-20",
+      "latestValidDate": "2026-11-20",
       "status": "current",
       "missingAtLatestRow": false
     },
@@ -693,8 +723,18 @@
       "series": "sz",
       "field": "turnover",
       "frequency": "session",
-      "expectedDate": "2026-11-16",
-      "latestValidDate": "2026-11-17",
+      "expectedDate": "2026-11-20",
+      "latestValidDate": "2026-11-20",
+      "status": "current",
+      "missingAtLatestRow": false
+    },
+    {
+      "source": "star_aggregate_pe",
+      "series": "rows",
+      "field": "pe",
+      "frequency": "session",
+      "expectedDate": "2026-11-20",
+      "latestValidDate": "2026-11-20",
       "status": "current",
       "missingAtLatestRow": false
     },
@@ -703,8 +743,8 @@
       "series": "sh",
       "field": "pb",
       "frequency": "session",
-      "expectedDate": "2026-11-16",
-      "latestValidDate": "2026-11-17",
+      "expectedDate": "2026-11-20",
+      "latestValidDate": "2026-11-20",
       "status": "current",
       "missingAtLatestRow": false
     },
@@ -713,8 +753,8 @@
       "series": "sh",
       "field": "pbPercentile",
       "frequency": "session",
-      "expectedDate": "2026-11-16",
-      "latestValidDate": "2026-11-17",
+      "expectedDate": "2026-11-20",
+      "latestValidDate": "2026-11-20",
       "status": "current",
       "missingAtLatestRow": false
     },
@@ -749,62 +789,42 @@
       "missingAtLatestRow": false
     },
     {
-      "source": "official_sentiment_data",
+      "source": "large_money_etf_assets",
       "series": "series",
-      "field": "ipoFund",
-      "frequency": "currentMonth",
-      "expectedDate": "2026-11-17",
-      "latestValidDate": "2026-11-17",
+      "field": "sh",
+      "frequency": "laggedSession",
+      "expectedDate": "2026-11-20",
+      "latestValidDate": "2026-11-20",
       "status": "current",
       "missingAtLatestRow": false
     },
     {
-      "source": "official_sentiment_data",
+      "source": "large_money_etf_assets",
       "series": "series",
-      "field": "holderNetReductionAmount",
-      "frequency": "currentMonth",
-      "expectedDate": "2026-11-17",
-      "latestValidDate": "2026-11-17",
+      "field": "k50",
+      "frequency": "laggedSession",
+      "expectedDate": "2026-11-20",
+      "latestValidDate": "2026-11-20",
       "status": "current",
       "missingAtLatestRow": false
     },
     {
-      "source": "official_sentiment_data",
+      "source": "large_money_etf_assets",
       "series": "series",
-      "field": "ipoBoards.chinext.ipoFund",
-      "frequency": "currentMonth",
-      "expectedDate": "2026-11-17",
-      "latestValidDate": "2026-11-17",
+      "field": "sz",
+      "frequency": "laggedSession",
+      "expectedDate": "2026-11-20",
+      "latestValidDate": "2026-11-20",
       "status": "current",
       "missingAtLatestRow": false
     },
     {
-      "source": "official_sentiment_data",
+      "source": "large_money_etf_assets",
       "series": "series",
-      "field": "ipoBoards.star.ipoFund",
-      "frequency": "currentMonth",
-      "expectedDate": "2026-11-17",
-      "latestValidDate": "2026-11-17",
-      "status": "current",
-      "missingAtLatestRow": false
-    },
-    {
-      "source": "official_sentiment_data",
-      "series": "series",
-      "field": "holderBoards.chinext.holderNetReductionAmount",
-      "frequency": "currentMonth",
-      "expectedDate": "2026-11-17",
-      "latestValidDate": "2026-11-17",
-      "status": "current",
-      "missingAtLatestRow": false
-    },
-    {
-      "source": "official_sentiment_data",
-      "series": "series",
-      "field": "holderBoards.star.holderNetReductionAmount",
-      "frequency": "currentMonth",
-      "expectedDate": "2026-11-17",
-      "latestValidDate": "2026-11-17",
+      "field": "total",
+      "frequency": "laggedSession",
+      "expectedDate": "2026-11-20",
+      "latestValidDate": "2026-11-20",
       "status": "current",
       "missingAtLatestRow": false
     },
@@ -869,94 +889,126 @@
       "missingAtLatestRow": false
     },
     {
-      "source": "star_aggregate_pe",
-      "series": "rows",
-      "field": "pe",
-      "frequency": "session",
-      "expectedDate": "2026-11-16",
-      "latestValidDate": "2026-11-17",
-      "status": "current",
-      "missingAtLatestRow": false
-    },
-    {
-      "source": "large_money_etf_assets",
+      "source": "official_sentiment_data",
       "series": "series",
-      "field": "sh",
-      "frequency": "laggedSession",
-      "expectedDate": "2026-11-16",
-      "latestValidDate": "2026-11-17",
+      "field": "ipoFund",
+      "frequency": "currentMonth",
+      "expectedDate": "2026-11-20",
+      "latestValidDate": "2026-11-20",
       "status": "current",
       "missingAtLatestRow": false
     },
     {
-      "source": "large_money_etf_assets",
+      "source": "official_sentiment_data",
       "series": "series",
-      "field": "k50",
-      "frequency": "laggedSession",
-      "expectedDate": "2026-11-16",
-      "latestValidDate": "2026-11-17",
+      "field": "holderNetReductionAmount",
+      "frequency": "currentMonth",
+      "expectedDate": "2026-11-20",
+      "latestValidDate": "2026-11-20",
       "status": "current",
       "missingAtLatestRow": false
     },
     {
-      "source": "large_money_etf_assets",
+      "source": "official_sentiment_data",
       "series": "series",
-      "field": "sz",
-      "frequency": "laggedSession",
-      "expectedDate": "2026-11-16",
-      "latestValidDate": "2026-11-17",
+      "field": "ipoBoards.chinext.ipoFund",
+      "frequency": "currentMonth",
+      "expectedDate": "2026-11-20",
+      "latestValidDate": "2026-11-20",
       "status": "current",
       "missingAtLatestRow": false
     },
     {
-      "source": "large_money_etf_assets",
+      "source": "official_sentiment_data",
       "series": "series",
-      "field": "total",
-      "frequency": "laggedSession",
-      "expectedDate": "2026-11-16",
-      "latestValidDate": "2026-11-17",
+      "field": "ipoBoards.star.ipoFund",
+      "frequency": "currentMonth",
+      "expectedDate": "2026-11-20",
+      "latestValidDate": "2026-11-20",
       "status": "current",
       "missingAtLatestRow": false
     },
     {
-      "source": "index_profit_data",
-      "series": "sh",
-      "field": "profitYi",
-      "frequency": "quarter",
-      "expectedDate": "2026-09-30",
-      "latestValidDate": "2026-09-30",
+      "source": "official_sentiment_data",
+      "series": "series",
+      "field": "holderBoards.chinext.holderNetReductionAmount",
+      "frequency": "currentMonth",
+      "expectedDate": "2026-11-20",
+      "latestValidDate": "2026-11-20",
       "status": "current",
       "missingAtLatestRow": false
     },
     {
-      "source": "index_profit_data",
-      "series": "k50",
-      "field": "profitYi",
-      "frequency": "quarter",
-      "expectedDate": "2026-09-30",
-      "latestValidDate": "2026-09-30",
-      "status": "current",
-      "missingAtLatestRow": false
-    },
-    {
-      "source": "index_profit_data",
-      "series": "sz",
-      "field": "profitYi",
-      "frequency": "quarter",
-      "expectedDate": "2026-09-30",
-      "latestValidDate": "2026-09-30",
+      "source": "official_sentiment_data",
+      "series": "series",
+      "field": "holderBoards.star.holderNetReductionAmount",
+      "frequency": "currentMonth",
+      "expectedDate": "2026-11-20",
+      "latestValidDate": "2026-11-20",
       "status": "current",
       "missingAtLatestRow": false
     }
   ],
-  "warnings": [],
-  "partialUpdate": {
-    "task": "etf",
-    "checkedAt": "2026-11-17T11:12:15.468Z",
-    "note": "ETF asset calculation checked separately. Other task checks retain their existing timestamps; unrelated CSI preflight timed out, no new full refresh is claimed.",
-    "profit": {
-      "checkedAt": "2026-11-18T03:08:03.802Z",
-      "note": "Added historical 科创50 member profit aggregation and validated all three profit series. Other source validation times unchanged; not a full daily refresh."
+  "warnings": [
+    {
+      "source": "retail_index_metrics",
+      "series": "sh",
+      "field": "marginBalance",
+      "frequency": "laggedSession",
+      "expectedDate": "2026-11-20",
+      "latestValidDate": "2026-11-19",
+      "status": "source_lag",
+      "missingAtLatestRow": true
+    },
+    {
+      "source": "retail_index_metrics",
+      "series": "sh",
+      "field": "marginFloatRatio",
+      "frequency": "laggedSession",
+      "expectedDate": "2026-11-20",
+      "latestValidDate": "2026-11-19",
+      "status": "source_lag",
+      "missingAtLatestRow": true
+    },
+    {
+      "source": "retail_index_metrics",
+      "series": "k50",
+      "field": "marginBalance",
+      "frequency": "laggedSession",
+      "expectedDate": "2026-11-20",
+      "latestValidDate": "2026-11-19",
+      "status": "source_lag",
+      "missingAtLatestRow": true
+    },
+    {
+      "source": "retail_index_metrics",
+      "series": "k50",
+      "field": "marginFloatRatio",
+      "frequency": "laggedSession",
+      "expectedDate": "2026-11-20",
+      "latestValidDate": "2026-11-19",
+      "status": "source_lag",
+      "missingAtLatestRow": true
+    },
+    {
+      "source": "retail_index_metrics",
+      "series": "sz",
+      "field": "marginBalance",
+      "frequency": "laggedSession",
+      "expectedDate": "2026-11-20",
+      "latestValidDate": "2026-11-19",
+      "status": "source_lag",
+      "missingAtLatestRow": true
+    },
+    {
+      "source": "retail_index_metrics",
+      "series": "sz",
+      "field": "marginFloatRatio",
+      "frequency": "laggedSession",
+      "expectedDate": "2026-11-20",
+      "latestValidDate": "2026-11-19",
+      "status": "source_lag",
+      "missingAtLatestRow": true
     }
-  }
+  ]
 }

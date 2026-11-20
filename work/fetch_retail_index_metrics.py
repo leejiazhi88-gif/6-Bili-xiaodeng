@@ -3,6 +3,7 @@ import json
 import time
 from bisect import bisect_right
 from collections import defaultdict
+from datetime import date as calendar_date, timedelta
 from pathlib import Path
 
 from fetch_retail_sentiment_data import ROOT, call_api, get_token
@@ -50,12 +51,33 @@ def index_turnover(token, code, first_year, last_year):
     return values
 
 
+def current_week_margin(token, latest):
+    """Keep the latest published margin observation at its actual date.
+
+    Friday's price sample must not discard Thursday's available financing
+    snapshot merely because Friday financing has not been published yet.
+    """
+    end = calendar_date.fromisoformat(latest)
+    monday = end - timedelta(days=end.weekday())
+    rows_by_date = {}
+    for offset in range((end - monday).days + 1):
+        day = (end - timedelta(days=offset)).isoformat()
+        rows = request(token, 'margin_detail', {'trade_date': day.replace('-', '')}, 'ts_code,rzye')
+        rows_by_date[day] = rows
+        if rows:
+            return day, rows_by_date
+    return None, rows_by_date
+
+
 def main():
     token = get_token()
     weekly = json.loads(MARKET.read_text(encoding="utf-8"))["series"]
     by_month = {row["date"][:7]: row["date"] for row in weekly}
     month_dates = set(by_month.values())
     dates_to_process = [row["date"] for row in weekly]
+    margin_date, recent_margin = current_week_margin(token, dates_to_process[-1])
+    if margin_date:
+        dates_to_process = sorted(set(dates_to_process) | {margin_date})
     last_year = int(dates_to_process[-1][:4])
     latest_month = dates_to_process[-1][:7]
     cached = json.loads(OUTPUT.read_text(encoding="utf-8")) if OUTPUT.exists() and not full_refresh() else {}
@@ -110,8 +132,8 @@ def main():
         monthly = date in month_dates
         basic_rows = request(token, "daily_basic", {"trade_date": compact},
                              "ts_code,circ_mv,turnover_rate")
-        margin_rows = request(token, "margin_detail", {"trade_date": compact},
-                              "ts_code,rzye")
+        margin_rows = recent_margin[date] if date in recent_margin else request(
+            token, "margin_detail", {"trade_date": compact}, "ts_code,rzye")
         limit_codes = None
         if compact >= "20200101":
             limit_codes = {row["ts_code"] for row in request(
@@ -154,6 +176,7 @@ def main():
             "turnover": "Tushare index_dailybasic turnover_rate for sh/k50; constituent turnover_rate weighted by circ_mv for sz",
             "marginBalance": "Sum of constituent rzye; non-margin-eligible stocks contribute zero",
             "marginFloatRatio": "Constituent rzye / sum(circ_mv) * 100",
+            "latestMarginSampling": "Latest published observation within current natural week retains its actual date; not carried forward to price sample date",
             "limitUpCount": "Count of current constituents in Tushare limit_list_d limit_type U",
         },
         **result,

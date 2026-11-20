@@ -25,10 +25,10 @@ def main():
     # Exercise the verified TLS path used by both CSI requests. Do not disable
     # certificate checks or wait for hundreds of income calls before failure.
     request = urllib.request.Request('https://oss-ch.csindex.com.cn/static/html/csindex/public/uploads/indices/detail/files/zh_CN/000680factsheet.pdf',
-                                     headers={'User-Agent': 'Mozilla/5.0'})
+                                     headers={'User-Agent': 'Mozilla/5.0'}, method='HEAD')
     with urllib.request.urlopen(request, timeout=30) as response:
-        if response.read(5) != b'%PDF-':
-            raise RuntimeError('Official factsheet did not return a PDF')
+        if response.headers.get_content_type() != 'application/pdf':
+            raise RuntimeError('Official factsheet did not identify a PDF')
     cached = json.loads(OUTPUT.read_text(encoding='utf-8')) if OUTPUT.exists() else {'series': []}
     margin = call_api(get_token(), 'margin_detail', {'trade_date': eligible[-1]}, 'ts_code,rzye')
     print(json.dumps({'today': now.strftime('%Y-%m-%d'), 'expectedSession': eligible[-1],

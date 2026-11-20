@@ -49,22 +49,45 @@ def parse_factsheet(content):
                 "pb": metric("市净率")}
 
 
-def main():
+def fetch_factsheet(previous):
+    # OSS single-part ETags are content MD5s. Reuse only a byte-identical,
+    # locally verified archive, never an unchanged timestamp alone.
+    request = urllib.request.Request(SOURCE_URL, headers={"User-Agent": "Mozilla/5.0"}, method="HEAD")
+    with urllib.request.urlopen(request, timeout=30) as response:
+        etag = response.headers.get("ETag", "").strip('"').lower()
+        size = response.headers.get("Content-Length")
+    archive = previous.get("meta", {}).get("archive")
+    if archive and re.fullmatch(r"[0-9a-f]{32}", etag):
+        file = ROOT / archive
+        if file.is_file():
+            content = file.read_bytes()
+            if (content.startswith(b"%PDF-") and size == str(len(content))
+                    and hashlib.md5(content).hexdigest() == etag
+                    and hashlib.sha256(content).hexdigest() == previous.get("meta", {}).get("sha256")):
+                return content, "verified_unchanged_archive"
     request = urllib.request.Request(SOURCE_URL, headers={"User-Agent": "Mozilla/5.0"})
     with urllib.request.urlopen(request, timeout=45) as response:
         content = response.read()
+    if re.fullmatch(r"[0-9a-f]{32}", etag) and hashlib.md5(content).hexdigest() != etag:
+        raise ValueError("Official factsheet changed during retrieval; retry required")
+    return content, "downloaded"
+
+
+def main():
+    previous = json.loads(OUTPUT.read_text(encoding="utf-8")) if OUTPUT.exists() else {}
+    content, retrieval = fetch_factsheet(previous)
     snapshot = parse_factsheet(content)
     archive = ROOT / "work" / "sources" / f"000680-{snapshot['date']}.pdf"
     archive.parent.mkdir(parents=True, exist_ok=True)
     archive.write_bytes(content)
-    previous = json.loads(OUTPUT.read_text(encoding="utf-8")) if OUTPUT.exists() else {}
     snapshots = {row["date"]: row for row in previous.get("snapshots", [])}
     snapshots[snapshot["date"]] = snapshot
     result = {
         "meta": {"tsCode": "000680.SH", "source": "中证指数官方单张", "sourceUrl": SOURCE_URL,
                  "method": "滚动市盈率；指数指标采用个股计算用股本计算",
                  "frequency": "官方月末快照", "fetchedAt": datetime.now(timezone.utc).isoformat(),
-                 "sha256": hashlib.sha256(content).hexdigest(), "archive": archive.relative_to(ROOT).as_posix()},
+                 "sha256": hashlib.sha256(content).hexdigest(), "archive": archive.relative_to(ROOT).as_posix(),
+                 "retrieval": retrieval},
         "snapshots": [snapshots[date] for date in sorted(snapshots)],
     }
     OUTPUT.write_text(json.dumps(result, ensure_ascii=False, separators=(",", ":")), encoding="utf-8")
